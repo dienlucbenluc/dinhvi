@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ghi nhớ vị trí công tơ của khách hàng</title>
+    <style>
+        html, body { height: 100%; margin: 0; padding: 0; font-family: Arial, sans-serif; background: #f4f4f9; color: #333; overflow: hidden; }
+        .app-container { display: flex; flex-direction: column; height: 100vh; max-width: 600px; margin: 0 auto; box-sizing: border-box; padding: 12px; }
+        .fixed-header { flex-shrink: 0; background: #f4f4f9; padding-bottom: 8px; }
+        .form-group { margin-bottom: 0px; }
+        .form-row { margin-bottom: 0px; display: flex; gap: 8px; width: 100%; }
+        .col-40 { flex: 0 0 calc(35% - 4px); max-width: calc(35% - 4px); }
+        .col-60 { flex: 0 0 calc(65% - 4px); max-width: calc(65% - 4px); }
+        .header-logo-container { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
+        .main-logo { width: 40px; height: 40px; object-fit: contain; flex-shrink: 0; mix-blend-mode: multiply; }
+        .header-text-group { display: flex; flex-direction: column; justify-content: center; }
+        .company-title { font-size: 17px; font-weight: bold; color: #1E90FF; line-height: 1.2; margin-bottom: 2px; }
+        .tac-gia { font-size: 12px; color: #4682B4; font-style: italic; margin-bottom: 2px; }
+        label { display: block; font-weight: bold; margin-bottom: 4px; color: #444; font-size: 14px; }
+        input[type="text"], input[type="password"], select, textarea { width: 100%; padding: 10px 12px; border: 1px solid #ccc; border-radius: 8px; box-sizing: border-box; font-size: 15px; background: #fff; font-family: Arial, sans-serif; }
+        textarea { height: 40px; resize: none; font-family: inherit; }
+        button { width: 100%; padding: 12px; margin: 5px 0; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; }
+        .btn-get { background: #28a745; color: white; }
+        .search-box { margin-top: 8px; }
+        .search-input { border: 2px solid #007bff; background: #fff; font-size: 13px; font-style: italic;}
+        .list-title { margin-top: 5px; margin-bottom: 5px; font-size: 16px; font-weight: bold; }
+        .scrollable-content { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; padding-right: 2px; position: relative; }
+        ul { list-style-type: none; padding: 0; margin: 0; }
+        li { background: white; margin-bottom: 10px; padding: 12px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); cursor: pointer; transition: all 0.2s ease; border: 1px solid #eee; }
+        li:hover { border-color: #007bff; }
+        .loc-name { font-size: 15px; font-weight: bold; color: #111; margin-bottom: 4px; }
+        .loc-employee { font-size: 13px; font-weight: bold; color: #007bff; margin-bottom: 4px; }
+        .loc-job { font-size: 13px; font-weight: bold; color: #d9534f; margin-bottom: 4px; }
+        .loc-note { font-size: 13px; color: #555; margin-bottom: 6px; font-style: italic; }
+        .coords { font-size: 12px; margin-bottom: 6px; color: #222; }
+        .maps-row { display: flex; justify-content: space-between; align-items: center; }
+        .maps-link { display: inline-block; color: #0056b3; text-decoration: underline; font-weight: bold; font-size: 14px; }
+        .action-bar { display: none; margin-top: 10px; padding-top: 8px; border-top: 1px dashed #ddd; gap: 8px; }
+        .action-bar button { width: 50%; padding: 8px; font-size: 13px; margin: 0; }
+        .btn-edit { background: #ffc107; color: #000; }
+        .btn-delete { background: #dc3545; color: #fff; }
+        li.selected .action-bar { display: flex; }
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0, 0, 0, 0.4); display: none; align-items: center; justify-content: center; z-index: 10000; }
+        .modal-box { background: #ffffff; width: 85%; max-width: 340px; border-radius: 12px; padding: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); text-align: center; }
+        .modal-title { font-size: 18px; font-weight: bold; color: #28a745; margin-bottom: 12px; }
+        .modal-message { font-size: 15px; color: #444; margin-bottom: 12px; }
+        .modal-buttons { display: flex; gap: 10px; margin-top: 12px; }
+        .modal-buttons button { flex: 1; padding: 10px; font-size: 14px; border-radius: 6px; margin: 0; }
+        .btn-modal-cancel { background: #e0e0e0; color: #333; }
+        .btn-modal-confirm { background: #28a745; color: white; }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <div class="fixed-header">
+            <div class="form-group">
+                <div class="header-logo-container">
+                    <img src="LOGO.png" alt="CMIS Logo" class="main-logo">
+                    <div class="header-text-group">
+                        <div class="company-title">Điện lực Bến Lức-Định vị công tơ</div>
+                        <div class="tac-gia">Lập trình: Nguyễn Đức Truyền (0917747877)</div>
+                    </div>
+                </div>
+                
+                <div class="form-group form-row">
+                    <div class="col-40">
+                        <select id="loai_tim">
+                            <option value="MKH">Tìm MKH</option>
+                            <option value="NO">Số CTơ</option>
+                        </select>
+                    </div>
+                    <div class="col-60">
+                        <input type="text" id="locName" value="PB060600" style="margin-bottom:3px;">      
+                    </div>
+                </div>
+            </div>
+        
+            <div class="form-group form-row">
+                <div class="col-40">
+                    <select id="jobSelect">
+                        <option value="">Đang tải CV</option>
+                    </select>
+                </div>
+                <div class="col-60">
+                    <select id="employeeSelect">
+                        <option value="">Đang tải nhân viên</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-group" style="margin-top:3px;">
+                <textarea id="locNote" placeholder="Nhập ghi chú thêm nếu có..."></textarea>
+            </div>
+            
+            <button class="btn-get" onclick="getLocation()">Lấy tọa độ vị trí treo công tơ</button>
+
+            <div class="list-title">Danh sách vị trí công tơ: <span id="locationCount" style="color: #007bff;">(0)</span></div>
+
+            <div class="search-box">
+                <input type="text" id="searchInput" class="search-input" placeholder="🔍 Nhập MKH, Số CT, NV, công việc, ghi chú...">
+            </div>
+        </div>
+
+        <div class="scrollable-content">
+            <ul id="locationList"></ul>
+        </div>
+    </div>
+
+    <!-- Modal Xác nhận xóa -->
+    <div id="confirmModal" class="modal-overlay">
+        <div class="modal-box">
+            <div class="modal-title" style="color: #dc3545;">Xác nhận xóa</div>
+            <div class="modal-message">Nhập mật khẩu của nhân viên đã tạo để xóa.</div>
+            <input type="password" id="deletePassword" placeholder="Mật khẩu xác nhận" style="margin-bottom: 10px;">
+            <div class="modal-buttons">
+                <button class="btn-modal-cancel" onclick="closeConfirmModal()">Hủy</button>
+                <button class="btn-modal-confirm" id="btnConfirmDelete" onclick="deleteLocation()" style="background: #dc3545;">Xóa</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Sửa thông tin -->
+    <div id="editModal" class="modal-overlay">
+        <div class="modal-box" style="text-align: left;">
+            <div class="modal-title" style="text-align: center;">Chỉnh sửa thông tin</div>
+            
+            <div class="form-group form-row">
+                <div class="col-40">
+                    <label for="editLoaiTim">Loại tìm:</label>
+                    <select id="editLoaiTim">
+                        <option value="MKH">MKH</option>
+                        <option value="NO">Số CTơ</option>
+                    </select>
+                </div>
+                <div class="col-60">
+                    <label for="editNameInput">Dữ liệu:</label>
+                    <input type="text" id="editNameInput" value="PB060600" style="margin-bottom:3px;">
+                </div>
+            </div>
+
+            <div class="form-group form-row">
+                <div class="col-40">
+                    <label for="editJobSelect">Công việc:</label>
+                    <select id="editJobSelect">
+                        <option value="">Chọn CV</option>
+                    </select>
+                </div>
+                <div class="col-60">
+                    <label for="editEmployeeSelect">Nhân viên:</label>
+                    <select id="editEmployeeSelect">
+                        <option value="">Chọn nhân viên</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="editNoteInput">Ghi chú:</label>
+                <textarea id="editNoteInput"></textarea>
+            </div>
+
+            <div class="form-group" style="margin-top: 8px;">
+                <label style="display: flex; align-items: center; gap: 5px; color: #dc3545; font-weight: normal; font-size: 13px;">
+                    <input type="checkbox" id="editUpdateCoords" style="width: auto;"> Cập nhật lại tọa độ mới
+                </label>
+                <input type="password" id="editPassword" placeholder="Nhập mật khẩu của nhân viên tạo" style="margin-top: 5px;">
+            </div>
+
+            <div class="modal-buttons">
+                <button class="btn-modal-cancel" onclick="closeEditModal()">Hủy</button>
+                <button class="btn-modal-confirm" onclick="saveEditLocation()">Cập nhật</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const loaiTimSelect = document.getElementById('loai_tim');
+            const locNameInput = document.getElementById('locName');
+
+            // Hàm xử lý chung việc đổi Value và Placeholder
+            function updateInputState(selectEl, inputEl) {
+                if (selectEl.value === 'MKH') { 
+                    inputEl.value = 'PB060600'; 
+                    inputEl.placeholder = '';
+                } else { 
+                    inputEl.value = ''; 
+                    inputEl.placeholder = 'Nhập 8 số cuối'; 
+                }
+            }
+
+            if (loaiTimSelect && locNameInput) {
+                loaiTimSelect.addEventListener('change', function() {
+                    updateInputState(this, locNameInput);
+                });
+                
+                setTimeout(() => {
+                    updateInputState(loaiTimSelect, locNameInput);
+                }, 150);
+            }
+
+            // Xử lý tương tự cho phần Modal Sửa thông tin
+            const editLoaiTimSelect = document.getElementById('editLoaiTim');
+            const editNameInput = document.getElementById('editNameInput');
+            if (editLoaiTimSelect && editNameInput) {
+                editLoaiTimSelect.addEventListener('change', function() {
+                    updateInputState(this, editNameInput);
+                });
+            }
+        });
+    </script>
+</body>
+</html>
