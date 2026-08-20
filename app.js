@@ -2,9 +2,8 @@ const API_URL = "https://script.google.com/macros/s/AKfycbxJZHenN4zoxZR7wOk4SiBn
 
 let allLocations = [];
 let currentId = null;
-let currentUser = null; // Lưu phiên người dùng hiện tại
+let currentUser = null;
 
-// Khởi chạy khi load trang
 document.addEventListener("DOMContentLoaded", () => {
   const sessionStr = localStorage.getItem("cmis_user_session");
   if (!sessionStr) {
@@ -47,13 +46,6 @@ document.addEventListener("DOMContentLoaded", () => {
 function toggleMenu() {
   const dropdown = document.getElementById("menuDropdown");
   if (dropdown) dropdown.classList.toggle("show");
-}
-
-function handleLogout() {
-  if (confirm("Bạn có chắc chắn muốn thoát đăng nhập?")) {
-    localStorage.removeItem("cmis_user_session");
-    window.location.href = "login.html";
-  }
 }
 
 function saveLocalSettings() {
@@ -110,7 +102,7 @@ function loadInitData() {
   if (listElement) {
     listElement.innerHTML = `
       <li style="text-align: center; padding: 20px;">
-        <img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyMDAgMjAwIj48Y2lyY2xlIGN4PSIxMDAiIGN5PSIxMDAiIHI9IjQ1IiBmaWxsPSJub25lIiBzdHJva2U9IjMwMDdiZmYiIHN0cm9rZS13aWR0aD0iMTAiIHN0cm9rZS1kYXNoYXJyYXk9IjIzMCAxMDAiPjxhbmltYXRlVHJhbnNmb3JtIGF0dHJpYnV0ZU5hbWU9InRyYW5zZm9ybSIgdHlwZT0icm90YXRlIiBmcm9tPSIwIDEwMCAxMDAiIHRvPSIzNjAgMTAwIDEwMCIgZHVyPSIxcyIgcmVwZWF0Q291bnQ9ImluZGVmaW5pdGUiLz48L2NpcmNsZT48L3N2Zz4=" alt="loading" style="width: 30px; height: 30px; vertical-align: middle; margin-right: 10px;">
+        <span class="spinner"></span>
         <span style="font-weight: bold; color: #007bff; vertical-align: middle; font-size: 15px;">Đang lấy danh sách...</span>
       </li>
     `;
@@ -263,7 +255,6 @@ function renderList(locations) {
   listElement.appendChild(fragment);
 }
 
-// Hàm showToast hỗ trợ thông báo tiến trình giữ liên tục
 function showToast(msg, keepOpen = false) {
   const oldToast = document.getElementById("custom-toast");
   if (oldToast) oldToast.remove();
@@ -469,7 +460,6 @@ function saveEditLocation() {
     return;
   }
 
-  // Báo tiến trình đang thực hiện và giữ nguyên toast
   showToast("⏳ Đang xử lý sửa dữ liệu...", true);
 
   const sendEditRequest = (lat = "", lng = "", time = "") => {
@@ -498,9 +488,9 @@ function saveEditLocation() {
           }
         }
         syncLocalCache();
-        filterLocations(); // Load lại danh sách xong
+        filterLocations();
         closeEditModal();
-        showToast("Cập nhật thành công!"); // Đóng tiến trình bằng toast mới
+        showToast("Cập nhật thành công!");
       } else {
         showToast("Lỗi: " + res.message);
       }
@@ -549,7 +539,6 @@ function deleteLocation() {
   const btn = document.getElementById("btnConfirmDelete");
   if(btn) btn.disabled = true;
 
-  // Báo tiến trình đang thực hiện và giữ nguyên toast
   showToast("⏳ Đang xử lý xóa khách hàng...", true);
 
   fetch(API_URL, {
@@ -565,9 +554,9 @@ function deleteLocation() {
     if (res.status === "success") {
       allLocations = allLocations.filter(loc => String(loc.id) !== String(currentId));
       syncLocalCache();
-      filterLocations(); // Load lại danh sách xong
+      filterLocations();
       closeConfirmModal();
-      showToast("Xóa khách hàng thành công!"); // Đóng tiến trình bằng toast thành công
+      showToast("Xóa khách hàng thành công!");
     } else {
       showToast("Lỗi: " + res.message);
     }
