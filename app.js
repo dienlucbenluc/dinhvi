@@ -269,7 +269,7 @@ function showToast(msg, keepOpen = false) {
 
   // Chỉ khi thông báo liên quan đến thêm thành công (lưu vị trí), cập nhật thành công (sửa) hoặc xóa thành công mới đổi thành màu xanh
   if (
-    msgLower.includes("đã lưu vị trí") || 
+    msgLower.includes("đã lưu vị trí công tơ") || 
     msgLower.includes("cập nhật thành công") || 
     msgLower.includes("xóa khách hàng thành công")
   ) {
@@ -404,7 +404,7 @@ function getLocation() {
         syncLocalCache();
         filterLocations();
 
-        showToast(`Đã lưu vị trí: \n${res.ma_khang} - ${res.ten_khang}`);
+        showToast(`Đã lưu vị trí công tơ: \n${res.ma_khang} - ${res.ten_khang}`);
         document.getElementById("locName").value = searchType === 'MKH' ? 'PB060600' : '';
         document.getElementById("locNote").value = "";
       } else {
