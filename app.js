@@ -6,7 +6,6 @@ let currentUser = null; // Lưu phiên người dùng hiện tại
 
 // Khởi chạy khi load trang
 document.addEventListener("DOMContentLoaded", () => {
-  // Kiểm tra trạng thái đăng nhập
   const sessionStr = localStorage.getItem("cmis_user_session");
   if (!sessionStr) {
     window.location.href = "login.html";
@@ -35,7 +34,6 @@ document.addEventListener("DOMContentLoaded", () => {
     if (el) el.addEventListener('change', saveLocalSettings);
   });
 
-  // Đóng menu khi click ra ngoài
   window.addEventListener('click', function(e) {
     if (!e.target.matches('.menu-btn')) {
       const dropdown = document.getElementById("menuDropdown");
@@ -112,7 +110,7 @@ function loadInitData() {
   if (listElement) {
     listElement.innerHTML = `
       <li style="text-align: center; padding: 20px;">
-        <img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyMDAgMjAwIj48Y2lyY2xlIGN4PSIxMDAiIGN5PSIxMDAiIHI9IjQ1IiBmaWxsPSJub25lIiBzdHJva2U9IiMwMDdiZmYiIHN0cm9rZS13aWR0aD0iMTAiIHN0cm9rZS1kYXNoYXJyYXk9IjIzMCAxMDAiPjxhbmltYXRlVHJhbnNmb3JtIGF0dHJpYnV0ZU5hbWU9InRyYW5zZm9ybSIgdHlwZT0icm90YXRlIiBmcm9tPSIwIDEwMCAxMDAiIHRvPSIzNjAgMTAwIDEwMCIgZHVyPSIxcyIgcmVwZWF0Q291bnQ9ImluZGVmaW5pdGUiLz48L2NpcmNsZT48L3N2Zz4=" alt="loading" style="width: 30px; height: 30px; vertical-align: middle; margin-right: 10px;">
+        <img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyMDAgMjAwIj48Y2lyY2xlIGN4PSIxMDAiIGN5PSIxMDAiIHI9IjQ1IiBmaWxsPSJub25lIiBzdHJva2U9IjMwMDdiZmYiIHN0cm9rZS13aWR0aD0iMTAiIHN0cm9rZS1kYXNoYXJyYXk9IjIzMCAxMDAiPjxhbmltYXRlVHJhbnNmb3JtIGF0dHJpYnV0ZU5hbWU9InRyYW5zZm9ybSIgdHlwZT0icm90YXRlIiBmcm9tPSIwIDEwMCAxMDAiIHRvPSIzNjAgMTAwIDEwMCIgZHVyPSIxcyIgcmVwZWF0Q291bnQ9ImluZGVmaW5pdGUiLz48L2NpcmNsZT48L3N2Zz4=" alt="loading" style="width: 30px; height: 30px; vertical-align: middle; margin-right: 10px;">
         <span style="font-weight: bold; color: #007bff; vertical-align: middle; font-size: 15px;">Đang lấy danh sách...</span>
       </li>
     `;
@@ -265,7 +263,8 @@ function renderList(locations) {
   listElement.appendChild(fragment);
 }
 
-function showToast(msg) {
+// Hàm showToast hỗ trợ thông báo tiến trình giữ liên tục
+function showToast(msg, keepOpen = false) {
   const oldToast = document.getElementById("custom-toast");
   if (oldToast) oldToast.remove();
 
@@ -277,6 +276,8 @@ function showToast(msg) {
   let msgLower = msg.toLowerCase();
   if (msgLower.includes("lỗi") || msgLower.includes("vui lòng") || msgLower.includes("không") || msgLower.includes("hủy") || msgLower.includes("sai")) {
     bgColor = "#dc3545"; 
+  } else if (msgLower.includes("đang")) {
+    bgColor = "#007bff";
   }
 
   Object.assign(toast.style, {
@@ -308,11 +309,13 @@ function showToast(msg) {
     toast.style.transform = "translateX(0)";
   }, 10);
 
-  setTimeout(() => {
-    toast.style.opacity = "0";
-    toast.style.transform = "translateX(120%)";
-    setTimeout(() => toast.remove(), 300);
-  }, 5000);
+  if (!keepOpen) {
+    setTimeout(() => {
+      toast.style.opacity = "0";
+      toast.style.transform = "translateX(120%)";
+      setTimeout(() => toast.remove(), 300);
+    }, 5000);
+  }
 }
 
 function getLocation() {
@@ -341,7 +344,7 @@ function getLocation() {
     return;
   }
 
-  showToast("Đang lấy tọa độ, vui lòng đợi...");
+  showToast("⏳ Đang lấy tọa độ, vui lòng đợi...", true);
 
   const saveToServer = (lat, lng) => {
     const now = new Date();
@@ -443,9 +446,7 @@ function openEditModal(id) {
     document.getElementById("editNameInput").value = loc.ma_khang || "";
     document.getElementById("editJobSelect").value = loc.ten_cviec || "";
     document.getElementById("editNoteInput").value = loc.note || "";
-    
     document.getElementById("editUpdateCoords").checked = false;
-    document.getElementById("editPassword").value = "";
 
     document.getElementById("editModal").style.display = "flex";
   }
@@ -462,19 +463,14 @@ function saveEditLocation() {
   const newJob = document.getElementById("editJobSelect").value;
   const newNote = document.getElementById("editNoteInput").value.trim();
   const updateCoords = document.getElementById("editUpdateCoords").checked;
-  const password = document.getElementById("editPassword").value.trim();
 
   if (!newSearchValue || !newJob) {
     showToast("Vui lòng nhập đủ thông tin bắt buộc");
     return;
   }
 
-  if (!password) {
-    showToast("Vui lòng nhập Mật khẩu để xác nhận sửa");
-    return;
-  }
-
-  showToast("⏳ Đang xử lý cập nhật, vui lòng đợi...");
+  // Báo tiến trình đang thực hiện và giữ nguyên toast
+  showToast("⏳ Đang xử lý sửa dữ liệu...", true);
 
   const sendEditRequest = (lat = "", lng = "", time = "") => {
     fetch(API_URL, {
@@ -483,7 +479,7 @@ function saveEditLocation() {
       redirect: "follow",
       body: JSON.stringify({
         action: "EDIT", id: currentId, search_type: newSearchType, search_value: newSearchValue,
-        ten_nvien: currentUser.ten_nvien, ten_ndung: currentUser.ten_ndung, ten_cviec: newJob, note: newNote, mat_khau: password,
+        ten_nvien: currentUser.ten_nvien, ten_ndung: currentUser.ten_ndung, ten_cviec: newJob, note: newNote,
         lat: lat, lng: lng, time: time
       })
     })
@@ -502,9 +498,9 @@ function saveEditLocation() {
           }
         }
         syncLocalCache();
-        filterLocations();
+        filterLocations(); // Load lại danh sách xong
         closeEditModal();
-        showToast("Cập nhật định vị thành công");
+        showToast("Cập nhật thành công!"); // Đóng tiến trình bằng toast mới
       } else {
         showToast("Lỗi: " + res.message);
       }
@@ -539,7 +535,6 @@ function saveEditLocation() {
 
 function openConfirmModal(id) {
   currentId = id;
-  document.getElementById("deletePassword").value = ""; 
   document.getElementById("confirmModal").style.display = "flex";
 }
 
@@ -550,23 +545,18 @@ function closeConfirmModal() {
 
 function deleteLocation() {
   if (!currentId) return;
-  const password = document.getElementById("deletePassword").value.trim();
-  
-  if (!password) {
-    showToast("Vui lòng nhập Mật khẩu để xác nhận xóa");
-    return;
-  }
 
   const btn = document.getElementById("btnConfirmDelete");
   if(btn) btn.disabled = true;
 
-  showToast("⏳ Đang xử lý xóa, vui lòng đợi...");
+  // Báo tiến trình đang thực hiện và giữ nguyên toast
+  showToast("⏳ Đang xử lý xóa khách hàng...", true);
 
   fetch(API_URL, {
     method: "POST",
     headers: { "Content-Type": "text/plain;charset=utf-8" },
     redirect: "follow",
-    body: JSON.stringify({ action: "DELETE", id: currentId, ten_ndung: currentUser.ten_ndung, mat_khau: password })
+    body: JSON.stringify({ action: "DELETE", id: currentId, ten_ndung: currentUser.ten_ndung })
   })
   .then(res => res.text())
   .then(text => JSON.parse(text))
@@ -575,9 +565,9 @@ function deleteLocation() {
     if (res.status === "success") {
       allLocations = allLocations.filter(loc => String(loc.id) !== String(currentId));
       syncLocalCache();
-      filterLocations();
+      filterLocations(); // Load lại danh sách xong
       closeConfirmModal();
-      showToast("Xóa khách hàng thành công");
+      showToast("Xóa khách hàng thành công!"); // Đóng tiến trình bằng toast thành công
     } else {
       showToast("Lỗi: " + res.message);
     }
@@ -608,7 +598,7 @@ function saveNewPassword() {
     return;
   }
 
-  showToast("⏳ Đang đổi mật khẩu...");
+  showToast("⏳ Đang đổi mật khẩu...", true);
 
   fetch(API_URL, {
     method: "POST",
