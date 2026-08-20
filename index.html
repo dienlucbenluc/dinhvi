@@ -64,6 +64,24 @@
         .modal-buttons button { flex: 1; padding: 10px; font-size: 14px; border-radius: 6px; margin: 0; }
         .btn-modal-cancel { background: #e0e0e0; color: #333; }
         .btn-modal-confirm { background: #28a745; color: white; }
+
+        /* Spinner Loader CSS Pure */
+        .spinner {
+            width: 24px;
+            height: 24px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #007bff;
+            border-radius: 50%;
+            display: inline-block;
+            animation: spin 0.8s linear infinite;
+            vertical-align: middle;
+            margin-right: 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
     </style>
 </head>
 <body>
@@ -122,7 +140,7 @@
         </div>
     </div>
 
-    <!-- Modal Xác nhận Đăng xuất (MỚI) -->
+    <!-- Modal Xác nhận Đăng xuất -->
     <div id="logoutModal" class="modal-overlay">
         <div class="modal-box">
             <div class="modal-title" style="color: #dc3545;">Xác nhận thoát</div>
@@ -210,9 +228,8 @@
         </div>
     </div>
 
-    <script src="app.js?v=1.0.1"></script>
+    <script src="app.js?v=1.0.2"></script>
     <script>
-        // Xử lý Modal Đăng xuất chuyên nghiệp
         function handleLogout() {
             const menu = document.getElementById('menuDropdown');
             if (menu) menu.classList.remove('show');
