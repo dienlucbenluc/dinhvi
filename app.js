@@ -263,10 +263,17 @@ function showToast(msg, keepOpen = false) {
   toast.id = "custom-toast";
   toast.innerText = msg;
 
-  let bgColor = "#28a745"; 
+  // Mặc định tất cả thông báo đều có màu đỏ
+  let bgColor = "red"; 
   let msgLower = msg.toLowerCase();
-  if (msgLower.includes("lỗi") || msgLower.includes("vui lòng") || msgLower.includes("không") || msgLower.includes("hủy") || msgLower.includes("sai") || msgLower.includes("đã tồn tại")) {
-    bgColor = "red"; 
+
+  // Chỉ khi thông báo liên quan đến thêm thành công (lưu vị trí), cập nhật thành công (sửa) hoặc xóa thành công mới đổi thành màu xanh
+  if (
+    msgLower.includes("đã lưu vị trí") || 
+    msgLower.includes("cập nhật thành công") || 
+    msgLower.includes("xóa khách hàng thành công")
+  ) {
+    bgColor = "#28a745"; 
   } else if (msgLower.includes("đang")) {
     bgColor = "#007bff";
   }
