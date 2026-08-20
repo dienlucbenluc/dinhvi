@@ -3,6 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    
     <title>Ghi nhớ vị trí công tơ của khách hàng</title>
     <style>
         html, body { height: 100%; margin: 0; padding: 0; font-family: Arial, sans-serif; background: #f4f4f9; color: #333; overflow: hidden; }
@@ -12,11 +16,23 @@
         .form-row { margin-bottom: 0px; display: flex; gap: 8px; width: 100%; }
         .col-40 { flex: 0 0 calc(35% - 4px); max-width: calc(35% - 4px); }
         .col-60 { flex: 0 0 calc(65% - 4px); max-width: calc(65% - 4px); }
-        .header-logo-container { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
+        
+        .header-top-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+        .header-logo-container { display: flex; align-items: center; gap: 10px; }
         .main-logo { width: 40px; height: 40px; object-fit: contain; flex-shrink: 0; mix-blend-mode: multiply; }
         .header-text-group { display: flex; flex-direction: column; justify-content: center; }
-        .company-title { font-size: 17px; font-weight: bold; color: #1E90FF; line-height: 1.2; margin-bottom: 2px; }
-        .tac-gia { font-size: 12px; color: #4682B4; font-style: italic; margin-bottom: 2px; }
+        .company-title { font-size: 16px; font-weight: bold; color: #1E90FF; line-height: 1.2; margin-bottom: 2px; }
+        .tac-gia { font-size: 13px; color: #28a745; font-weight: bold; margin-bottom: 2px; }
+        
+        /* Menu dropdown */
+        .menu-container { position: relative; }
+        .menu-btn { background: #007bff; color: white; border: none; font-size: 18px; padding: 6px 12px; border-radius: 6px; cursor: pointer; width: auto; margin: 0; }
+        .menu-dropdown { display: none; position: absolute; right: 0; top: 38px; background: white; box-shadow: 0 4px 12px rgba(0,0,0,0.15); border-radius: 8px; z-index: 1000; min-width: 150px; overflow: hidden; }
+        .menu-dropdown.show { display: block; }
+        .menu-item { padding: 10px 14px; font-size: 14px; color: #333; cursor: pointer; text-align: left; border-bottom: 1px solid #eee; }
+        .menu-item:last-child { border-bottom: none; }
+        .menu-item:hover { background: #f0f0f0; }
+
         label { display: block; font-weight: bold; margin-bottom: 4px; color: #444; font-size: 14px; }
         input[type="text"], input[type="password"], select, textarea { width: 100%; padding: 10px 12px; border: 1px solid #ccc; border-radius: 8px; box-sizing: border-box; font-size: 15px; background: #fff; font-family: Arial, sans-serif; }
         textarea { height: 40px; resize: none; font-family: inherit; }
@@ -44,7 +60,6 @@
         .modal-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0, 0, 0, 0.4); display: none; align-items: center; justify-content: center; z-index: 10000; }
         .modal-box { background: #ffffff; width: 85%; max-width: 340px; border-radius: 12px; padding: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); text-align: center; }
         .modal-title { font-size: 18px; font-weight: bold; color: #28a745; margin-bottom: 12px; }
-        .modal-message { font-size: 15px; color: #444; margin-bottom: 12px; }
         .modal-buttons { display: flex; gap: 10px; margin-top: 12px; }
         .modal-buttons button { flex: 1; padding: 10px; font-size: 14px; border-radius: 6px; margin: 0; }
         .btn-modal-cancel { background: #e0e0e0; color: #333; }
@@ -54,39 +69,39 @@
 <body>
     <div class="app-container">
         <div class="fixed-header">
-            <div class="form-group">
+            <div class="header-top-row">
                 <div class="header-logo-container">
                     <img src="LOGO.png" alt="CMIS Logo" class="main-logo">
                     <div class="header-text-group">
                         <div class="company-title">Điện lực Bến Lức-Định vị công tơ</div>
-                        <div class="tac-gia">Lập trình: Nguyễn Đức Truyền (0917747877)</div>
+                        <div class="tac-gia" id="currentUserDisplay">👤 Đang tải...</div>
                     </div>
                 </div>
-                
-                <div class="form-group form-row">
-                    <div class="col-40">
-                        <select id="loai_tim">
-                            <option value="MKH">Tìm MKH</option>
-                            <option value="NO">Số CTơ</option>
-                        </select>
-                    </div>
-                    <div class="col-60">
-                        <input type="text" id="locName" value="PB060600" style="margin-bottom:3px;">      
+                <div class="menu-container">
+                    <button class="menu-btn" onclick="toggleMenu()">☰</button>
+                    <div class="menu-dropdown" id="menuDropdown">
+                        <div class="menu-item" onclick="openPassModal()">🔑 Đổi mật khẩu</div>
+                        <div class="menu-item" onclick="handleLogout()" style="color: red;">🚪 Thoát</div>
                     </div>
                 </div>
             </div>
-        
+
             <div class="form-group form-row">
                 <div class="col-40">
-                    <select id="jobSelect">
-                        <option value="">Đang tải CV</option>
+                    <select id="loai_tim">
+                        <option value="MKH">Mã KH</option>
+                        <option value="NO">Số CTơ</option>
                     </select>
                 </div>
                 <div class="col-60">
-                    <select id="employeeSelect">
-                        <option value="">Đang tải nhân viên</option>
-                    </select>
+                    <input type="text" id="locName" value="PB060600" style="margin-bottom:3px;">      
                 </div>
+            </div>
+        
+            <div class="form-group">
+                <select id="jobSelect">
+                    <option value="">Đang tải công việc...</option>
+                </select>
             </div>
 
             <div class="form-group" style="margin-top:3px;">
@@ -107,11 +122,10 @@
         </div>
     </div>
 
-    <!-- Modal Xác nhận xóa -->
     <div id="confirmModal" class="modal-overlay">
         <div class="modal-box">
             <div class="modal-title" style="color: #dc3545;">Xác nhận xóa</div>
-            <div class="modal-message">Nhập mật khẩu của nhân viên đã tạo để xóa.</div>
+            <div class="modal-message" style="margin-bottom: 10px;">Nhập mật khẩu tài khoản để xóa.</div>
             <input type="password" id="deletePassword" placeholder="Mật khẩu xác nhận" style="margin-bottom: 10px;">
             <div class="modal-buttons">
                 <button class="btn-modal-cancel" onclick="closeConfirmModal()">Hủy</button>
@@ -120,7 +134,6 @@
         </div>
     </div>
 
-    <!-- Modal Sửa thông tin -->
     <div id="editModal" class="modal-overlay">
         <div class="modal-box" style="text-align: left;">
             <div class="modal-title" style="text-align: center;">Chỉnh sửa thông tin</div>
@@ -139,19 +152,11 @@
                 </div>
             </div>
 
-            <div class="form-group form-row">
-                <div class="col-40">
-                    <label for="editJobSelect">Công việc:</label>
-                    <select id="editJobSelect">
-                        <option value="">Chọn CV</option>
-                    </select>
-                </div>
-                <div class="col-60">
-                    <label for="editEmployeeSelect">Nhân viên:</label>
-                    <select id="editEmployeeSelect">
-                        <option value="">Chọn nhân viên</option>
-                    </select>
-                </div>
+            <div class="form-group">
+                <label for="editJobSelect">Công việc:</label>
+                <select id="editJobSelect">
+                    <option value="">Chọn CV</option>
+                </select>
             </div>
 
             <div class="form-group">
@@ -160,10 +165,10 @@
             </div>
 
             <div class="form-group" style="margin-top: 8px;">
-                <label style="display: flex; align-items: center; gap: 5px; color: #dc3545; font-weight: normal; font-size: 13px;">
-                    <input type="checkbox" id="editUpdateCoords" style="width: auto;"> Cập nhật lại tọa độ mới
+                <label style="display: flex; align-items: center; gap: 5px; color: #dc3545; font-weight: normal; font-size: 14px;">
+                    <input type="checkbox" id="editUpdateCoords" style="width: auto;"> Check vào nếu lấy lại tọa độ mới
                 </label>
-                <input type="password" id="editPassword" placeholder="Nhập mật khẩu của nhân viên tạo" style="margin-top: 5px;">
+                <input type="password" id="editPassword" placeholder="Nhập mật khẩu xác nhận" style="margin-top: 5px;">
             </div>
 
             <div class="modal-buttons">
@@ -173,13 +178,30 @@
         </div>
     </div>
 
-    <script src="app.js"></script>
+    <div id="passModal" class="modal-overlay">
+        <div class="modal-box" style="text-align: left;">
+            <div class="modal-title" style="text-align: center;">Đổi mật khẩu</div>
+            <div class="form-group">
+                <label>Mật khẩu cũ:</label>
+                <input type="password" id="oldPassInput" placeholder="Nhập mật khẩu cũ">
+            </div>
+            <div class="form-group" style="margin-top: 8px;">
+                <label>Mật khẩu mới:</label>
+                <input type="password" id="newPassInput" placeholder="Nhập mật khẩu mới">
+            </div>
+            <div class="modal-buttons" style="margin-top: 15px;">
+                <button class="btn-modal-cancel" onclick="closePassModal()">Hủy</button>
+                <button class="btn-modal-confirm" onclick="saveNewPassword()">Lưu thay đổi</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js?v=2.0.0"></script>
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             const loaiTimSelect = document.getElementById('loai_tim');
             const locNameInput = document.getElementById('locName');
 
-            // Hàm xử lý chung việc đổi Value và Placeholder
             function updateInputState(selectEl, inputEl) {
                 if (selectEl.value === 'MKH') { 
                     inputEl.value = 'PB060600'; 
@@ -200,7 +222,6 @@
                 }, 150);
             }
 
-            // Xử lý tương tự cho phần Modal Sửa thông tin
             const editLoaiTimSelect = document.getElementById('editLoaiTim');
             const editNameInput = document.getElementById('editNameInput');
             if (editLoaiTimSelect && editNameInput) {
