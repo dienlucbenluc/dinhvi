@@ -122,11 +122,11 @@
         </div>
     </div>
 
+    <!-- Modal Xác nhận Xóa: Đã đổi câu hỏi và bỏ ô mật khẩu -->
     <div id="confirmModal" class="modal-overlay">
         <div class="modal-box">
             <div class="modal-title" style="color: #dc3545;">Xác nhận xóa</div>
-            <div class="modal-message" style="margin-bottom: 10px;">Nhập mật khẩu tài khoản để xóa.</div>
-            <input type="password" id="deletePassword" placeholder="Mật khẩu xác nhận" style="margin-bottom: 10px;">
+            <div class="modal-message" style="margin-bottom: 15px; font-weight: bold;">Bạn có muốn xóa khách hàng nầy không?</div>
             <div class="modal-buttons">
                 <button class="btn-modal-cancel" onclick="closeConfirmModal()">Hủy</button>
                 <button class="btn-modal-confirm" id="btnConfirmDelete" onclick="deleteLocation()" style="background: #dc3545;">Xóa</button>
@@ -134,6 +134,7 @@
         </div>
     </div>
 
+    <!-- Modal Sửa: Đã bỏ ô mật khẩu -->
     <div id="editModal" class="modal-overlay">
         <div class="modal-box" style="text-align: left;">
             <div class="modal-title" style="text-align: center;">Chỉnh sửa thông tin</div>
@@ -168,7 +169,6 @@
                 <label style="display: flex; align-items: center; gap: 5px; color: #dc3545; font-weight: normal; font-size: 14px;">
                     <input type="checkbox" id="editUpdateCoords" style="width: auto;"> Check vào nếu lấy lại tọa độ mới
                 </label>
-                <input type="password" id="editPassword" placeholder="Nhập mật khẩu xác nhận" style="margin-top: 5px;">
             </div>
 
             <div class="modal-buttons">
