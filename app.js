@@ -265,7 +265,7 @@ function showToast(msg, keepOpen = false) {
 
   let bgColor = "#28a745"; 
   let msgLower = msg.toLowerCase();
-  if (msgLower.includes("lỗi") || msgLower.includes("vui lòng") || msgLower.includes("không") || msgLower.includes("hủy") || msgLower.includes("sai") || msgLower.includes("đã được định vị")) {
+  if (msgLower.includes("lỗi") || msgLower.includes("vui lòng") || msgLower.includes("không") || msgLower.includes("hủy") || msgLower.includes("sai") || msgLower.includes("đã tồn tại")) {
     bgColor = "#dc3545"; 
   } else if (msgLower.includes("đang")) {
     bgColor = "#007bff";
@@ -335,59 +335,29 @@ function getLocation() {
     return;
   }
 
-  showToast("⏳ Đang kiểm tra dữ liệu...", true);
+  // BƯỚC 1: Lấy GPS ngay trên client (rất nhanh, chỉ tốn vài millisecond)
+  showToast("⏳ Đang lấy tọa độ GPS...", true);
 
-  // BƯỚC 1: Kiểm tra sự tồn tại trong bảng dinh_vi trước khi lấy GPS
-  fetch(API_URL, {
-    method: "POST",
-    headers: { "Content-Type": "text/plain;charset=utf-8" },
-    redirect: "follow",
-    body: JSON.stringify({
-      action: "CHECK_EXISTS",
-      search_type: searchType,
-      search_value: searchValueInput
-    })
-  })
-  .then(res => res.text())
-  .then(text => JSON.parse(text))
-  .then(res => {
-    if (res.status === "error") {
-      showToast("Lỗi: " + res.message);
-      return;
-    }
+  if (!navigator.geolocation) {
+    showToast("Trình duyệt của bạn không hỗ trợ định vị GPS");
+    return;
+  }
 
-    // Nếu đã tồn tại và trang_thai = 1 => Dừng tiến trình
-    if (res.exists && Number(res.trang_thai) === 1) {
-      showToast(`Khách hàng (${res.ma_khang}) đã được định vị trên hệ thống!`);
-      return;
-    }
+  navigator.geolocation.getCurrentPosition(
+    position => {
+      saveToServer(position.coords.latitude, position.coords.longitude);
+    },
+    error => {
+      console.error(error);
+      showToast("Vui lòng bật định vị (GPS) trên máy để lưu.");
+    },
+    { enableHighAccuracy: true, maximumAge: 0, timeout: 10000 }
+  );
 
-    // Nếu KHÔNG TỒN TẠI hoặc TỒN TẠI với trang_thai = 0 => Lấy tọa độ và lưu dữ liệu
-    showToast("⏳ Đang lấy tọa độ GPS, vui lòng đợi...", true);
-
-    if (!navigator.geolocation) {
-      showToast("Trình duyệt của bạn không hỗ trợ định vị GPS");
-      return;
-    }
-
-    navigator.geolocation.getCurrentPosition(
-      position => {
-        saveToServer(position.coords.latitude, position.coords.longitude);
-      },
-      error => {
-        console.error(error);
-        showToast("Vui lòng bật định vị (GPS) trên máy để lưu.");
-      },
-      { enableHighAccuracy: true, maximumAge: 0, timeout: 10000 }
-    );
-  })
-  .catch(err => {
-    console.error(err);
-    showToast("Lỗi kết nối máy chủ khi kiểm tra dữ liệu!");
-  });
-
-  // BƯỚC 2: Hàm lưu dữ liệu lên Server
+  // BƯỚC 2: Gửi duy nhất 1 Request lên Server để VỪA KIỂM TRA VỪA LƯU
   const saveToServer = (lat, lng) => {
+    showToast("⏳ Đang xử lý lưu dữ liệu...", true);
+    
     const now = new Date();
     const timeStr = `${now.getDate().toString().padStart(2, '0')}/${(now.getMonth() + 1).toString().padStart(2, '0')}/${now.getFullYear()} ${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}:${now.getSeconds().toString().padStart(2, '0')}`;
     const uniqueId = Date.now().toString();
@@ -420,7 +390,6 @@ function getLocation() {
         locData.so_cto = res.so_cto; locData.ma_tram = res.ma_tram;
         locData.ten_tram = res.ten_tram; locData.so_cot = res.so_cot;
         
-        // Loại bỏ bản ghi cũ nếu trước đó bị xoá (trang_thai = 0) và thêm bản ghi mới vào mảng
         allLocations = allLocations.filter(item => String(item.ma_khang) !== String(res.ma_khang));
         allLocations.unshift(locData);
         allLocations.sort((a, b) => parseTimeString(b.time) - parseTimeString(a.time));
@@ -432,7 +401,8 @@ function getLocation() {
         document.getElementById("locName").value = searchType === 'MKH' ? 'PB060600' : '';
         document.getElementById("locNote").value = "";
       } else {
-        showToast("Lỗi: " + res.message);
+        // HỆ THỐNG PHÁT HIỆN TỒN TẠI VÀ THÔNG BÁO TẠI ĐÂY
+        showToast(res.message);
       }
     })
     .catch(err => {
