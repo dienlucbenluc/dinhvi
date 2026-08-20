@@ -264,7 +264,7 @@ function showToast(msg, keepOpen = false) {
   toast.innerText = msg;
 
   // Mặc định tất cả thông báo đều có màu đỏ
-  let bgColor = "red"; 
+  let bgColor = "#F08080"; 
   let msgLower = msg.toLowerCase();
 
   // Chỉ khi thông báo liên quan đến thêm thành công (lưu vị trí), cập nhật thành công (sửa) hoặc xóa thành công mới đổi thành màu xanh
