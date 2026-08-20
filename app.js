@@ -349,9 +349,17 @@ function getLocation() {
     const uniqueId = Date.now().toString();
 
     const locData = {
-      id: uniqueId, search_type: searchType, search_value: searchValueInput,
-      ten_nvien: currentUser.ten_nvien, ten_ndung: currentUser.ten_ndung, ten_cviec: jobTitle, note: noteContent,
-      lat: lat, lng: lng, time: timeStr
+      id: uniqueId, 
+      search_type: searchType, 
+      search_value: searchValueInput,
+      ten_ndung: currentUser.ten_ndung, 
+      ten_nvien: currentUser.ten_nvien, 
+      ten_cviec: jobTitle, 
+      note: noteContent,
+      lat: lat, 
+      lng: lng, 
+      time: timeStr,
+      trang_thai: 1
     };
 
     fetch(API_URL, {
@@ -405,7 +413,6 @@ function getLocation() {
   );
 }
 
-// Kiểm tra quyền Sửa trước khi mở Modal
 function checkAndOpenEditModal(id) {
   const loc = allLocations.find(item => String(item.id) === String(id));
   if (!loc) return;
@@ -417,7 +424,6 @@ function checkAndOpenEditModal(id) {
   openEditModal(id);
 }
 
-// Kiểm tra quyền Xóa trước khi mở Modal
 function checkAndOpenDeleteModal(id) {
   const loc = allLocations.find(item => String(item.id) === String(id));
   if (!loc) return;
@@ -583,7 +589,6 @@ function deleteLocation() {
   });
 }
 
-// Mở/Đóng Modal đổi mật khẩu
 function openPassModal() {
   document.getElementById("oldPassInput").value = "";
   document.getElementById("newPassInput").value = "";
