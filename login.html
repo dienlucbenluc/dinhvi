@@ -42,7 +42,7 @@
 
         <div class="remember-group">
             <input type="checkbox" id="rememberMe">
-            <label for="rememberMe" style="margin:0; font-weight:normal; cursor:pointer;">Ghi nhớ đăng nhập</label>
+            <label for="rememberMe" style="margin:0; font-weight:normal; cursor:pointer;">Ghi nhớ thông tin đăng nhập</label>
         </div>
 
         <button id="btnLogin" onclick="handleLogin()">Đăng nhập</button>
@@ -52,11 +52,22 @@
     <script>
         const API_URL = "https://script.google.com/macros/s/AKfycbxJZHenN4zoxZR7wOk4SiBnUx071LKLdAWOdJLToJPScSdBIj8Qn_pOeTDAABlN_UAF/exec";
 
-        // Kiểm tra phiên đăng nhập đã lưu
         document.addEventListener("DOMContentLoaded", () => {
-            const userSession = localStorage.getItem("cmis_user_session") || sessionStorage.getItem("cmis_user_session");
+            // 1. Kiểm tra xem đã có phiên làm việc (session) hay chưa
+            const userSession = localStorage.getItem("cmis_user_session");
             if (userSession) {
                 window.location.href = "index.html";
+                return;
+            }
+
+            // 2. Nếu chưa đăng nhập, kiểm tra xem có thông tin lưu ghi nhớ trước đó không để tự điền
+            const savedUser = localStorage.getItem("cmis_remember_user");
+            const savedPass = localStorage.getItem("cmis_remember_pass");
+
+            if (savedUser && savedPass) {
+                document.getElementById("username").value = savedUser;
+                document.getElementById("password").value = savedPass;
+                document.getElementById("rememberMe").checked = true;
             }
         });
 
@@ -104,18 +115,21 @@
                     msgEl.style.color = "#28a745";
                     msgEl.innerText = "Đăng nhập thành công...";
                     
+                    // Lưu thông tin phiên đăng nhập
                     const sessionData = {
                         ten_ndung: res.ten_ndung,
                         ten_nvien: res.ten_nvien,
                         mat_khau: mat_khau
                     };
+                    localStorage.setItem("cmis_user_session", JSON.stringify(sessionData));
 
-                    // Nếu chọn "Ghi nhớ đăng nhập" -> lưu localStorage (giữ lại khi đóng trình duyệt)
-                    // Nếu không chọn -> lưu sessionStorage (xóa khi đóng tab/trình duyệt)
+                    // Xử lý ghi nhớ tên đăng nhập & mật khẩu
                     if (rememberMe) {
-                        localStorage.setItem("cmis_user_session", JSON.stringify(sessionData));
+                        localStorage.setItem("cmis_remember_user", ten_ndung);
+                        localStorage.setItem("cmis_remember_pass", mat_khau);
                     } else {
-                        sessionStorage.setItem("cmis_user_session", JSON.stringify(sessionData));
+                        localStorage.removeItem("cmis_remember_user");
+                        localStorage.removeItem("cmis_remember_pass");
                     }
 
                     setTimeout(() => {
