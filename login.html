@@ -13,11 +13,14 @@
         .logo { width: 60px; height: 60px; object-fit: contain; margin-bottom: 10px; mix-blend-mode: multiply; }
         .title { font-size: 18px; font-weight: bold; color: #1E90FF; margin-bottom: 4px; }
         .subtitle { font-size: 16px; font-weight: bold; color: #228B22; margin-bottom: 20px; }
-        .form-group { text-align: left; margin-bottom: 10px; }
+        .form-group { text-align: left; margin-bottom: 12px; position: relative; }
         label { display: block; font-size: 13px; font-weight: bold; margin-bottom: 4px; color: #444; }
-        input[type="text"], input[type="password"] { width: 100%; padding: 10px 12px; border: 1px solid #ccc; border-radius: 8px; box-sizing: border-box; font-size: 15px; outline: none; }
+        input[type="text"], input[type="password"] { width: 100%; padding: 10px 40px 10px 12px; border: 1px solid #ccc; border-radius: 8px; box-sizing: border-box; font-size: 15px; outline: none; }
         input:focus { border-color: #007bff; }
-        button { width: 100%; padding: 12px; background: #007bff; color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 10px; }
+        .toggle-password { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); cursor: pointer; user-select: none; font-size: 16px; }
+        .remember-group { display: flex; align-items: center; justify-content: start; gap: 8px; margin-bottom: 12px; font-size: 14px; color: #555; }
+        .remember-group input { cursor: pointer; }
+        button { width: 100%; padding: 12px; background: #007bff; color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 5px; }
         button:disabled { background: #aaa; }
         #msg { margin-top: 12px; font-size: 12px; font-weight: bold; }
     </style>
@@ -34,6 +37,12 @@
 
         <div class="form-group">
             <input type="password" id="password" placeholder="Nhập mật khẩu...">
+            <span class="toggle-password" onclick="togglePasswordVisibility()">👁️</span>
+        </div>
+
+        <div class="remember-group">
+            <input type="checkbox" id="rememberMe">
+            <label for="rememberMe" style="margin:0; font-weight:normal; cursor:pointer;">Ghi nhớ đăng nhập</label>
         </div>
 
         <button id="btnLogin" onclick="handleLogin()">Đăng nhập</button>
@@ -43,17 +52,31 @@
     <script>
         const API_URL = "https://script.google.com/macros/s/AKfycbxJZHenN4zoxZR7wOk4SiBnUx071LKLdAWOdJLToJPScSdBIj8Qn_pOeTDAABlN_UAF/exec";
 
-        // Nếu đã đăng nhập trước đó thì chuyển hướng thẳng qua index.html
+        // Kiểm tra phiên đăng nhập đã lưu
         document.addEventListener("DOMContentLoaded", () => {
-            const userSession = localStorage.getItem("cmis_user_session");
+            const userSession = localStorage.getItem("cmis_user_session") || sessionStorage.getItem("cmis_user_session");
             if (userSession) {
                 window.location.href = "index.html";
             }
         });
 
+        // Hàm bật/tắt hiển thị mật khẩu
+        function togglePasswordVisibility() {
+            const passInput = document.getElementById("password");
+            const toggleIcon = document.querySelector(".toggle-password");
+            if (passInput.type === "password") {
+                passInput.type = "text";
+                toggleIcon.innerText = "🙈";
+            } else {
+                passInput.type = "password";
+                toggleIcon.innerText = "👁️";
+            }
+        }
+
         function handleLogin() {
             const ten_ndung = document.getElementById("username").value.trim();
             const mat_khau = document.getElementById("password").value.trim();
+            const rememberMe = document.getElementById("rememberMe").checked;
             const msgEl = document.getElementById("msg");
             const btn = document.getElementById("btnLogin");
 
@@ -81,13 +104,19 @@
                     msgEl.style.color = "#28a745";
                     msgEl.innerText = "Đăng nhập thành công...";
                     
-                    // Lưu thông tin phiên đăng nhập
                     const sessionData = {
                         ten_ndung: res.ten_ndung,
                         ten_nvien: res.ten_nvien,
                         mat_khau: mat_khau
                     };
-                    localStorage.setItem("cmis_user_session", JSON.stringify(sessionData));
+
+                    // Nếu chọn "Ghi nhớ đăng nhập" -> lưu localStorage (giữ lại khi đóng trình duyệt)
+                    // Nếu không chọn -> lưu sessionStorage (xóa khi đóng tab/trình duyệt)
+                    if (rememberMe) {
+                        localStorage.setItem("cmis_user_session", JSON.stringify(sessionData));
+                    } else {
+                        sessionStorage.setItem("cmis_user_session", JSON.stringify(sessionData));
+                    }
 
                     setTimeout(() => {
                         window.location.href = "index.html";
