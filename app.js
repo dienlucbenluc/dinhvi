@@ -346,7 +346,7 @@ function getLocation() {
   showToast("⏳ Đang lấy tọa độ GPS...", true);
 
   if (!navigator.geolocation) {
-    showToast("Trình duyệt của bạn không hỗ trợ định vị GPS");
+    showToast("Trình duyệt không hỗ trợ định vị GPS");
     return;
   }
 
@@ -356,7 +356,7 @@ function getLocation() {
     },
     error => {
       console.error(error);
-      showToast("Vui lòng bật định vị (GPS) trên máy để lưu.");
+      showToast("Vui lòng bật định vị trên máy.");
     },
     { enableHighAccuracy: true, maximumAge: 0, timeout: 10000 }
   );
@@ -436,7 +436,7 @@ function checkAndOpenDeleteModal(id) {
   if (!loc) return;
 
   if (loc.ten_ndung && loc.ten_ndung.toLowerCase() !== currentUser.ten_ndung.toLowerCase()) {
-    showToast("Bạn không thể xóa dữ liệu của người khác nhập!");
+    showToast("Không thể xóa dữ liệu người khác nhập");
     return;
   }
   openConfirmModal(id);
