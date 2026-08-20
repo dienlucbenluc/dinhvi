@@ -122,7 +122,21 @@
         </div>
     </div>
 
-    <!-- Modal Xác nhận Xóa: Đã đổi câu hỏi và bỏ ô mật khẩu -->
+    <!-- Modal Xác nhận Đăng xuất (MỚI) -->
+    <div id="logoutModal" class="modal-overlay">
+        <div class="modal-box">
+            <div class="modal-title" style="color: #dc3545;">Xác nhận thoát</div>
+            <div class="modal-message" style="margin-bottom: 15px; font-size: 15px; color: #444;">
+                Bạn có chắc chắn muốn thoát đăng nhập?
+            </div>
+            <div class="modal-buttons">
+                <button class="btn-modal-cancel" onclick="closeLogoutModal()">Hủy</button>
+                <button class="btn-modal-confirm" onclick="confirmLogout()" style="background: #dc3545;">Thoát</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Xác nhận Xóa -->
     <div id="confirmModal" class="modal-overlay">
         <div class="modal-box">
             <div class="modal-title" style="color: #dc3545;">Xác nhận xóa</div>
@@ -134,7 +148,7 @@
         </div>
     </div>
 
-    <!-- Modal Sửa: Đã bỏ ô mật khẩu -->
+    <!-- Modal Sửa -->
     <div id="editModal" class="modal-overlay">
         <div class="modal-box" style="text-align: left;">
             <div class="modal-title" style="text-align: center;">Chỉnh sửa thông tin</div>
@@ -198,6 +212,25 @@
 
     <script src="app.js?v=2.0.0"></script>
     <script>
+        // Xử lý Modal Đăng xuất chuyên nghiệp
+        function handleLogout() {
+            const menu = document.getElementById('menuDropdown');
+            if (menu) menu.classList.remove('show');
+            
+            const logoutModal = document.getElementById('logoutModal');
+            if (logoutModal) logoutModal.style.display = 'flex';
+        }
+
+        function closeLogoutModal() {
+            const logoutModal = document.getElementById('logoutModal');
+            if (logoutModal) logoutModal.style.display = 'none';
+        }
+
+        function confirmLogout() {
+            localStorage.removeItem("cmis_user_session");
+            window.location.href = "login.html";
+        }
+
         document.addEventListener('DOMContentLoaded', () => {
             const loaiTimSelect = document.getElementById('loai_tim');
             const locNameInput = document.getElementById('locName');
