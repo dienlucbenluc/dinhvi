@@ -27,7 +27,7 @@
         /* Menu dropdown */
         .menu-container { position: relative; }
         .menu-btn { background: #007bff; color: white; border: none; font-size: 18px; padding: 6px 12px; border-radius: 6px; cursor: pointer; width: auto; margin: 0; }
-        .menu-dropdown { display: none; position: absolute; right: 0; top: 38px; background: white; box-shadow: 0 4px 12px rgba(0,0,0,0.15); border-radius: 8px; z-index: 1000; min-width: 150px; overflow: hidden; }
+        .menu-dropdown { display: none; position: absolute; right: 0; top: 38px; background: white; box-shadow: 0 4px 12px rgba(0,0,0,0.15); border-radius: 8px; z-index: 1000; min-width: 170px; overflow: hidden; }
         .menu-dropdown.show { display: block; }
         .menu-item { padding: 10px 14px; font-size: 14px; color: #333; cursor: pointer; text-align: left; border-bottom: 1px solid #eee; }
         .menu-item:last-child { border-bottom: none; }
@@ -98,6 +98,7 @@
                 <div class="menu-container">
                     <button class="menu-btn" onclick="toggleMenu()">☰</button>
                     <div class="menu-dropdown" id="menuDropdown">
+                        <div class="menu-item" onclick="openDevModal()">📞 Liên hệ LTV</div>
                         <div class="menu-item" onclick="openPassModal()">🔑 Đổi mật khẩu</div>
                         <div class="menu-item" onclick="handleLogout()" style="color: red;">🚪 Thoát</div>
                     </div>
@@ -137,6 +138,21 @@
 
         <div class="scrollable-content">
             <ul id="locationList"></ul>
+        </div>
+    </div>
+
+    <!-- Modal Giới thiệu / Liên hệ Lập trình viên -->
+    <div id="devModal" class="modal-overlay">
+        <div class="modal-box" style="text-align: left;">
+            <div class="modal-title" style="text-align: center; color: #007bff;">Thông tin Lập trình viên</div>
+            <div class="modal-message" style="margin-bottom: 15px; font-size: 14px; color: #333; line-height: 1.5;">
+                <p style="margin: 5px 0;"><strong>👤 Người lập trình:</strong> Nguyễn Đức Truyền</p>
+                <p style="margin: 5px 0;"><strong>📞 ĐT:</strong> <a href="tel:0917747877" style="color: #007bff; font-weight: bold; text-decoration: none;">0917747877</a></p>
+                <p style="margin: 10px 0 0 0; font-style: italic; color: #555;">Mọi khó khăn lỗi chương trình liên hệ người lập trình phần mềm.</p>
+            </div>
+            <div class="modal-buttons">
+                <button class="btn-modal-confirm" onclick="closeDevModal()" style="background: #007bff; width: 100%;">Đóng</button>
+            </div>
         </div>
     </div>
 
@@ -230,6 +246,19 @@
 
     <script src="app.js?v=1.0.3"></script>
     <script>
+        function openDevModal() {
+            const menu = document.getElementById('menuDropdown');
+            if (menu) menu.classList.remove('show');
+            
+            const devModal = document.getElementById('devModal');
+            if (devModal) devModal.style.display = 'flex';
+        }
+
+        function closeDevModal() {
+            const devModal = document.getElementById('devModal');
+            if (devModal) devModal.style.display = 'none';
+        }
+
         function handleLogout() {
             const menu = document.getElementById('menuDropdown');
             if (menu) menu.classList.remove('show');
