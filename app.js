@@ -281,7 +281,7 @@ function showToast(msg, keepOpen = false) {
   Object.assign(toast.style, {
     position: "fixed",
     top: "0px",            
-    right: "20px",          
+    right: "0px",          
     transform: "translateX(120%)", 
     backgroundColor: bgColor,
     color: "white",
