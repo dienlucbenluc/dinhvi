@@ -266,14 +266,14 @@ function showToast(msg, keepOpen = false) {
   let bgColor = "#28a745"; 
   let msgLower = msg.toLowerCase();
   if (msgLower.includes("lỗi") || msgLower.includes("vui lòng") || msgLower.includes("không") || msgLower.includes("hủy") || msgLower.includes("sai") || msgLower.includes("đã tồn tại")) {
-    bgColor = "#dc3545"; 
+    bgColor = "red"; 
   } else if (msgLower.includes("đang")) {
     bgColor = "#007bff";
   }
 
   Object.assign(toast.style, {
     position: "fixed",
-    top: "20px",            
+    top: "0px",            
     right: "20px",          
     transform: "translateX(120%)", 
     backgroundColor: bgColor,
