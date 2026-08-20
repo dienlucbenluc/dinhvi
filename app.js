@@ -425,7 +425,7 @@ function checkAndOpenEditModal(id) {
   if (!loc) return;
 
   if (loc.ten_ndung && loc.ten_ndung.toLowerCase() !== currentUser.ten_ndung.toLowerCase()) {
-    showToast("Bạn không thể sửa dữ liệu của người khác nhập!");
+    showToast("Không thể sửa dữ liệu người khác nhập");
     return;
   }
   openEditModal(id);
