@@ -61,7 +61,7 @@
 
             if (!ten_ndung || !mat_khau) {
                 msgEl.style.color = "#dc3545";
-                msgEl.innerText = "Vui lòng nhập đầy đủ Tên người dùng và Mật khẩu!";
+                msgEl.innerText = "Vui lòng nhập đầy đủ thông tin";
                 return;
             }
 
@@ -81,7 +81,7 @@
                 btn.disabled = false;
                 if (res.status === "success") {
                     msgEl.style.color = "#28a745";
-                    msgEl.innerText = "Đăng nhập thành công! Đang chuyển trang...";
+                    msgEl.innerText = "Đăng nhập thành công...";
                     
                     // Lưu thông tin phiên đăng nhập
                     const sessionData = {
