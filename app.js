@@ -93,13 +93,29 @@ function applyInitData(res) {
 }
 
 function syncLocalCache() {
-  localStorage.removeItem("cmis_full_init_data");
+  const cachePayload = {
+    status: "success",
+    locations: allLocations,
+    cong_viec: Array.from(document.getElementById("jobSelect")?.options || [])
+                  .map(opt => opt.value).filter(v => v !== "")
+  };
+  localStorage.setItem("cmis_full_init_data", JSON.stringify(cachePayload));
 }
 
+// TỐI ƯU TỐC ĐỘ: BẬT NAY CACHE TỪ LOCALSTORAGE
 function loadInitData() {
   const listElement = document.getElementById("locationList");
 
-  if (listElement) {
+  // 1. Đọc dữ liệu từ Cache bộ nhớ trước (Mở app trong 0.1 giây)
+  const cachedData = localStorage.getItem("cmis_full_init_data");
+  if (cachedData) {
+    try {
+      const parsed = JSON.parse(cachedData);
+      applyInitData(parsed);
+    } catch(e) {
+      console.error(e);
+    }
+  } else if (listElement) {
     listElement.innerHTML = `
       <li style="text-align: center; padding: 20px;">
         <span class="spinner"></span>
@@ -108,8 +124,7 @@ function loadInitData() {
     `;
   }
 
-  localStorage.removeItem("cmis_full_init_data");
-  
+  // 2. Tải dữ liệu mới nhất ngầm từ Server về để cập nhật
   fetch(API_URL, {
     method: "POST",
     headers: { "Content-Type": "text/plain;charset=utf-8" },
@@ -120,14 +135,15 @@ function loadInitData() {
   .then(text => JSON.parse(text))
   .then(res => {
     if (res.status === "success") {
+      localStorage.setItem("cmis_full_init_data", JSON.stringify(res));
       applyInitData(res);
     } else {
-      if (listElement) listElement.innerHTML = `<li>Lỗi: ${res.message}</li>`;
+      if (listElement && !cachedData) listElement.innerHTML = `<li>Lỗi: ${res.message}</li>`;
     }
   })
   .catch(err => {
     console.error(err);
-    if (listElement) listElement.innerHTML = `<li>Lỗi kết nối máy chủ! Vui lòng tải lại trang.</li>`;
+    if (listElement && !cachedData) listElement.innerHTML = `<li>Lỗi kết nối máy chủ! Vui lòng tải lại trang.</li>`;
   });
 }
 
@@ -263,11 +279,9 @@ function showToast(msg, keepOpen = false) {
   toast.id = "custom-toast";
   toast.innerText = msg;
 
-  // Mặc định tất cả thông báo đều có màu đỏ
   let bgColor = "#B22222"; 
   let msgLower = msg.toLowerCase();
 
-  // Chỉ khi thông báo liên quan đến thêm thành công (lưu vị trí), cập nhật thành công (sửa) hoặc xóa thành công mới đổi thành màu xanh
   if (
     msgLower.includes("đã lưu vị trí công tơ") || 
     msgLower.includes("cập nhật thành công") || 
@@ -342,7 +356,6 @@ function getLocation() {
     return;
   }
 
-  // BƯỚC 1: BẮT ĐẦU KIỂM TRA TRONG BẢNG dinh_vi TRƯỚC
   showToast("⏳ Đang kiểm tra bảng định vị...", true);
 
   fetch(API_URL, {
@@ -357,29 +370,23 @@ function getLocation() {
   })
   .then(res => res.json())
   .then(res => {
-    // TH1: TỒN TẠI TRONG BẢNG dinh_vi -> DỪNG TOÀN BỘ TIẾN TRÌNH
     if (res.status === "exists") {
       showToast(`⚠️ Mã KH ${res.ma_khang} ĐÃ TỒN TẠI trong bảng định vị!`);
       
-      // Chép ma_khang vào ô searchInput
       const searchInput = document.getElementById("searchInput");
       if (searchInput) {
         searchInput.value = res.ma_khang;
         saveLocalSettings();
-        filterLocations(); // Tự động lọc danh sách để hiện khách hàng đó
+        filterLocations();
       }
-      
-      // DỪNG HẾT TIẾN TRÌNH (Không đọc bảng khach_hang, không lấy GPS, không ghi thêm dòng)
       return;
     }
 
-    // TH2: KHÔNG TÌM THẤY TRONG BẢNG khach_hang
     if (res.status === "not_found") {
       showToast(`❌ ${res.message}`);
-      return; // Dừng tiến trình
+      return;
     }
 
-    // TH3: CHƯA CÓ TRONG dinh_vi & TÌM THẤY TRONG khach_hang -> LẤY GPS ĐỂ LƯU
     showToast("⏳ Đang lấy tọa độ GPS...", true);
 
     if (!navigator.geolocation) {
@@ -403,7 +410,6 @@ function getLocation() {
     showToast("Lỗi kết nối máy chủ khi kiểm tra!");
   });
 
-  // BƯỚC 2: LƯU DỮ LIỆU SAU KHỦNG TẢI TỌA ĐỘ SUCCESS
   const saveToServer = (lat, lng) => {
     showToast("⏳ Đang xử lý lưu dữ liệu...", true);
     
