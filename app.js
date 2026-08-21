@@ -342,26 +342,68 @@ function getLocation() {
     return;
   }
 
-  // BƯỚC 1: Lấy GPS ngay trên client (rất nhanh, chỉ tốn vài millisecond)
-  showToast("⏳ Đang lấy tọa độ GPS...", true);
+  // BƯỚC 1: BẮT ĐẦU KIỂM TRA TRONG BẢNG dinh_vi TRƯỚC
+  showToast("⏳ Đang kiểm tra bảng định vị...", true);
 
-  if (!navigator.geolocation) {
-    showToast("Trình duyệt không hỗ trợ định vị GPS");
-    return;
-  }
+  fetch(API_URL, {
+    method: "POST",
+    headers: { "Content-Type": "text/plain;charset=utf-8" },
+    redirect: "follow",
+    body: JSON.stringify({
+      action: "CHECK_EXISTS",
+      search_type: searchType,
+      search_value: searchValueInput
+    })
+  })
+  .then(res => res.json())
+  .then(res => {
+    // TH1: TỒN TẠI TRONG BẢNG dinh_vi -> DỪNG TOÀN BỘ TIẾN TRÌNH
+    if (res.status === "exists") {
+      showToast(`⚠️ Mã KH ${res.ma_khang} ĐÃ TỒN TẠI trong bảng định vị!`);
+      
+      // Chép ma_khang vào ô searchInput
+      const searchInput = document.getElementById("searchInput");
+      if (searchInput) {
+        searchInput.value = res.ma_khang;
+        saveLocalSettings();
+        filterLocations(); // Tự động lọc danh sách để hiện khách hàng đó
+      }
+      
+      // DỪNG HẾT TIẾN TRÌNH (Không đọc bảng khach_hang, không lấy GPS, không ghi thêm dòng)
+      return;
+    }
 
-  navigator.geolocation.getCurrentPosition(
-    position => {
-      saveToServer(position.coords.latitude, position.coords.longitude);
-    },
-    error => {
-      console.error(error);
-      showToast("Vui lòng bật định vị trên máy.");
-    },
-    { enableHighAccuracy: true, maximumAge: 0, timeout: 10000 }
-  );
+    // TH2: KHÔNG TÌM THẤY TRONG BẢNG khach_hang
+    if (res.status === "not_found") {
+      showToast(`❌ ${res.message}`);
+      return; // Dừng tiến trình
+    }
 
-  // BƯỚC 2: Gửi duy nhất 1 Request lên Server để VỪA KIỂM TRA VỪA LƯU
+    // TH3: CHƯA CÓ TRONG dinh_vi & TÌM THẤY TRONG khach_hang -> LẤY GPS ĐỂ LƯU
+    showToast("⏳ Đang lấy tọa độ GPS...", true);
+
+    if (!navigator.geolocation) {
+      showToast("Trình duyệt không hỗ trợ định vị GPS");
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      position => {
+        saveToServer(position.coords.latitude, position.coords.longitude);
+      },
+      error => {
+        console.error(error);
+        showToast("Vui lòng bật định vị GPS trên thiết bị.");
+      },
+      { enableHighAccuracy: true, maximumAge: 0, timeout: 10000 }
+    );
+  })
+  .catch(err => {
+    console.error(err);
+    showToast("Lỗi kết nối máy chủ khi kiểm tra!");
+  });
+
+  // BƯỚC 2: LƯU DỮ LIỆU SAU KHỦNG TẢI TỌA ĐỘ SUCCESS
   const saveToServer = (lat, lng) => {
     showToast("⏳ Đang xử lý lưu dữ liệu...", true);
     
@@ -389,17 +431,18 @@ function getLocation() {
       redirect: "follow",
       body: JSON.stringify({ action: "ADD", location: locData })
     })
-    .then(res => res.text())
-    .then(text => JSON.parse(text))
+    .then(res => res.json())
     .then(res => {
       if (res.status === "success") {
-        locData.ma_khang = res.ma_khang; locData.ten_khang = res.ten_khang;
-        locData.so_cto = res.so_cto; locData.ma_tram = res.ma_tram;
-        locData.ten_tram = res.ten_tram; locData.so_cot = res.so_cot;
+        locData.ma_khang = res.ma_khang; 
+        locData.ten_khang = res.ten_khang;
+        locData.so_cto = res.so_cto; 
+        locData.ma_tram = res.ma_tram;
+        locData.ten_tram = res.ten_tram; 
+        locData.so_cot = res.so_cot;
         
         allLocations = allLocations.filter(item => String(item.ma_khang) !== String(res.ma_khang));
         allLocations.unshift(locData);
-        allLocations.sort((a, b) => parseTimeString(b.time) - parseTimeString(a.time));
         
         syncLocalCache();
         filterLocations();
@@ -408,7 +451,6 @@ function getLocation() {
         document.getElementById("locName").value = searchType === 'MKH' ? 'PB060600' : '';
         document.getElementById("locNote").value = "";
       } else {
-        // HỆ THỐNG PHÁT HIỆN TỒN TẠI VÀ THÔNG BÁO TẠI ĐÂY
         showToast(res.message);
       }
     })
