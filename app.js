@@ -14,7 +14,7 @@ document.addEventListener("DOMContentLoaded", () => {
   currentUser = JSON.parse(sessionStr);
   const userDisplay = document.getElementById("currentUserDisplay");
   if (userDisplay) {
-    userDisplay.innerText = `👤 ${currentUser.ten_nvien}`;
+    userDisplay.innerText = `👷 ${currentUser.ten_nvien}`;
   }
 
   restoreLocalSettings(); 
