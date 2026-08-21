@@ -176,14 +176,26 @@ function filterLocations() {
   const searchInput = document.getElementById("searchInput");
   const rawQuery = searchInput ? searchInput.value.trim() : "";
   
+  // 1. Tạo bản sao danh sách để sắp xếp
+  let locationsToDisplay = [...allLocations];
+
+  // 2. Sắp xếp danh sách theo thời gian giảm dần (mới nhất lên đầu)
+  locationsToDisplay.sort((a, b) => {
+    const timeA = parseTimeString(a.time);
+    const timeB = parseTimeString(b.time);
+    return timeB - timeA; // Giảm dần
+  });
+
+  // 3. Nếu không có ô tìm kiếm hoặc từ khóa trống -> render danh sách đã sắp xếp
   if (!rawQuery) {
-    renderList(allLocations);
+    renderList(locationsToDisplay);
     return;
   }
 
+  // 4. Lọc dữ liệu theo từ khóa tìm kiếm
   const query = removeAccents(rawQuery.toLowerCase());
 
-  const filtered = allLocations.filter(loc => {
+  const filtered = locationsToDisplay.filter(loc => {
     const fullText = String(loc.ma_khang || "") + " " + 
                      String(loc.ten_khang || "") + " " + 
                      String(loc.so_cto || "") + " " + 
