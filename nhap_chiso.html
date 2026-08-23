@@ -895,13 +895,10 @@
       .catch(() => showToast("❌ Lỗi hệ thống!"));
     }
 
-    function handleLogout() {
-      const menu = document.getElementById('menuDropdown');
-      if (menu) menu.classList.remove('show');
-      
-      const logoutModal = document.getElementById('logoutModal');
-      if (logoutModal) logoutModal.style.display = 'flex';
-    }
+function handleLogout() {
+  localStorage.removeItem("cmis_user_session");
+  window.location.href = "login.html";
+}
 
     function closeLogoutModal() {
       const logoutModal = document.getElementById('logoutModal');
@@ -913,5 +910,15 @@
       window.location.href = "login.html";
     }
   </script>
+  <div id="logoutModal" class="modal-overlay">
+  <div class="modal-box">
+    <div class="modal-title" style="color: #dc3545;">XÁC NHẬN THOÁT</div>
+    <div class="modal-message">Bạn có chắc chắn muốn đăng xuất khỏi hệ thống?</div>
+    <div class="modal-buttons">
+      <button class="btn-modal-cancel" onclick="closeLogoutModal()">Hủy</button>
+      <button class="btn-modal-confirm" style="background: #dc3545;" onclick="confirmLogout()">Thoát</button>
+    </div>
+  </div>
+</div>
 </body>
 </html>
