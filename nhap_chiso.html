@@ -59,37 +59,81 @@
 
     .cust-header { border-bottom: 1px solid #eee; padding-bottom: 4px; margin-bottom: 6px; }
     .cust-title { font-weight: bold; color: #0056b3; font-size: 13.5px; }
-    .cust-meta { font-size: 11px; color: #555; margin-top: 3px; display: flex; flex-wrap: wrap; gap: 4px 8px; }
-    .cust-meta span { background: #f0f4f8; padding: 1px 5px; border-radius: 3px; }
     
+    .cust-address { 
+      font-size: 11.5px; 
+      color: #444; 
+      margin: 3px 0; 
+      word-break: break-word;
+    }
+
+    .cust-row-group { 
+      display: flex; 
+      flex-wrap: nowrap; 
+      gap: 4px; 
+      margin-top: 3px; 
+    }
+    
+    .cust-row-group span { 
+      background: #f0f4f8; 
+      padding: 2px 5px; 
+      border-radius: 3px; 
+      font-size: 11px; 
+      color: #333;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    
+    .flex-1 { flex: 1; }
+
     /* Vùng hiển thị SL chi tiết động khi chọn dòng BCS */
     .cust-dynamic-info {
       background: #eef6ff;
       border: 1px dashed #007bff;
       padding: 3px 6px;
       border-radius: 4px;
-      font-size: 11px;
+      font-size: 11.5px;
       color: #004085;
       font-weight: bold;
-      margin-top: 4px;
+      margin-top: 5px;
       display: flex;
       justify-content: space-between;
     }
 
-    /* BẢNG CHỈ SỐ */
+    /* BẢNG CHỈ SỐ (TĂNG CỠ FONT) */
     .table-responsive { overflow-x: auto; -webkit-overflow-scrolling: touch; }
-    table.chiso-table { width: 100%; border-collapse: collapse; font-size: 11px; text-align: center; }
-    table.chiso-table th { background: #e9ecef; color: #333; padding: 4px 2px; border: 1px solid #ccc; white-space: nowrap; font-size: 10.5px; font-weight: bold; }
-    table.chiso-table td { border: 1px solid #ddd; padding: 3px 2px; vertical-align: middle; white-space: nowrap; }
+    table.chiso-table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+    table.chiso-table th { background: #e9ecef; color: #333; padding: 5px 3px; border: 1px solid #ccc; white-space: nowrap; font-size: 12px; font-weight: bold; text-align: center; }
+    table.chiso-table td { border: 1px solid #ddd; padding: 4px 3px; vertical-align: middle; white-space: nowrap; }
     
-    .bcs-badge { font-weight: bold; padding: 1px 3px; border-radius: 3px; background: #e2e3e5; color: #333; font-size: 10px; }
+    /* CĂN PHẢI CHO CÁC DÒNG SỐ TRONG TABLE */
+    .text-right { text-align: right !important; }
+    .text-center { text-align: center !important; }
+
+    .bcs-badge { font-weight: bold; padding: 2px 4px; border-radius: 3px; background: #e2e3e5; color: #333; font-size: 11px; }
     .bcs-BT { background: #d4edda; color: #155724; }
     .bcs-CD { background: #fff3cd; color: #856404; }
     .bcs-TD { background: #f8d7da; color: #721c24; }
     
-    /* Ô NHẬP CHỈ SỐ MỚI */
-    input.input-cs-moi { width: 62px; padding: 3px 2px; border: 1.5px solid #007bff; border-radius: 3px; text-align: right; font-weight: bold; font-size: 11.5px; outline: none; }
-    input.input-cs-moi:focus { background: #e8f0fe; border-color: #0056b3; }
+    /* Ô NHẬP CHỈ SỐ MỚI (NỀN HƠI TỐI / VIỀN MỎNG KHI FOCUS) */
+    input.input-cs-moi { 
+      width: 65px; 
+      padding: 3px 4px; 
+      background-color: #f2f3f5; 
+      border: 1px solid #ccc; 
+      border-radius: 3px; 
+      text-align: right; 
+      font-weight: bold; 
+      font-size: 12.5px; 
+      outline: none; 
+      transition: all 0.15s ease;
+    }
+    input.input-cs-moi:focus { 
+      background-color: #ffffff; 
+      border: 1px solid #007bff; 
+      box-shadow: 0 0 3px rgba(0, 123, 255, 0.3);
+    }
     
     .val-calc { font-weight: 600; color: #212529; }
     .val-highlight { font-weight: bold; color: #d9534f; }
@@ -126,7 +170,7 @@
     </div>
 
     <div class="search-box">
-      <input type="text" id="searchInput" placeholder="🔍 Tìm Mã KH, Tên KH, Cột, Trạm, Sổ GCS..." oninput="filterData()">
+      <input type="text" id="searchInput" placeholder="🔍 Tìm Mã KH, Tên KH, Cột, Trạm, Sổ..." oninput="filterData()">
     </div>
   </div>
 
@@ -223,7 +267,6 @@
       }
     }
 
-    // Cập nhật thông tin S.Lượng, SL tháo, SL KT của BCS được chọn lên khung Khách Hàng
     function updateRowDetail(maKhang, bcs, sanLuong, sluongThao, sluongKt) {
       selectCustomer(maKhang);
       const detailEl = document.getElementById(`detail_info_${maKhang}`);
@@ -251,24 +294,32 @@
         const cust = groups[makh];
         const isActive = (makh === activeMaKhang) ? "active" : "";
 
-        // Mặc định lấy BCS đầu tiên để hiện thông tin SL
         const firstItem = cust.items[0] || {};
         const initSl = firstItem.san_luong !== "" && firstItem.san_luong !== undefined ? firstItem.san_luong : "0";
 
         html += `
           <div class="customer-card ${isActive}" id="card_${cust.ma_khang}" onclick="selectCustomer('${cust.ma_khang}')">
             <div class="cust-header">
+              <!-- HÀNG 1: MÃ VÀ TÊN KHÁCH HÀNG -->
               <div class="cust-title">${cust.ma_khang} - ${cust.ten_khang}</div>
-              <div class="cust-meta">
-                <span>📂 Sổ: <b>${cust.ma_sogcs || ''}</b></span>
-                <span>🔢 Danh số: <b>${cust.danh_so || ''}</b></span>
-                <span>📍 ${cust.dia_chi || ''}</span>
-                <span>⚡ Cột: ${cust.so_cot || ''}</span>
-                <span>🏭 Trạm: ${cust.ten_tram || ''}</span>
-                <span>📟 CT: ${cust.so_cto || ''}</span>
-              </div>
               
-              <!-- Khung thông tin chi tiết S.Lượng hiển thị động -->
+              <!-- HÀNG 2: ĐỊA CHỈ NẰM 1 MÌNH -->
+              <div class="cust-address">📍 ${cust.dia_chi || ''}</div>
+              
+              <!-- HÀNG 3: SỔ, DANH SỐ, CT CHUNG 1 HÀNG NGANG -->
+              <div class="cust-row-group">
+                <span class="flex-1">📂 Sổ: <b>${cust.ma_sogcs || ''}</b></span>
+                <span class="flex-1">🔢 DS: <b>${cust.danh_so || ''}</b></span>
+                <span class="flex-1">📟 CT: <b>${cust.so_cto || ''}</b></span>
+              </div>
+
+              <!-- HÀNG 4: CỘT, TRẠM CHUNG 1 HÀNG NGANG -->
+              <div class="cust-row-group">
+                <span class="flex-1">⚡ Cột: <b>${cust.so_cot || ''}</b></span>
+                <span class="flex-1">🏭 Trạm: <b>${cust.ten_tram || ''}</b></span>
+              </div>
+
+              <!-- HÀNG 5: KHUNG SẢN LƯỢNG ĐỘNG CỦA BCS DÒNG ĐƯỢC CHỌN -->
               <div class="cust-dynamic-info" id="detail_info_${cust.ma_khang}">
                 <span>📊 BCS: <b>${firstItem.bcs || '-'}</b></span>
                 <span>S.Lượng: <b>${initSl}</b></span>
@@ -298,9 +349,9 @@
 
           html += `
             <tr id="row_${item.rowIndex}" onclick="event.stopPropagation(); updateRowDetail('${cust.ma_khang}', '${item.bcs}', document.getElementById('sl_val_${item.rowIndex}').value, ${item.sluong_thao}, ${item.sluong_kt});">
-              <td><span class="bcs-badge ${bcsClass}">${item.bcs}</span></td>
-              <td class="val-calc">${item.chiso_cu}</td>
-              <td>
+              <td class="text-center"><span class="bcs-badge ${bcsClass}">${item.bcs}</span></td>
+              <td class="val-calc text-right">${item.chiso_cu}</td>
+              <td class="text-right">
                 <input type="number" 
                        class="input-cs-moi" 
                        id="cs_moi_${item.rowIndex}" 
@@ -310,9 +361,9 @@
                        oninput="calculateRow('${cust.ma_khang}', '${item.bcs}', ${item.rowIndex}, ${item.chiso_cu}, ${item.hsn}, ${item.sluong_thao}, ${item.sluong_kt})">
                 <input type="hidden" id="sl_val_${item.rowIndex}" value="${item.san_luong !== "" && item.san_luong !== undefined ? item.san_luong : '-'}">
               </td>
-              <td id="tong_sl_${item.rowIndex}" class="val-calc">${item.tong_sluong !== "" && item.tong_sluong !== undefined ? item.tong_sluong : '-'}</td>
-              <td id="clech_${item.rowIndex}" class="val-highlight">${item.chenh_lech !== "" && item.chenh_lech !== undefined ? item.chenh_lech : '-'}</td>
-              <td id="tyle_${item.rowIndex}" class="val-highlight">${item.tyle_clech !== "" && item.tyle_clech !== undefined ? item.tyle_clech : '-'}</td>
+              <td id="tong_sl_${item.rowIndex}" class="val-calc text-right">${item.tong_sluong !== "" && item.tong_sluong !== undefined ? item.tong_sluong : '-'}</td>
+              <td id="clech_${item.rowIndex}" class="val-highlight text-right">${item.chenh_lech !== "" && item.chenh_lech !== undefined ? item.chenh_lech : '-'}</td>
+              <td id="tyle_${item.rowIndex}" class="val-highlight text-right">${item.tyle_clech !== "" && item.tyle_clech !== undefined ? item.tyle_clech : '-'}</td>
             </tr>
           `;
         });
@@ -322,7 +373,7 @@
               </table>
             </div>
 
-            <!-- NÚT GHI VÀ HỦY CHỈ HIỆN KHI CARD ĐƯỢC CHỌN -->
+            <!-- NÚT GHI VÀ HỦY CỦA RIÊNG TỪNG KHÁCH HÀNG -->
             <div class="card-btn-group">
               <button class="btn-card btn-card-save" onclick="event.stopPropagation(); saveCustomerData('${cust.ma_khang}')">[GHI] LƯU CHỈ SỐ</button>
               <button class="btn-card btn-card-cancel" onclick="event.stopPropagation(); cancelCustomerData('${cust.ma_khang}')">[HỦY] HỦY CHỈ SỐ</button>
@@ -367,7 +418,6 @@
       clechCell.innerText = chenhLech;
       tyleCell.innerText = tyleClech;
 
-      // Cập nhật thông tin lên phần hiển thị chi tiết động phía trên
       updateRowDetail(maKhang, bcs, sanLuong, sluongThao, sluongKt);
     }
 
