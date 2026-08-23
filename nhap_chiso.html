@@ -58,15 +58,16 @@
     }
 
     .cust-header { border-bottom: 1px solid #eee; padding-bottom: 4px; margin-bottom: 6px; }
-    .cust-title { font-weight: bold; color: #0056b3; font-size: 13.5px; }
+    .cust-title { font-weight: bold; color: #0056b3; font-size: 14px; margin-bottom: 3px; }
     
     .cust-address { 
-      font-size: 11.5px; 
-      color: #444; 
-      margin: 3px 0; 
+      font-size: 12px; 
+      color: #333; 
+      margin: 3px 0 5px 0; 
       word-break: break-word;
     }
 
+    /* ĐỒNG NHẤT BACKGROUND NHẠT CHO THÔNG TIN KHÁCH HÀNG */
     .cust-row-group { 
       display: flex; 
       flex-wrap: nowrap; 
@@ -76,9 +77,9 @@
     
     .cust-row-group span { 
       background: #f0f4f8; 
-      padding: 2px 5px; 
-      border-radius: 3px; 
-      font-size: 11px; 
+      padding: 3px 6px; 
+      border-radius: 4px; 
+      font-size: 11.5px; 
       color: #333;
       white-space: nowrap;
       overflow: hidden;
@@ -91,9 +92,9 @@
     .cust-dynamic-info {
       background: #eef6ff;
       border: 1px dashed #007bff;
-      padding: 3px 6px;
+      padding: 4px 6px;
       border-radius: 4px;
-      font-size: 11.5px;
+      font-size: 12px;
       color: #004085;
       font-weight: bold;
       margin-top: 5px;
@@ -101,42 +102,52 @@
       justify-content: space-between;
     }
 
-    /* BẢNG CHỈ SỐ (TĂNG CỠ FONT) */
+    /* BẢNG CHỈ SỐ */
     .table-responsive { overflow-x: auto; -webkit-overflow-scrolling: touch; }
     table.chiso-table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
     table.chiso-table th { background: #e9ecef; color: #333; padding: 5px 3px; border: 1px solid #ccc; white-space: nowrap; font-size: 12px; font-weight: bold; text-align: center; }
-    table.chiso-table td { border: 1px solid #ddd; padding: 4px 3px; vertical-align: middle; white-space: nowrap; }
+    table.chiso-table td { border: 1px solid #ddd; padding: 0; vertical-align: middle; white-space: nowrap; }
     
-    /* CĂN PHẢI CHO CÁC DÒNG SỐ TRONG TABLE */
+    /* CĂN PHẢI & TĂNG FONT CÁC DÒNG SỐ CHÍNH */
     .text-right { text-align: right !important; }
     .text-center { text-align: center !important; }
+
+    .val-calc-large { 
+      font-size: 14px !important; 
+      font-weight: bold !important; 
+      color: #111;
+      padding: 4px;
+    }
 
     .bcs-badge { font-weight: bold; padding: 2px 4px; border-radius: 3px; background: #e2e3e5; color: #333; font-size: 11px; }
     .bcs-BT { background: #d4edda; color: #155724; }
     .bcs-CD { background: #fff3cd; color: #856404; }
     .bcs-TD { background: #f8d7da; color: #721c24; }
     
-    /* Ô NHẬP CHỈ SỐ MỚI (NỀN HƠI TỐI / VIỀN MỎNG KHI FOCUS) */
+    /* Ô NHẬP CHỈ SỐ MỚI (FULL BACKGROUND Ô, FONT TO) */
+    .td-input-container { padding: 0 !important; }
     input.input-cs-moi { 
-      width: 65px; 
-      padding: 3px 4px; 
+      width: 100%; 
+      height: 100%;
+      min-height: 32px;
+      padding: 4px; 
       background-color: #f2f3f5; 
-      border: 1px solid #ccc; 
-      border-radius: 3px; 
+      border: none; 
+      border-radius: 0; 
       text-align: right; 
       font-weight: bold; 
-      font-size: 12.5px; 
+      font-size: 14px; 
+      color: #0056b3;
       outline: none; 
       transition: all 0.15s ease;
     }
     input.input-cs-moi:focus { 
       background-color: #ffffff; 
       border: 1px solid #007bff; 
-      box-shadow: 0 0 3px rgba(0, 123, 255, 0.3);
+      box-shadow: inset 0 0 3px rgba(0, 123, 255, 0.4);
     }
     
-    .val-calc { font-weight: 600; color: #212529; }
-    .val-highlight { font-weight: bold; color: #d9534f; }
+    .val-highlight { font-weight: bold; color: #d9534f; padding: 4px; }
 
     /* MẶC ĐỊNH ẨN NÚT BẤM DƯỚI BẢNG */
     .card-btn-group { 
@@ -151,7 +162,7 @@
       display: flex;
     }
 
-    .btn-card { flex: 1; padding: 7px; border: none; border-radius: 4px; font-weight: bold; font-size: 12px; cursor: pointer; color: white; transition: 0.15s; }
+    .btn-card { flex: 1; padding: 8px; border: none; border-radius: 4px; font-weight: bold; font-size: 12px; cursor: pointer; color: white; transition: 0.15s; }
     .btn-card-save { background: #28a745; }
     .btn-card-save:active { background: #218838; }
     .btn-card-cancel { background: #dc3545; }
@@ -297,6 +308,9 @@
         const firstItem = cust.items[0] || {};
         const initSl = firstItem.san_luong !== "" && firstItem.san_luong !== undefined ? firstItem.san_luong : "0";
 
+        // Gộp Cột và Trạm thành 1 dòng
+        const cotTramText = [cust.so_cot, cust.ten_tram].filter(Boolean).join(" - ");
+
         html += `
           <div class="customer-card ${isActive}" id="card_${cust.ma_khang}" onclick="selectCustomer('${cust.ma_khang}')">
             <div class="cust-header">
@@ -313,10 +327,9 @@
                 <span class="flex-1">📟 CT: <b>${cust.so_cto || ''}</b></span>
               </div>
 
-              <!-- HÀNG 4: CỘT, TRẠM CHUNG 1 HÀNG NGANG -->
+              <!-- HÀNG 4: CỘT - TRẠM GỘP THÀNH 1 DÒNG -->
               <div class="cust-row-group">
-                <span class="flex-1">⚡ Cột: <b>${cust.so_cot || ''}</b></span>
-                <span class="flex-1">🏭 Trạm: <b>${cust.ten_tram || ''}</b></span>
+                <span class="flex-1">⚡ Cột - Trạm: <b>${cotTramText || ''}</b></span>
               </div>
 
               <!-- HÀNG 5: KHUNG SẢN LƯỢNG ĐỘNG CỦA BCS DÒNG ĐƯỢC CHỌN -->
@@ -332,12 +345,12 @@
               <table class="chiso-table">
                 <thead>
                   <tr>
-                    <th>BCS</th>
-                    <th>CS cũ</th>
-                    <th>CS mới</th>
-                    <th>Tổng SL</th>
-                    <th>C.Lệch</th>
-                    <th>Tỷ lệ</th>
+                    <th style="width: 12%;">BCS</th>
+                    <th style="width: 18%;">CS cũ</th>
+                    <th style="width: 26%;">CS mới</th>
+                    <th style="width: 18%;">Tổng SL</th>
+                    <th style="width: 13%;">C.Lệch</th>
+                    <th style="width: 13%;">Tỷ lệ</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -349,9 +362,9 @@
 
           html += `
             <tr id="row_${item.rowIndex}" onclick="event.stopPropagation(); updateRowDetail('${cust.ma_khang}', '${item.bcs}', document.getElementById('sl_val_${item.rowIndex}').value, ${item.sluong_thao}, ${item.sluong_kt});">
-              <td class="text-center"><span class="bcs-badge ${bcsClass}">${item.bcs}</span></td>
-              <td class="val-calc text-right">${item.chiso_cu}</td>
-              <td class="text-right">
+              <td class="text-center" style="padding: 4px 2px;"><span class="bcs-badge ${bcsClass}">${item.bcs}</span></td>
+              <td class="val-calc-large text-right">${item.chiso_cu}</td>
+              <td class="td-input-container text-right">
                 <input type="number" 
                        class="input-cs-moi" 
                        id="cs_moi_${item.rowIndex}" 
@@ -361,7 +374,7 @@
                        oninput="calculateRow('${cust.ma_khang}', '${item.bcs}', ${item.rowIndex}, ${item.chiso_cu}, ${item.hsn}, ${item.sluong_thao}, ${item.sluong_kt})">
                 <input type="hidden" id="sl_val_${item.rowIndex}" value="${item.san_luong !== "" && item.san_luong !== undefined ? item.san_luong : '-'}">
               </td>
-              <td id="tong_sl_${item.rowIndex}" class="val-calc text-right">${item.tong_sluong !== "" && item.tong_sluong !== undefined ? item.tong_sluong : '-'}</td>
+              <td id="tong_sl_${item.rowIndex}" class="val-calc-large text-right">${item.tong_sluong !== "" && item.tong_sluong !== undefined ? item.tong_sluong : '-'}</td>
               <td id="clech_${item.rowIndex}" class="val-highlight text-right">${item.chenh_lech !== "" && item.chenh_lech !== undefined ? item.chenh_lech : '-'}</td>
               <td id="tyle_${item.rowIndex}" class="val-highlight text-right">${item.tyle_clech !== "" && item.tyle_clech !== undefined ? item.tyle_clech : '-'}</td>
             </tr>
