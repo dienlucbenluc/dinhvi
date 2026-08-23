@@ -20,9 +20,52 @@
       box-shadow: 0 2px 6px rgba(0,0,0,0.1);
     }
 
-    .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+    .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; position: relative; }
+    .header-left { display: flex; align-items: center; gap: 8px; }
+    .btn-menu { 
+      background: #f0f2f5; 
+      border: 1px solid #ccc; 
+      border-radius: 4px; 
+      padding: 4px 8px; 
+      font-size: 16px; 
+      cursor: pointer; 
+      line-height: 1;
+    }
+    .btn-menu:active { background: #e2e6ea; }
+
     .title { font-size: 15px; font-weight: bold; color: #0056b3; }
     .user-info { font-weight: 600; font-size: 12px; color: #28a745; }
+
+    /* DROPDOWN MENU */
+    .menu-dropdown {
+      display: none;
+      position: absolute;
+      top: 32px;
+      left: 0;
+      background: #ffffff;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      z-index: 1001;
+      min-width: 140px;
+      overflow: hidden;
+    }
+    .menu-dropdown.show { display: block; }
+    .menu-item {
+      padding: 10px 12px;
+      font-size: 13px;
+      font-weight: 600;
+      color: #333;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+      border-bottom: 1px solid #eee;
+      transition: background 0.15s;
+    }
+    .menu-item:last-child { border-bottom: none; }
+    .menu-item:active { background: #f0f4f8; }
+    .menu-item.logout { color: #dc3545; }
 
     .search-box input { width: 100%; padding: 7px 10px; border-radius: 5px; border: 1px solid #ccc; font-size: 13px; outline: none; }
     .search-box input:focus { border-color: #0056b3; }
@@ -128,7 +171,7 @@
     .bcs-CD { background: #fff3cd; color: #856404; }
     .bcs-TD { background: #f8d7da; color: #721c24; }
     
-    /* Ô NHẬP CHỈ SỐ MỚI (BACKGROUND #F0FFFF, CÓ LỀ PHẢI, KHÔNG PLACEHOLDER) */
+    /* Ô NHẬP CHỈ SỐ MỚI */
     .td-input-container { padding: 0 !important; }
     input.input-cs-moi { 
       width: 100%; 
@@ -185,7 +228,17 @@
   <!-- PHẦN ĐẦU CỐ ĐỊNH -->
   <div class="sticky-top-container">
     <div class="header">
-      <div class="title">⚡ NHẬP CHỈ SỐ</div>
+      <div class="header-left">
+        <button class="btn-menu" onclick="toggleMenu(event)">☰</button>
+        <div class="title">⚡ NHẬP CHỈ SỐ</div>
+        
+        <!-- DROPDOWN MENU -->
+        <div class="menu-dropdown" id="menuDropdown">
+          <div class="menu-item" onclick="goToHome()">🏠 Trang chủ</div>
+          <div class="menu-item logout" onclick="logout()">🚪 Đăng xuất</div>
+        </div>
+      </div>
+
       <div class="user-info" id="userDisplay">👷 ...</div>
     </div>
 
@@ -214,6 +267,31 @@
       
       loadChiSoData();
     });
+
+    // BẬT / TẮT MENU
+    function toggleMenu(e) {
+      e.stopPropagation();
+      document.getElementById("menuDropdown").classList.toggle("show");
+    }
+
+    // ẨN MENU KHI BẤM RA NGOÀI
+    document.addEventListener("click", () => {
+      const menu = document.getElementById("menuDropdown");
+      if (menu && menu.classList.contains("show")) {
+        menu.classList.remove("show");
+      }
+    });
+
+    function goToHome() {
+      window.location.href = "index.html";
+    }
+
+    function logout() {
+      if (confirm("Bạn có chắc muốn đăng xuất?")) {
+        localStorage.removeItem("cmis_user_session");
+        window.location.href = "login.html";
+      }
+    }
 
     function showToast(msg) {
       const t = document.getElementById("toast");
@@ -317,31 +395,24 @@
         const firstItem = cust.items[0] || {};
         const initSl = firstItem.san_luong !== "" && firstItem.san_luong !== undefined ? firstItem.san_luong : "0";
 
-        // Gộp Cột và Trạm thành 1 dòng
         const cotTramText = [cust.so_cot, cust.ten_tram].filter(Boolean).join(" - ");
 
         html += `
           <div class="customer-card ${isActive}" id="card_${cust.ma_khang}" onclick="selectCustomer('${cust.ma_khang}')">
             <div class="cust-header">
-              <!-- HÀNG 1: MÃ VÀ TÊN KHÁCH HÀNG -->
               <div class="cust-title">${cust.ma_khang} - ${cust.ten_khang}</div>
-              
-              <!-- HÀNG 2: ĐỊA CHỈ NẰM 1 MÌNH -->
               <div class="cust-address">📍 ${cust.dia_chi || ''}</div>
               
-              <!-- HÀNG 3: SỔ, DANH SỐ, CT CHUNG 1 HÀNG NGANG -->
               <div class="cust-row-group">
                 <span class="flex-1">📂 Sổ: <b>${cust.ma_sogcs || ''}</b></span>
                 <span class="flex-1">🔢 DS: <b>${cust.danh_so || ''}</b></span>
                 <span class="flex-1">📟 CT: <b>${cust.so_cto || ''}</b></span>
               </div>
 
-              <!-- HÀNG 4: CỘT - TRẠM GỘP THÀNH 1 DÒNG -->
               <div class="cust-row-group">
                 <span class="flex-1">⚡ Cột - Trạm: <b>${cotTramText || ''}</b></span>
               </div>
 
-              <!-- HÀNG 5: KHUNG SẢN LƯỢNG ĐỘNG CỦA BCS DÒNG ĐƯỢC CHỌN -->
               <div class="cust-dynamic-info" id="detail_info_${cust.ma_khang}">
                 <span>📊 BCS: <b>${firstItem.bcs || '-'}</b></span>
                 <span>S.Lượng: <b>${initSl}</b></span>
@@ -394,7 +465,6 @@
               </table>
             </div>
 
-            <!-- NÚT GHI VÀ HỦY CỦA RIÊNG TỪNG KHÁCH HÀNG -->
             <div class="card-btn-group">
               <button class="btn-card btn-card-save" onclick="event.stopPropagation(); saveCustomerData('${cust.ma_khang}')">[GHI] LƯU CHỈ SỐ</button>
               <button class="btn-card btn-card-cancel" onclick="event.stopPropagation(); cancelCustomerData('${cust.ma_khang}')">[HỦY] HỦY CHỈ SỐ</button>
