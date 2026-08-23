@@ -5,37 +5,60 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Nhập chỉ số khách hàng</title>
   <style>
-    body { font-family: Arial, sans-serif; background: #f4f4f9; margin: 0; padding: 10px; }
-    .header { display: flex; justify-content: space-between; align-items: center; background: #fff; padding: 10px 15px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-    .title { font-size: 16px; font-weight: bold; color: #1E90FF; }
+    * { box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background: #f0f2f5; margin: 0; padding: 10px; color: #333; }
+    
+    .header { display: flex; justify-content: space-between; align-items: center; background: #fff; padding: 12px 15px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+    .title { font-size: 16px; font-weight: bold; color: #0056b3; }
+    .user-info { font-weight: 600; font-size: 13px; color: #28a745; }
+
     .search-box { margin: 10px 0; }
-    .search-box input { width: 100%; padding: 10px; border-radius: 6px; border: 1px solid #ccc; box-sizing: border-box; }
-    .btn-group { display: flex; gap: 10px; margin-bottom: 15px; }
-    .btn { flex: 1; padding: 12px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; color: white; }
+    .search-box input { width: 100%; padding: 10px 12px; border-radius: 6px; border: 1px solid #ccc; font-size: 14px; outline: none; }
+    .search-box input:focus { border-color: #0056b3; }
+
+    .btn-group { display: flex; gap: 10px; margin-bottom: 15px; position: sticky; top: 5px; z-index: 100; }
+    .btn { flex: 1; padding: 12px; border: none; border-radius: 6px; font-weight: bold; font-size: 14px; cursor: pointer; color: white; transition: 0.2s; box-shadow: 0 2px 4px rgba(0,0,0,0.15); }
     .btn-save { background: #28a745; }
+    .btn-save:active { background: #218838; }
     .btn-cancel { background: #dc3545; }
+    .btn-cancel:active { background: #c82333; }
+
+    /* Group Khách hàng */
+    .customer-card { background: #fff; border-radius: 8px; padding: 12px; margin-bottom: 12px; border: 1px solid #e0e0e0; box-shadow: 0 1px 4px rgba(0,0,0,0.05); }
+    .cust-header { border-bottom: 1px solid #eee; padding-bottom: 8px; margin-bottom: 8px; }
+    .cust-title { font-weight: bold; color: #0056b3; font-size: 15px; }
+    .cust-meta { font-size: 12px; color: #666; margin-top: 4px; display: flex; flex-wrap: wrap; gap: 8px 15px; }
+    .cust-meta span { background: #e9ecef; padding: 2px 6px; border-radius: 4px; }
+
+    /* Bảng nhập chỉ số */
+    .table-responsive { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    table.chiso-table { width: 100%; border-collapse: collapse; font-size: 12px; text-align: center; }
+    table.chiso-table th { background: #f1f3f5; color: #495057; padding: 6px 4px; border: 1px solid #dee2e6; white-space: nowrap; font-weight: 600; }
+    table.chiso-table td { border: 1px solid #dee2e6; padding: 4px; vertical-align: middle; white-space: nowrap; }
     
-    .card { background: #fff; border-radius: 8px; padding: 12px; margin-bottom: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); border: 1px solid #ddd; }
-    .card-title { font-weight: bold; color: #007bff; font-size: 15px; }
-    .card-sub { font-size: 13px; color: #555; margin: 3px 0; }
-    .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; font-size: 12px; color: #333; background: #f8f9fa; padding: 8px; border-radius: 4px; margin: 6px 0; }
-    .input-row { display: flex; align-items: center; gap: 10px; margin-top: 8px; }
-    .input-row label { font-weight: bold; font-size: 13px; }
-    .input-row input { flex: 1; padding: 8px; border: 2px solid #007bff; border-radius: 6px; font-size: 15px; font-weight: bold; text-align: right; }
+    .bcs-badge { font-weight: bold; padding: 2px 5px; border-radius: 3px; background: #e2e3e5; color: #383d41; }
+    .bcs-BT { background: #d4edda; color: #155724; }
+    .bcs-CD { background: #fff3cd; color: #856404; }
+    .bcs-TD { background: #f8d7da; color: #721c24; }
     
-    /* Toast */
-    #toast { position: fixed; top: 10px; right: 10px; background: #333; color: #fff; padding: 10px 15px; border-radius: 6px; display: none; z-index: 9999; }
+    input.input-cs-moi { width: 80px; padding: 6px 4px; border: 1.5px solid #007bff; border-radius: 4px; text-align: right; font-weight: bold; font-size: 13px; outline: none; }
+    input.input-cs-moi:focus { background: #e8f0fe; border-color: #0056b3; }
+    
+    .val-calc { font-weight: 600; color: #212529; }
+    .val-highlight { font-weight: bold; color: #d9534f; }
+
+    #toast { position: fixed; bottom: 20px; right: 20px; background: rgba(0,0,0,0.85); color: #fff; padding: 10px 18px; border-radius: 6px; font-size: 13px; display: none; z-index: 9999; box-shadow: 0 2px 8px rgba(0,0,0,0.3); }
   </style>
 </head>
 <body>
 
   <div class="header">
     <div class="title">⚡ NHẬP CHỈ SỐ</div>
-    <div id="userDisplay" style="font-weight: bold; font-size: 13px;">👷 ...</div>
+    <div class="user-info" id="userDisplay">👷 ...</div>
   </div>
 
   <div class="search-box">
-    <input type="text" id="searchInput" placeholder="🔍 Tìm theo Mã KH, Tên KH, Số cột, Trạm..." oninput="filterData()">
+    <input type="text" id="searchInput" placeholder="🔍 Tìm Mã KH, Tên KH, Số cột, Trạm..." oninput="filterData()">
   </div>
 
   <div class="btn-group">
@@ -49,13 +72,16 @@
   <script>
     const API_URL = "https://script.google.com/macros/s/AKfycbxJZHenN4zoxZR7wOk4SiBnUx071LKLdAWOdJLToJPScSdBIj8Qn_pOeTDAABlN_UAF/exec";
     let currentUser = null;
-    let rawList = [];
+    let groupedData = {}; // Gom nhóm theo mã khách hàng
+    
+    // Thứ tự sắp xếp BCS chuẩn
+    const BCS_ORDER = ["BT", "CD", "TD", "SG", "VC", "BN", "CN", "TN", "SN", "VN"];
 
     document.addEventListener("DOMContentLoaded", () => {
       const sessionStr = localStorage.getItem("cmis_user_session");
       if (!sessionStr) { window.location.href = "login.html"; return; }
       currentUser = JSON.parse(sessionStr);
-      document.getElementById("userDisplay").innerText = `👷 ${currentUser.ten_nvien}`;
+      document.getElementById("userDisplay").innerText = `👷 ${currentUser.ten_nvien || currentUser.ten_ndung}`;
       
       loadChiSoData();
     });
@@ -76,75 +102,209 @@
       .then(res => res.json())
       .then(res => {
         if (res.status === "success") {
-          rawList = res.list;
-          renderList(rawList);
+          groupAndRender(res.list);
         } else {
-          document.getElementById("listContainer").innerText = "Lỗi: " + res.message;
+          document.getElementById("listContainer").innerHTML = "<p style='color:red;'>Lỗi: " + res.message + "</p>";
         }
+      })
+      .catch(err => {
+        document.getElementById("listContainer").innerHTML = "<p style='color:red;'>Lỗi kết nối máy chủ!</p>";
       });
     }
 
-    function renderList(list) {
+    function groupAndRender(flatList) {
+      groupedData = {};
+      
+      flatList.forEach(item => {
+        const makh = item.ma_khang;
+        if (!groupedData[makh]) {
+          groupedData[makh] = {
+            ma_khang: item.ma_khang,
+            ten_khang: item.ten_khang,
+            dia_chi: item.dia_chi,
+            ma_sogcs: item.ma_sogcs,
+            danh_so: item.danh_so,
+            so_cot: item.so_cot,
+            ten_tram: item.ten_tram,
+            so_cto: item.so_cto,
+            items: []
+          };
+        }
+        groupedData[makh].items.push(item);
+      });
+
+      // Sắp xếp các BCS trong từng KH theo BCS_ORDER
+      Object.keys(groupedData).forEach(makh => {
+        groupedData[makh].items.sort((a, b) => {
+          let idxA = BCS_ORDER.indexOf(String(a.bcs).toUpperCase().trim());
+          let idxB = BCS_ORDER.indexOf(String(b.bcs).toUpperCase().trim());
+          if (idxA === -1) idxA = 99;
+          if (idxB === -1) idxB = 99;
+          return idxA - idxB;
+        });
+      });
+
+      renderGroupedList(groupedData);
+    }
+
+    function renderGroupedList(groups) {
       const container = document.getElementById("listContainer");
-      if (list.length === 0) {
-        container.innerHTML = "<p>Không có dữ liệu khách hàng.</p>";
+      const keys = Object.keys(groups);
+
+      if (keys.length === 0) {
+        container.innerHTML = "<p style='text-align:center;'>Không có dữ liệu khách hàng.</p>";
         return;
       }
 
       let html = "";
-      list.forEach((item, index) => {
+      keys.forEach(makh => {
+        const cust = groups[makh];
         html += `
-          <div class="card">
-            <div class="card-title">${item.ma_khang} - ${item.ten_khang}</div>
-            <div class="card-sub">📍 ${item.dia_chi}</div>
-            <div class="info-grid">
-              <div><b>GCS:</b> ${item.ma_sogcs}</div>
-              <div><b>Danh số:</b> ${item.danh_so}</div>
-              <div><b>Trạm:</b> ${item.ten_tram}</div>
-              <div><b>Số cột:</b> ${item.so_cot}</div>
-              <div><b>S.Lượng KT:</b> ${item.sluong_kt}</div>
-              <div><b>S.Lượng tháo:</b> ${item.sluong_thao}</div>
-              <div><b>HSN:</b> ${item.hsn} | <b>BCS:</b> ${item.bcs}</div>
-              <div><b>Chỉ số cũ:</b> <span style="color:red; font-weight:bold;">${item.chiso_cu}</span></div>
+          <div class="customer-card" id="card_${cust.ma_khang}">
+            <div class="cust-header">
+              <div class="cust-title">${cust.ma_khang} - ${cust.ten_khang}</div>
+              <div class="cust-meta">
+                <span>📍 ${cust.dia_chi || ''}</span>
+                <span>⚡ Cột: ${cust.so_cot || ''}</span>
+                <span>🏭 Trạm: ${cust.ten_tram || ''}</span>
+                <span>📟 Công tơ: ${cust.so_cto || ''}</span>
+              </div>
             </div>
-            <div class="input-row">
-              <label>Chỉ số mới:</label>
-              <input type="number" id="cs_moi_${item.rowIndex}" value="${item.chiso_moi}" placeholder="Nhập CS mới...">
+
+            <div class="table-responsive">
+              <table class="chiso-table">
+                <thead>
+                  <tr>
+                    <th>BCS</th>
+                    <th>Chỉ số cũ</th>
+                    <th>Chỉ số mới</th>
+                    <th>Sản lượng</th>
+                    <th>S.Lượng tháo</th>
+                    <th>Tổng S.Lượng</th>
+                    <th>S.Lượng KT</th>
+                    <th>Chênh lệch</th>
+                    <th>Tỷ lệ CL</th>
+                  </tr>
+                </thead>
+                <tbody>
+        `;
+
+        cust.items.forEach(item => {
+          const bcsClass = `bcs-${item.bcs}`;
+          const csMoiVal = item.chiso_moi !== "" ? item.chiso_moi : "";
+
+          html += `
+            <tr id="row_${item.rowIndex}">
+              <td><span class="bcs-badge ${bcsClass}">${item.bcs}</span></td>
+              <td class="val-calc">${item.chiso_cu}</td>
+              <td>
+                <input type="number" 
+                       class="input-cs-moi" 
+                       id="cs_moi_${item.rowIndex}" 
+                       value="${csMoiVal}" 
+                       placeholder="Nhập..." 
+                       oninput="calculateRow(${item.rowIndex}, ${item.chiso_cu}, ${item.hsn}, ${item.sluong_thao}, ${item.sluong_kt})">
+              </td>
+              <td id="sl_${item.rowIndex}" class="val-calc">${item.san_luong || '-'}</td>
+              <td>${item.sluong_thao}</td>
+              <td id="tong_sl_${item.rowIndex}" class="val-calc">${item.tong_sluong || '-'}</td>
+              <td>${item.sluong_kt}</td>
+              <td id="clech_${item.rowIndex}" class="val-highlight">${item.chenh_lech || '-'}</td>
+              <td id="tyle_${item.rowIndex}" class="val-highlight">${item.tyle_clech || '-'}</td>
+            </tr>
+          `;
+        });
+
+        html += `
+                </tbody>
+              </table>
             </div>
           </div>
         `;
       });
+
       container.innerHTML = html;
     }
 
-    function filterData() {
-      const q = document.getElementById("searchInput").value.toLowerCase();
-      const filtered = rawList.filter(i => 
-        String(i.ma_khang).toLowerCase().includes(q) ||
-        String(i.ten_khang).toLowerCase().includes(q) ||
-        String(i.so_cot).toLowerCase().includes(q) ||
-        String(i.ten_tram).toLowerCase().includes(q)
-      );
-      renderList(filtered);
+    // Tính toán công thức trực tiếp khi gõ
+    function calculateRow(rowIndex, csCu, hsn, sluongThao, sluongKt) {
+      const inputEl = document.getElementById(`cs_moi_${rowIndex}`);
+      const val = inputEl.value;
+
+      const slCell = document.getElementById(`sl_${rowIndex}`);
+      const tongSlCell = document.getElementById(`tong_sl_${rowIndex}`);
+      const clechCell = document.getElementById(`clech_${rowIndex}`);
+      const tyleCell = document.getElementById(`tyle_${rowIndex}`);
+
+      if (val === "" || isNaN(val)) {
+        slCell.innerText = "-";
+        tongSlCell.innerText = "-";
+        clechCell.innerText = "-";
+        tyleCell.innerText = "-";
+        return;
+      }
+
+      const csMoi = Number(val);
+      const hsnVal = Number(hsn) || 1;
+      const slThao = Number(sluongThao) || 0;
+      const slKt = Number(sluongKt) || 0;
+
+      // Công thức
+      const sanLuong = Math.round((csMoi - csCu) * hsnVal);
+      const tongSluong = sanLuong + slThao;
+      const chenhLech = tongSluong - slKt;
+      const tyleClech = slKt !== 0 ? ((tongSluong / slKt) * 100).toFixed(2) + "%" : "0%";
+
+      // Hiển thị lên ô tương ứng
+      slCell.innerText = sanLuong;
+      tongSlCell.innerText = tongSluong;
+      clechCell.innerText = chenhLech;
+      tyleCell.innerText = tyleClech;
     }
 
-    function saveData() {
-      const payload = [];
-      rawList.forEach(item => {
-        const inputEl = document.getElementById(`cs_moi_${item.rowIndex}`);
-        if (inputEl) {
-          payload.push({
-            rowIndex: item.rowIndex,
-            chiso_cu: item.chiso_cu,
-            chiso_moi: inputEl.value !== "" ? Number(inputEl.value) : "",
-            hsn: item.hsn,
-            sluong_thao: item.sluong_thao,
-            sluong_kt: item.sluong_kt
-          });
+    // Tìm kiếm theo nhiều tiêu chí
+    function filterData() {
+      const q = document.getElementById("searchInput").value.toLowerCase().trim();
+      const filteredGroups = {};
+
+      Object.keys(groupedData).forEach(makh => {
+        const cust = groupedData[makh];
+        const match = 
+          String(cust.ma_khang).toLowerCase().includes(q) ||
+          String(cust.ten_khang).toLowerCase().includes(q) ||
+          String(cust.so_cot).toLowerCase().includes(q) ||
+          String(cust.ten_tram).toLowerCase().includes(q) ||
+          String(cust.so_cto).toLowerCase().includes(q);
+
+        if (match) {
+          filteredGroups[makh] = cust;
         }
       });
 
-      showToast("⏳ Đang lưu dữ liệu...");
+      renderGroupedList(filteredGroups);
+    }
+
+    // Nút GHI: Lưu toàn bộ chỉ số mới đã nhập
+    function saveData() {
+      const payload = [];
+
+      Object.keys(groupedData).forEach(makh => {
+        groupedData[makh].items.forEach(item => {
+          const inputEl = document.getElementById(`cs_moi_${item.rowIndex}`);
+          if (inputEl) {
+            payload.push({
+              rowIndex: item.rowIndex,
+              chiso_cu: item.chiso_cu,
+              chiso_moi: inputEl.value !== "" ? Number(inputEl.value) : "",
+              hsn: item.hsn,
+              sluong_thao: item.sluong_thao,
+              sluong_kt: item.sluong_kt
+            });
+          }
+        });
+      });
+
+      showToast("⏳ Đang lưu chỉ số...");
       fetch(API_URL, {
         method: "POST",
         headers: { "Content-Type": "text/plain;charset=utf-8" },
@@ -163,11 +323,13 @@
         } else {
           showToast("❌ " + res.message);
         }
-      });
+      })
+      .catch(err => showToast("❌ Lỗi hệ thống khi lưu!"));
     }
 
+    // Nút HỦY: Hủy các cột dữ liệu do nút ghi cập nhật
     function cancelData() {
-      if (!confirm("Bạn có chắc chắn muốn HỦY TẤT CẢ chỉ số đã nhập không?")) return;
+      if (!confirm("Bạn có chắc chắn muốn HỦY tất cả chỉ số mới đã nhập không?")) return;
 
       showToast("⏳ Đang xử lý hủy...");
       fetch(API_URL, {
@@ -186,7 +348,8 @@
         } else {
           showToast("❌ " + res.message);
         }
-      });
+      })
+      .catch(err => showToast("❌ Lỗi hệ thống!"));
     }
   </script>
 </body>
