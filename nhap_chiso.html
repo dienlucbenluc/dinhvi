@@ -30,7 +30,7 @@
     /* KHU VỰC DANH SÁCH CUỘN TRƯỢT */
     #listContainer {
       position: absolute;
-      top: 75px; /* Khoảng cách chừa phần đầu */
+      top: 75px;
       bottom: 0;
       left: 0;
       right: 0;
@@ -40,7 +40,24 @@
     }
 
     /* CARD KHÁCH HÀNG */
-    .customer-card { background: #fff; border-radius: 6px; padding: 8px; margin-bottom: 10px; border: 1px solid #ddd; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+    .customer-card { 
+      background: #fff; 
+      border-radius: 6px; 
+      padding: 8px; 
+      margin-bottom: 10px; 
+      border: 1px solid #ddd; 
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    /* Trạng thái khi chọn Khách hàng */
+    .customer-card.active {
+      border: 2px solid #28a745;
+      box-shadow: 0 3px 8px rgba(40, 167, 69, 0.2);
+      background: #fafefb;
+    }
+
     .cust-header { border-bottom: 1px solid #eee; padding-bottom: 4px; margin-bottom: 6px; }
     .cust-title { font-weight: bold; color: #0056b3; font-size: 13.5px; }
     .cust-meta { font-size: 11px; color: #555; margin-top: 3px; display: flex; flex-wrap: wrap; gap: 4px 10px; }
@@ -64,9 +81,21 @@
     .val-calc { font-weight: 600; color: #212529; }
     .val-highlight { font-weight: bold; color: #d9534f; }
 
-    /* NHÓM NÚT BẤM DƯỚI BẢNG CỦA MỖI KHÁCH HÀNG */
-    .card-btn-group { display: flex; gap: 8px; margin-top: 8px; padding-top: 6px; border-top: 1px dashed #eee; }
-    .btn-card { flex: 1; padding: 6px; border: none; border-radius: 4px; font-weight: bold; font-size: 12px; cursor: pointer; color: white; transition: 0.15s; }
+    /* MẶC ĐỊNH ẨN NÚT BẤM DƯỚI BẢNG */
+    .card-btn-group { 
+      display: none; 
+      gap: 8px; 
+      margin-top: 8px; 
+      padding-top: 6px; 
+      border-top: 1px dashed #28a745; 
+    }
+
+    /* HIỆN NÚT BẤM KHI CARD ĐƯỢC CHỌN (ACTIVE) */
+    .customer-card.active .card-btn-group {
+      display: flex;
+    }
+
+    .btn-card { flex: 1; padding: 7px; border: none; border-radius: 4px; font-weight: bold; font-size: 12px; cursor: pointer; color: white; transition: 0.15s; }
     .btn-card-save { background: #28a745; }
     .btn-card-save:active { background: #218838; }
     .btn-card-cancel { background: #dc3545; }
@@ -77,7 +106,7 @@
 </head>
 <body>
 
-  <!-- PHẦN ĐẦU CỐ ĐỊNH NẰM IM -->
+  <!-- PHẦN ĐẦU CỐ ĐỊNH -->
   <div class="sticky-top-container">
     <div class="header">
       <div class="title">⚡ NHẬP CHỈ SỐ</div>
@@ -89,7 +118,7 @@
     </div>
   </div>
 
-  <!-- DANH SÁCH KHÁCH HÀNG CUỘN TRƯỢT -->
+  <!-- DANH SÁCH KHÁCH HÀNG -->
   <div id="listContainer">Đang tải danh sách khách hàng...</div>
   <div id="toast"></div>
 
@@ -97,6 +126,7 @@
     const API_URL = "https://script.google.com/macros/s/AKfycbxJZHenN4zoxZR7wOk4SiBnUx071LKLdAWOdJLToJPScSdBIj8Qn_pOeTDAABlN_UAF/exec";
     let currentUser = null;
     let groupedData = {};
+    let activeMaKhang = null; // Lưu mã khách hàng đang được chọn
 
     const BCS_ORDER = ["BT", "CD", "TD", "SG", "VC", "BN", "CN", "TN", "SN", "VN"];
 
@@ -170,6 +200,18 @@
       renderGroupedList(groupedData);
     }
 
+    // Hàm xử lý chọn Khách hàng
+    function selectCustomer(maKhang) {
+      activeMaKhang = maKhang;
+      document.querySelectorAll('.customer-card').forEach(card => {
+        card.classList.remove('active');
+      });
+      const targetCard = document.getElementById(`card_${maKhang}`);
+      if (targetCard) {
+        targetCard.classList.add('active');
+      }
+    }
+
     function renderGroupedList(groups) {
       const container = document.getElementById("listContainer");
       const keys = Object.keys(groups);
@@ -182,8 +224,10 @@
       let html = "";
       keys.forEach(makh => {
         const cust = groups[makh];
+        const isActive = (makh === activeMaKhang) ? "active" : "";
+
         html += `
-          <div class="customer-card" id="card_${cust.ma_khang}">
+          <div class="customer-card ${isActive}" id="card_${cust.ma_khang}" onclick="selectCustomer('${cust.ma_khang}')">
             <div class="cust-header">
               <div class="cust-title">${cust.ma_khang} - ${cust.ten_khang}</div>
               <div class="cust-meta">
@@ -226,6 +270,7 @@
                        id="cs_moi_${item.rowIndex}" 
                        value="${csMoiVal}" 
                        placeholder="Nhập..." 
+                       onclick="event.stopPropagation(); selectCustomer('${cust.ma_khang}');"
                        oninput="calculateRow(${item.rowIndex}, ${item.chiso_cu}, ${item.hsn}, ${item.sluong_thao}, ${item.sluong_kt})">
               </td>
               <td id="sl_${item.rowIndex}" class="val-calc">${item.san_luong !== "" && item.san_luong !== undefined ? item.san_luong : '-'}</td>
@@ -243,10 +288,10 @@
               </table>
             </div>
 
-            <!-- NÚT GHI VÀ HỦY RIÊNG CHO TỪNG KHÁCH HÀNG -->
+            <!-- NÚT CHỈ HIỆN KHI ĐƯỢC CHỌN -->
             <div class="card-btn-group">
-              <button class="btn-card btn-card-save" onclick="saveCustomerData('${cust.ma_khang}')">[GHI] LƯU</button>
-              <button class="btn-card btn-card-cancel" onclick="cancelCustomerData('${cust.ma_khang}')">[HỦY]</button>
+              <button class="btn-card btn-card-save" onclick="event.stopPropagation(); saveCustomerData('${cust.ma_khang}')">[GHI] LƯU CHỈ SỐ</button>
+              <button class="btn-card btn-card-cancel" onclick="event.stopPropagation(); cancelCustomerData('${cust.ma_khang}')">[HỦY] HỦY CHỈ SỐ</button>
             </div>
           </div>
         `;
@@ -309,7 +354,6 @@
       renderGroupedList(filteredGroups);
     }
 
-    // LƯU CHỈ SỐ CỦA RIÊNG TỪNG KHÁCH HÀNG
     function saveCustomerData(maKhang) {
       const cust = groupedData[maKhang];
       if (!cust) return;
@@ -352,7 +396,6 @@
       .catch(err => showToast("❌ Lỗi hệ thống khi lưu!"));
     }
 
-    // HỦY CHỈ SỐ CỦA RIÊNG TỪNG KHÁCH HÀNG
     function cancelCustomerData(maKhang) {
       const cust = groupedData[maKhang];
       if (!cust) return;
