@@ -622,12 +622,12 @@
 
               <!-- Ô SỬA GHI CHÚ NẰM BÊN DƯỚI CỘT-TRẠM -->
               <div class="cust-row-group" style="margin-top: 3px;">
-                <span style="padding-left:0; font-weight:bold; color:#d9534f; min-width:55px;">Ghi chú:</span>
+                <span style="padding-left:0; color:#000; min-width:55px;">Ghi chú:</span>
                 <input type="text" 
                        class="input-ghichu" 
                        id="ghi_chu_${cust.ma_khang}" 
                        value="${cust.ghi_chu || ''}" 
-                       placeholder="Nhập ghi chú..." 
+                       placeholder="Nhập ghi chú nếu có..." 
                        onclick="event.stopPropagation(); selectCustomer('${cust.ma_khang}');"
                        onchange="groupedData['${cust.ma_khang}'].ghi_chu = this.value;">
               </div>
