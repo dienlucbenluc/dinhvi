@@ -858,6 +858,15 @@
             const logoutModal = document.getElementById('logoutModal');
             if (logoutModal) logoutModal.style.display = 'flex';
         }
+            function closeLogoutModal() {
+            const logoutModal = document.getElementById('logoutModal');
+            if (logoutModal) logoutModal.style.display = 'none';
+        }
+
+        function confirmLogout() {
+            localStorage.removeItem("cmis_user_session");
+            window.location.href = "login.html";
+        }
   </script>
 </body>
 </html>
