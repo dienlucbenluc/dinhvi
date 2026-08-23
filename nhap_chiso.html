@@ -137,6 +137,18 @@
       justify-content: space-between;
     }
 
+    .warning-alert-msg {
+      background: #fff3cd;
+      color: #856404;
+      border: 1px solid #ffeeba;
+      padding: 5px 8px;
+      border-radius: 4px;
+      font-size: 12px;
+      font-weight: bold;
+      margin-top: 6px;
+      display: none;
+    }
+
     .table-responsive { overflow-x: auto; -webkit-overflow-scrolling: touch; }
     table.chiso-table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
     table.chiso-table th { background: #e9ecef; color: #333; padding: 5px 3px; border: 1px solid #ccc; white-space: nowrap; font-size: 12px; font-weight: bold; text-align: center; }
@@ -475,6 +487,7 @@
                 <span>SL Tháo: <b>${firstItem.sluong_thao || 0}</b></span>
                 <span>SL KT: <b>${firstItem.sluong_kt || 0}</b></span>
               </div>
+              <div class="warning-alert-msg" id="warn_msg_${cust.ma_khang}"></div>
             </div>
 
             <div class="table-responsive">
@@ -544,12 +557,14 @@
       const tongSlCell = document.getElementById(`tong_sl_${rowIndex}`);
       const clechCell = document.getElementById(`clech_${rowIndex}`);
       const tyleCell = document.getElementById(`tyle_${rowIndex}`);
+      const warnBox = document.getElementById(`warn_msg_${maKhang}`);
 
       if (val === "" || isNaN(val)) {
         slHiddenEl.value = "-";
         tongSlCell.innerText = "-";
         clechCell.innerText = "-";
         tyleCell.innerText = "-";
+        if (warnBox) warnBox.style.display = "none";
         updateRowDetail(maKhang, bcs, "-", sluongThao, sluongKt);
         checkCancelButtonStatus(maKhang);
         return;
@@ -563,12 +578,43 @@
       const sanLuong = Math.round((csMoi - csCu) * hsnVal);
       const tongSluong = sanLuong + slThao;
       const chenhLech = tongSluong - slKt;
-      const tyleClech = slKt !== 0 ? ((tongSluong / slKt) * 100).toFixed(2) + "%" : "0%";
+
+      let rawTyle = 0;
+      let tyleClech = "0%";
+      if (slKt !== 0) {
+        rawTyle = (tongSluong / slKt) * 100;
+        tyleClech = rawTyle.toFixed(2) + "%";
+      }
 
       slHiddenEl.value = sanLuong;
       tongSlCell.innerText = tongSluong;
       clechCell.innerText = chenhLech;
       tyleCell.innerText = tyleClech;
+
+      // XỬ LÝ CẢNH BÁO TỶ LỆ > 150% HOẶC < -150%
+      if (slKt !== 0) {
+        if (rawTyle > 150) {
+          const percentIncrease = (rawTyle - 100).toFixed(1);
+          const msg = `⚠️ Sản lượng (+) tăng ${percentIncrease}% so với tháng trước, kiểm tra chỉ số công tơ kỹ lại dùm tôi...`;
+          if (warnBox) {
+            warnBox.innerText = msg;
+            warnBox.style.display = "block";
+          }
+          alert(msg);
+        } else if (rawTyle < -150) {
+          const percentDecrease = (100 - rawTyle).toFixed(1);
+          const msg = `⚠️ Sản lượng (-) giảm ${percentDecrease}% so với tháng trước, kiểm tra chỉ số công tơ kỹ lại dùm tôi...`;
+          if (warnBox) {
+            warnBox.innerText = msg;
+            warnBox.style.display = "block";
+          }
+          alert(msg);
+        } else {
+          if (warnBox) warnBox.style.display = "none";
+        }
+      } else {
+        if (warnBox) warnBox.style.display = "none";
+      }
 
       updateRowDetail(maKhang, bcs, sanLuong, sluongThao, sluongKt);
       checkCancelButtonStatus(maKhang);
