@@ -203,6 +203,16 @@
     .btn-card-cancel:disabled { background: #ef9a9a; cursor: not-allowed; opacity: 0.6; }
 
     #toast { position: fixed; bottom: 15px; right: 15px; left: 15px; text-align: center; background: rgba(0,0,0,0.85); color: #fff; padding: 8px 12px; border-radius: 5px; font-size: 12px; display: none; z-index: 9999; box-shadow: 0 2px 8px rgba(0,0,0,0.3); }
+
+    /* CSS Modal chuyên nghiệp giống index.html */
+    .modal-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0, 0, 0, 0.4); display: none; align-items: center; justify-content: center; z-index: 10000; }
+    .modal-box { background: #ffffff; width: 88%; max-width: 360px; border-radius: 12px; padding: 18px 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); text-align: center; }
+    .modal-title { font-size: 16px; font-weight: bold; color: #007bff; margin-bottom: 10px; }
+    .modal-message { font-size: 13.5px; color: #333; line-height: 1.5; white-space: pre-line; text-align: left; }
+    .modal-buttons { display: flex; gap: 10px; margin-top: 15px; }
+    .modal-buttons button { flex: 1; padding: 9px; font-size: 13px; font-weight: bold; border-radius: 6px; margin: 0; border: none; cursor: pointer; }
+    .btn-modal-cancel { background: #e0e0e0; color: #333; }
+    .btn-modal-confirm { background: #28a745; color: white; }
   </style>
 </head>
 <body>
@@ -225,6 +235,18 @@
 
   <div id="listContainer">Đang tải danh sách khách hàng...</div>
   <div id="toast"></div>
+
+  <!-- Custom Confirmation Modal (Chuyên nghiệp) -->
+  <div id="customConfirmModal" class="modal-overlay">
+    <div class="modal-box">
+      <div class="modal-title" id="confirmModalTitle">XÁC NHẬN</div>
+      <div class="modal-message" id="confirmModalMessage">Nội dung thông báo...</div>
+      <div class="modal-buttons">
+        <button class="btn-modal-cancel" id="btnModalCancel">Hủy</button>
+        <button class="btn-modal-confirm" id="btnModalConfirm">Xác nhận</button>
+      </div>
+    </div>
+  </div>
 
   <script>
     const API_URL = "https://script.google.com/macros/s/AKfycbxJZHenN4zoxZR7wOk4SiBnUx071LKLdAWOdJLToJPScSdBIj8Qn_pOeTDAABlN_UAF/exec";
@@ -261,6 +283,34 @@
       t.innerText = msg;
       t.style.display = "block";
       setTimeout(() => t.style.display = "none", 3000);
+    }
+
+    // Custom Modal Confirmation Helper
+    function showCustomConfirm(title, message, isDanger = false) {
+      return new Promise((resolve) => {
+        const modal = document.getElementById("customConfirmModal");
+        const titleEl = document.getElementById("confirmModalTitle");
+        const msgEl = document.getElementById("confirmModalMessage");
+        const btnConfirm = document.getElementById("btnModalConfirm");
+        const btnCancel = document.getElementById("btnModalCancel");
+
+        titleEl.innerText = title;
+        titleEl.style.color = isDanger ? "#dc3545" : "#007bff";
+        msgEl.innerText = message;
+        btnConfirm.style.background = isDanger ? "#dc3545" : "#28a745";
+
+        modal.style.display = "flex";
+
+        btnConfirm.onclick = () => {
+          modal.style.display = "none";
+          resolve(true);
+        };
+
+        btnCancel.onclick = () => {
+          modal.style.display = "none";
+          resolve(false);
+        };
+      });
     }
 
     function loadChiSoData() {
@@ -333,7 +383,7 @@
       }
     }
 
-    function getLocation(maKhang) {
+    async function getLocation(maKhang) {
       selectCustomer(maKhang);
       const cust = groupedData[maKhang];
       const firstItem = cust ? cust.items[0] : {};
@@ -341,7 +391,7 @@
       const hasCoords = (firstItem && firstItem.lat && firstItem.lng) || currentLocations[maKhang];
 
       if (hasCoords) {
-        const confirmAgain = confirm(`Bạn có muốn lấy lại tọa độ mới cho mã khách hàng ${maKhang} này không?`);
+        const confirmAgain = await showCustomConfirm("LẤY TỌA ĐỘ GPS", `Bạn có muốn lấy lại tọa độ mới cho mã khách hàng ${maKhang} này không?`);
         if (!confirmAgain) return;
       }
 
@@ -601,11 +651,10 @@
       renderGroupedList(filteredGroups);
     }
 
-    function saveCustomerData(maKhang) {
+    async function saveCustomerData(maKhang) {
       const cust = groupedData[maKhang];
       if (!cust) return;
 
-      // KIỂM TRA TỶ LỆ TĂNG/GIẢM ĐỂ TẠO CÂU HỎI CONFIRM
       let warningMsgs = [];
       cust.items.forEach(item => {
         const inputEl = document.getElementById(`cs_moi_${item.rowIndex}`);
@@ -622,24 +671,30 @@
             const rawTyle = (tongSluong / slKt) * 100;
             if (rawTyle > 150) {
               const percentIncrease = (rawTyle - 100).toFixed(1);
-              warningMsgs.push(`⚠️ [BCS ${item.bcs}]: Sản lượng (+) tăng ${percentIncrease}% so với tháng trước, kiểm tra chỉ số công tơ kỹ lại dùm tôi...`);
+              warningMsgs.push(`⚠️ [BCS ${item.bcs}]: Sản lượng (+) tăng ${percentIncrease}% so với tháng trước, kiểm tra kỹ lại dùm tôi.`);
             } else if (rawTyle < -150) {
               const percentDecrease = (100 - rawTyle).toFixed(1);
-              warningMsgs.push(`⚠️ [BCS ${item.bcs}]: Sản lượng (-) giảm ${percentDecrease}% so với tháng trước, kiểm tra chỉ số công tơ kỹ lại dùm tôi...`);
+              warningMsgs.push(`⚠️ [BCS ${item.bcs}]: Sản lượng (-) giảm ${percentDecrease}% so với tháng trước, kiểm tra kỹ lại dùm tôi.`);
             }
           }
         }
       });
 
-      // TẠO THÔNG ĐIỆP HỎI CONFIRM
       let confirmMessage = "";
-      if (warningMsgs.length > 0) {
+      let isWarning = warningMsgs.length > 0;
+
+      if (isWarning) {
         confirmMessage = warningMsgs.join("\n") + "\n\nBạn vẫn muốn xác nhận ghi dữ liệu?";
       } else {
-        confirmMessage = "Xác nhận ghi dữ liệu không?";
+        confirmMessage = "Xác nhận ghi dữ liệu chỉ số?";
       }
 
-      const confirmSave = confirm(confirmMessage);
+      const confirmSave = await showCustomConfirm(
+        isWarning ? "CẢNH BÁO SẢN LƯỢNG" : "XÁC NHẬN GHI DỮ LIỆU",
+        confirmMessage,
+        isWarning
+      );
+
       if (!confirmSave) return;
 
       const loc = currentLocations[maKhang] || {};
@@ -684,11 +739,17 @@
       .catch(() => showToast("❌ Lỗi hệ thống khi lưu!"));
     }
 
-    function cancelCustomerData(maKhang) {
+    async function cancelCustomerData(maKhang) {
       const cust = groupedData[maKhang];
       if (!cust) return;
 
-      if (!confirm(`Bạn có chắc muốn HỦY chỉ số đã nhập của KH ${maKhang}?`)) return;
+      const confirmCancel = await showCustomConfirm(
+        "XÁC NHẬN HỦY", 
+        `Bạn có chắc chắn muốn HỦY chỉ số đã nhập của khách hàng ${maKhang}?`,
+        true
+      );
+
+      if (!confirmCancel) return;
 
       const rowIndices = cust.items.map(item => item.rowIndex);
 
