@@ -147,6 +147,7 @@
       flex-wrap: nowrap; 
       gap: 4px; 
       margin-top: 2px; 
+      align-items: center;
     }
     
     .cust-row-group span { 
@@ -161,6 +162,24 @@
     }
     
     .flex-1 { flex: 1; }
+
+    /* Input cho ô Ghi chú */
+    .input-ghichu {
+      width: 100%;
+      border: 1px solid #ced4da;
+      border-radius: 4px;
+      padding: 3px 6px;
+      font-size: 12px;
+      color: #d9534f;
+      font-weight: bold;
+      outline: none;
+      background-color: #fff;
+      transition: border-color 0.15s;
+    }
+    .input-ghichu:focus {
+      border-color: #007bff;
+      background-color: #fff;
+    }
 
     .cust-dynamic-info-v2 {
       background: #ffffff;
@@ -298,7 +317,7 @@
       <div class="user-info" id="userDisplay">👷 ...</div>
     </div>
     <div class="search-box">
-      <input type="text" id="searchInput" placeholder="🔍 Tìm Mã KH, Tên KH, Cột, Trạm, Sổ, SĐT..." oninput="filterData()">
+      <input type="text" id="searchInput" placeholder="🔍 Tìm Mã KH, Tên KH, Cột, Trạm, Sổ, SĐT, Ghi chú..." oninput="filterData()">
     </div>
   </div>
 
@@ -484,10 +503,13 @@
             const lng = position.coords.longitude;
             currentLocations[maKhang] = { lat, lng };
 
+            const currentGhiChu = document.getElementById(`ghi_chu_${maKhang}`) ? document.getElementById(`ghi_chu_${maKhang}`).value : cust.ghi_chu;
+
             const payload = cust.items.map(item => ({
               rowIndex: item.rowIndex,
               chiso_cu: item.chiso_cu,
               chiso_moi: "",
+              ghi_chu: currentGhiChu,
               lat: lat,
               lng: lng
             }));
@@ -598,9 +620,16 @@
                 <span class="flex-1">Cột-Trạm: <b>${cotTramText || ''}</b></span>
               </div>
 
-              <!-- DÒNG GHI CHÚ NẰM BÊN DƯỚI CỘT-TRẠM -->
-              <div class="cust-row-group">
-                <span class="flex-1" style="color: #d9534f;">Ghi chú: <b>${cust.ghi_chu || ''}</b></span>
+              <!-- Ô SỬA GHI CHÚ NẰM BÊN DƯỚI CỘT-TRẠM -->
+              <div class="cust-row-group" style="margin-top: 3px;">
+                <span style="padding-left:0; font-weight:bold; color:#d9534f; min-width:55px;">Ghi chú:</span>
+                <input type="text" 
+                       class="input-ghichu" 
+                       id="ghi_chu_${cust.ma_khang}" 
+                       value="${cust.ghi_chu || ''}" 
+                       placeholder="Nhập ghi chú..." 
+                       onclick="event.stopPropagation(); selectCustomer('${cust.ma_khang}');"
+                       onchange="groupedData['${cust.ma_khang}'].ghi_chu = this.value;">
               </div>
 
               <div class="cust-dynamic-info-v2" id="detail_info_${cust.ma_khang}">
@@ -719,6 +748,9 @@
 
       Object.keys(groupedData).forEach(makh => {
         const cust = groupedData[makh];
+        const ghiChuInput = document.getElementById(`ghi_chu_${makh}`);
+        const currentGhiChu = ghiChuInput ? ghiChuInput.value : (cust.ghi_chu || "");
+
         const match = 
           String(cust.ma_khang).toLowerCase().includes(q) ||
           String(cust.ten_khang).toLowerCase().includes(q) ||
@@ -728,7 +760,7 @@
           String(cust.ma_sogcs).toLowerCase().includes(q) ||
           String(cust.danh_so).toLowerCase().includes(q) ||
           String(cust.so_dthoai).toLowerCase().includes(q) ||
-          String(cust.ghi_chu).toLowerCase().includes(q);
+          String(currentGhiChu).toLowerCase().includes(q);
 
         if (match) filteredGroups[makh] = cust;
       });
@@ -739,6 +771,10 @@
     async function saveCustomerData(maKhang) {
       const cust = groupedData[maKhang];
       if (!cust) return;
+
+      // Lấy nội dung ghi chú từ input hiện tại
+      const ghiChuInput = document.getElementById(`ghi_chu_${maKhang}`);
+      const newGhiChu = ghiChuInput ? ghiChuInput.value.trim() : (cust.ghi_chu || "");
 
       let warningMsgs = [];
       cust.items.forEach(item => {
@@ -769,7 +805,7 @@
       if (isWarning) {
         confirmMessage = warningMsgs.join("\n") + "\n⚡Kiểm tra chỉ số trên công tơ kỹ lại.\n📂 Bạn vẫn muốn xác nhận ghi dữ liệu?";
       } else {
-        confirmMessage = "Xác nhận ghi dữ liệu chỉ số?";
+        confirmMessage = "Xác nhận ghi dữ liệu chỉ số và ghi chú?";
       }
 
       const confirmSave = await showCustomConfirm(
@@ -790,6 +826,7 @@
             rowIndex: item.rowIndex,
             chiso_cu: item.chiso_cu,
             chiso_moi: inputEl.value !== "" ? Number(inputEl.value) : "",
+            ghi_chu: newGhiChu, // Truyền ghi chú lên server
             hsn: item.hsn,
             sluong_thao: item.sluong_thao,
             sluong_kt: item.sluong_kt,
@@ -799,7 +836,7 @@
         }
       });
 
-      showToast(`⏳ Đang lưu chỉ số KH ${maKhang}...`);
+      showToast(`⏳ Đang lưu dữ liệu KH ${maKhang}...`);
       fetch(API_URL, {
         method: "POST",
         headers: { "Content-Type": "text/plain;charset=utf-8" },
@@ -828,7 +865,7 @@
 
       const confirmCancel = await showCustomConfirm(
         "XÁC NHẬN HỦY", 
-        `Bạn có chắc chắn muốn HỦY chỉ số đã nhập của khách hàng ${maKhang}?`,
+        `Bạn có chắc chắn muốn HỦY chỉ số đã nhập của khách hàng ${maKhang}? (Ghi chú sẽ giữ nguyên)`,
         true
       );
 
