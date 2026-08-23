@@ -65,7 +65,6 @@
     }
     .menu-item:last-child { border-bottom: none; }
     .menu-item:active { background: #f0f4f8; }
-    .menu-item.logout { color: #dc3545; }
 
     .search-box input { width: 100%; padding: 7px 10px; border-radius: 5px; border: 1px solid #ccc; font-size: 13px; outline: none; }
     .search-box input:focus { border-color: #0056b3; }
@@ -104,13 +103,12 @@
     .cust-title { font-weight: bold; color: #0056b3; font-size: 14px; margin-bottom: 3px; }
     
     .cust-address { 
-      font-size: 14px; 
+      font-size: 13px; 
       color: #333; 
-      margin: 3px 0 5px 0; 
+      margin: 3px 0 4px 0; 
       word-break: break-word;
     }
 
-    /* ĐỒNG NHẤT BACKGROUND NHẠT CHO THÔNG TIN KHÁCH HÀNG */
     .cust-row-group { 
       display: flex; 
       flex-wrap: nowrap; 
@@ -119,7 +117,6 @@
     }
     
     .cust-row-group span { 
-
       padding: 3px 6px; 
       border-radius: 4px; 
       font-size: 11.5px; 
@@ -131,7 +128,7 @@
     
     .flex-1 { flex: 1; }
 
-    /* Vùng hiển thị SL chi tiết động khi chọn dòng BCS */
+    /* Vùng hiển thị SL chi tiết động */
     .cust-dynamic-info {
       background: #eef6ff;
       border: 1px dashed #007bff;
@@ -151,7 +148,6 @@
     table.chiso-table th { background: #e9ecef; color: #333; padding: 5px 3px; border: 1px solid #ccc; white-space: nowrap; font-size: 12px; font-weight: bold; text-align: center; }
     table.chiso-table td { border: 1px solid #ddd; padding: 0; vertical-align: middle; white-space: nowrap; }
     
-    /* CĂN PHẢI & THÊM LỀ PHẢI CHO SỐ KHÔNG BỊ DÍNH BORDER */
     .text-right { 
       text-align: right !important; 
       padding-right: 8px !important; 
@@ -215,6 +211,8 @@
     }
 
     .btn-card { flex: 1; padding: 8px; border: none; border-radius: 4px; font-weight: bold; font-size: 12px; cursor: pointer; color: white; transition: 0.15s; }
+    .btn-card-location { background: #007bff; }
+    .btn-card-location:active { background: #0056b3; }
     .btn-card-save { background: #28a745; }
     .btn-card-save:active { background: #218838; }
     .btn-card-cancel { background: #dc3545; }
@@ -232,7 +230,6 @@
         <button class="btn-menu" onclick="toggleMenu(event)">☰</button>
         <div class="title">⚡ NHẬP CHỈ SỐ</div>
         
-        <!-- DROPDOWN MENU -->
         <div class="menu-dropdown" id="menuDropdown">
           <div class="menu-item" onclick="goToHome()">🏠 Trang chủ</div>
         </div>
@@ -255,6 +252,7 @@
     let currentUser = null;
     let groupedData = {};
     let activeMaKhang = null;
+    let currentLocations = {}; // Lưu tọa độ tạm khi bấm ĐỊNH VỊ
 
     const BCS_ORDER = ["BT", "CD", "TD", "SG", "VC", "BN", "CN", "TN", "SN", "VN"];
 
@@ -267,13 +265,11 @@
       loadChiSoData();
     });
 
-    // BẬT / TẮT MENU
     function toggleMenu(e) {
       e.stopPropagation();
       document.getElementById("menuDropdown").classList.toggle("show");
     }
 
-    // ẨN MENU KHI BẤM RA NGOÀI
     document.addEventListener("click", () => {
       const menu = document.getElementById("menuDropdown");
       if (menu && menu.classList.contains("show")) {
@@ -283,13 +279,6 @@
 
     function goToHome() {
       window.location.href = "index.html";
-    }
-
-    function logout() {
-      if (confirm("Bạn có chắc muốn đăng xuất?")) {
-        localStorage.removeItem("cmis_user_session");
-        window.location.href = "login.html";
-      }
     }
 
     function showToast(msg) {
@@ -339,7 +328,6 @@
         groupedData[makh].items.push(item);
       });
 
-      // Sắp xếp BCS
       Object.keys(groupedData).forEach(makh => {
         groupedData[makh].items.sort((a, b) => {
           let idxA = BCS_ORDER.indexOf(String(a.bcs).toUpperCase().trim());
@@ -377,6 +365,29 @@
       }
     }
 
+    // LẤY ĐỊNH VỊ GPS HIỆN TẠI TỪ THIẾT BỊ
+    function getLocation(maKhang) {
+      selectCustomer(maKhang);
+      if (navigator.geolocation) {
+        showToast(`⏳ Đang lấy vị trí GPS cho KH ${maKhang}...`);
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            currentLocations[maKhang] = {
+              lat: position.coords.latitude,
+              lng: position.coords.longitude
+            };
+            showToast("📍 Đã lấy tọa độ thành công! Nhấn GHI để lưu.");
+          },
+          (error) => {
+            showToast("❌ Không thể lấy vị trí GPS! Hãy kiểm tra quyền vị trí.");
+          },
+          { enableHighAccuracy: true, timeout: 10000 }
+        );
+      } else {
+        showToast("❌ Thiết bị không hỗ trợ lấy vị trí!");
+      }
+    }
+
     function renderGroupedList(groups) {
       const container = document.getElementById("listContainer");
       const keys = Object.keys(groups);
@@ -396,11 +407,18 @@
 
         const cotTramText = [cust.so_cot, cust.ten_tram].filter(Boolean).join(" - ");
 
+        // Hiển thị liên kết xem Google Maps nếu đã có tọa độ (cột lat/lng)
+        let mapLinkHtml = '<span style="color:#dc3545;">Chưa có tọa độ</span>';
+        if (firstItem.lat && firstItem.lng) {
+          mapLinkHtml = `<a href="https://www.google.com/maps?q=${firstItem.lat},${firstItem.lng}" target="_blank" style="color:#007bff; font-weight:bold; text-decoration:none;">Xem trên Google Maps</a>`;
+        }
+
         html += `
           <div class="customer-card ${isActive}" id="card_${cust.ma_khang}" onclick="selectCustomer('${cust.ma_khang}')">
             <div class="cust-header">
               <div class="cust-title">${cust.ma_khang} - ${cust.ten_khang}</div>
               <div class="cust-address">📍 ${cust.dia_chi || ''}</div>
+              <div class="cust-address" style="font-size:12px; font-weight:600;">🗺️ Tọa độ: ${mapLinkHtml}</div>
               
               <div class="cust-row-group">
                 <span class="flex-1">📂 Sổ: <b>${cust.ma_sogcs || ''}</b></span>
@@ -465,6 +483,7 @@
             </div>
 
             <div class="card-btn-group">
+              <button class="btn-card btn-card-location" onclick="event.stopPropagation(); getLocation('${cust.ma_khang}')">ĐỊNH VỊ</button>
               <button class="btn-card btn-card-save" onclick="event.stopPropagation(); saveCustomerData('${cust.ma_khang}')">GHI</button>
               <button class="btn-card btn-card-cancel" onclick="event.stopPropagation(); cancelCustomerData('${cust.ma_khang}')">HỦY</button>
             </div>
@@ -538,7 +557,9 @@
       const cust = groupedData[maKhang];
       if (!cust) return;
 
+      const loc = currentLocations[maKhang] || {};
       const payload = [];
+
       cust.items.forEach(item => {
         const inputEl = document.getElementById(`cs_moi_${item.rowIndex}`);
         if (inputEl) {
@@ -548,7 +569,9 @@
             chiso_moi: inputEl.value !== "" ? Number(inputEl.value) : "",
             hsn: item.hsn,
             sluong_thao: item.sluong_thao,
-            sluong_kt: item.sluong_kt
+            sluong_kt: item.sluong_kt,
+            lat: loc.lat || "",
+            lng: loc.lng || ""
           });
         }
       });
@@ -568,6 +591,7 @@
       .then(res => {
         if (res.status === "success") {
           showToast("✅ " + res.message);
+          delete currentLocations[maKhang];
           loadChiSoData();
         } else {
           showToast("❌ " + res.message);
