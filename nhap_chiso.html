@@ -8,7 +8,6 @@
     * { box-sizing: border-box; }
     html, body { height: 100%; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background: #f0f2f5; color: #333; overflow: hidden; }
     
-    /* KHU VỰC CỐ ĐỊNH PHÍA TRÊN */
     .sticky-top-container {
       position: fixed;
       top: 0;
@@ -36,7 +35,6 @@
     .title { font-size: 15px; font-weight: bold; color: #0056b3; }
     .user-info { font-weight: 600; font-size: 12px; color: #28a745; }
 
-    /* DROPDOWN MENU */
     .menu-dropdown {
       display: none;
       position: absolute;
@@ -69,7 +67,6 @@
     .search-box input { width: 100%; padding: 7px 10px; border-radius: 5px; border: 1px solid #ccc; font-size: 13px; outline: none; }
     .search-box input:focus { border-color: #0056b3; }
 
-    /* KHU VỰC DANH SÁCH CUỘN TRƯỢT */
     #listContainer {
       position: absolute;
       top: 75px;
@@ -81,7 +78,6 @@
       -webkit-overflow-scrolling: touch;
     }
 
-    /* CARD KHÁCH HÀNG */
     .customer-card { 
       background: #fff; 
       border-radius: 6px; 
@@ -128,7 +124,6 @@
     
     .flex-1 { flex: 1; }
 
-    /* Vùng hiển thị SL chi tiết động */
     .cust-dynamic-info {
       background: #eef6ff;
       border: 1px dashed #007bff;
@@ -142,16 +137,12 @@
       justify-content: space-between;
     }
 
-    /* BẢNG CHỈ SỐ */
     .table-responsive { overflow-x: auto; -webkit-overflow-scrolling: touch; }
     table.chiso-table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
     table.chiso-table th { background: #e9ecef; color: #333; padding: 5px 3px; border: 1px solid #ccc; white-space: nowrap; font-size: 12px; font-weight: bold; text-align: center; }
     table.chiso-table td { border: 1px solid #ddd; padding: 0; vertical-align: middle; white-space: nowrap; }
     
-    .text-right { 
-      text-align: right !important; 
-      padding-right: 8px !important; 
-    }
+    .text-right { text-align: right !important; padding-right: 8px !important; }
     .text-center { text-align: center !important; }
 
     .val-calc-large { 
@@ -163,11 +154,7 @@
     }
 
     .bcs-badge { font-weight: bold; padding: 2px 4px; border-radius: 3px; background: #e2e3e5; color: #333; font-size: 11px; }
-    .bcs-BT { background: #d4edda; color: #155724; }
-    .bcs-CD { background: #fff3cd; color: #856404; }
-    .bcs-TD { background: #f8d7da; color: #721c24; }
     
-    /* Ô NHẬP CHỈ SỐ MỚI */
     .td-input-container { padding: 0 !important; }
     input.input-cs-moi { 
       width: 100%; 
@@ -184,20 +171,17 @@
       outline: none; 
       transition: all 0.15s ease;
     }
+    input.input-cs-moi:disabled {
+      background-color: #e9ecef;
+      cursor: not-allowed;
+    }
     input.input-cs-moi:focus { 
       background-color: #ffffff; 
       border: 1px solid #007bff; 
-      box-shadow: inset 0 0 3px rgba(0, 123, 255, 0.4);
     }
     
-    .val-highlight { 
-      font-weight: bold; 
-      color: #d9534f; 
-      padding-top: 4px;
-      padding-bottom: 4px;
-    }
+    .val-highlight { font-weight: bold; color: #d9534f; padding-top: 4px; padding-bottom: 4px; }
 
-    /* MẶC ĐỊNH ẨN NÚT BẤM DƯỚI BẢNG */
     .card-btn-group { 
       display: none; 
       gap: 8px; 
@@ -206,44 +190,39 @@
       border-top: 1px dashed #28a745; 
     }
 
-    .customer-card.active .card-btn-group {
-      display: flex;
-    }
+    .customer-card.active .card-btn-group { display: flex; }
 
     .btn-card { flex: 1; padding: 8px; border: none; border-radius: 4px; font-weight: bold; font-size: 12px; cursor: pointer; color: white; transition: 0.15s; }
     .btn-card-location { background: #007bff; }
     .btn-card-location:active { background: #0056b3; }
+    
     .btn-card-save { background: #28a745; }
-    .btn-card-save:active { background: #218838; }
+    .btn-card-save:disabled { background: #a5d6a7; cursor: not-allowed; opacity: 0.6; }
+    
     .btn-card-cancel { background: #dc3545; }
-    .btn-card-cancel:active { background: #c82333; }
+    .btn-card-cancel:disabled { background: #ef9a9a; cursor: not-allowed; opacity: 0.6; }
 
     #toast { position: fixed; bottom: 15px; right: 15px; left: 15px; text-align: center; background: rgba(0,0,0,0.85); color: #fff; padding: 8px 12px; border-radius: 5px; font-size: 12px; display: none; z-index: 9999; box-shadow: 0 2px 8px rgba(0,0,0,0.3); }
   </style>
 </head>
 <body>
 
-  <!-- PHẦN ĐẦU CỐ ĐỊNH -->
   <div class="sticky-top-container">
     <div class="header">
       <div class="header-left">
         <button class="btn-menu" onclick="toggleMenu(event)">☰</button>
         <div class="title">⚡ NHẬP CHỈ SỐ</div>
-        
         <div class="menu-dropdown" id="menuDropdown">
           <div class="menu-item" onclick="goToHome()">🏠 Trang chủ</div>
         </div>
       </div>
-
       <div class="user-info" id="userDisplay">👷 ...</div>
     </div>
-
     <div class="search-box">
       <input type="text" id="searchInput" placeholder="🔍 Tìm Mã KH, Tên KH, Cột, Trạm, Sổ..." oninput="filterData()">
     </div>
   </div>
 
-  <!-- DANH SÁCH KHÁCH HÀNG -->
   <div id="listContainer">Đang tải danh sách khách hàng...</div>
   <div id="toast"></div>
 
@@ -252,7 +231,7 @@
     let currentUser = null;
     let groupedData = {};
     let activeMaKhang = null;
-    let currentLocations = {}; // Lưu tọa độ tạm khi bấm ĐỊNH VỊ
+    let currentLocations = {};
 
     const BCS_ORDER = ["BT", "CD", "TD", "SG", "VC", "BN", "CN", "TN", "SN", "VN"];
 
@@ -272,14 +251,10 @@
 
     document.addEventListener("click", () => {
       const menu = document.getElementById("menuDropdown");
-      if (menu && menu.classList.contains("show")) {
-        menu.classList.remove("show");
-      }
+      if (menu && menu.classList.contains("show")) menu.classList.remove("show");
     });
 
-    function goToHome() {
-      window.location.href = "index.html";
-    }
+    function goToHome() { window.location.href = "index.html"; }
 
     function showToast(msg) {
       const t = document.getElementById("toast");
@@ -302,14 +277,13 @@
           document.getElementById("listContainer").innerHTML = "<p style='color:red; text-align:center;'>Lỗi: " + res.message + "</p>";
         }
       })
-      .catch(err => {
+      .catch(() => {
         document.getElementById("listContainer").innerHTML = "<p style='color:red; text-align:center;'>Lỗi kết nối máy chủ!</p>";
       });
     }
 
     function groupAndRender(flatList) {
       groupedData = {};
-      
       flatList.forEach(item => {
         const makh = item.ma_khang;
         if (!groupedData[makh]) {
@@ -332,9 +306,7 @@
         groupedData[makh].items.sort((a, b) => {
           let idxA = BCS_ORDER.indexOf(String(a.bcs).toUpperCase().trim());
           let idxB = BCS_ORDER.indexOf(String(b.bcs).toUpperCase().trim());
-          if (idxA === -1) idxA = 99;
-          if (idxB === -1) idxB = 99;
-          return idxA - idxB;
+          return (idxA === -1 ? 99 : idxA) - (idxB === -1 ? 99 : idxB);
         });
       });
 
@@ -343,13 +315,9 @@
 
     function selectCustomer(maKhang) {
       activeMaKhang = maKhang;
-      document.querySelectorAll('.customer-card').forEach(card => {
-        card.classList.remove('active');
-      });
+      document.querySelectorAll('.customer-card').forEach(card => card.classList.remove('active'));
       const targetCard = document.getElementById(`card_${maKhang}`);
-      if (targetCard) {
-        targetCard.classList.add('active');
-      }
+      if (targetCard) targetCard.classList.add('active');
     }
 
     function updateRowDetail(maKhang, bcs, sanLuong, sluongThao, sluongKt) {
@@ -365,26 +333,96 @@
       }
     }
 
-    // LẤY ĐỊNH VỊ GPS HIỆN TẠI TỪ THIẾT BỊ
     function getLocation(maKhang) {
       selectCustomer(maKhang);
+      const cust = groupedData[maKhang];
+      const firstItem = cust ? cust.items[0] : {};
+
+      const hasCoords = (firstItem && firstItem.lat && firstItem.lng) || currentLocations[maKhang];
+
+      if (hasCoords) {
+        const confirmAgain = confirm(`Bạn có muốn lấy lại tọa độ mới cho mã khách hàng ${maKhang} này không?`);
+        if (!confirmAgain) return;
+      }
+
       if (navigator.geolocation) {
         showToast(`⏳ Đang lấy vị trí GPS cho KH ${maKhang}...`);
         navigator.geolocation.getCurrentPosition(
           (position) => {
-            currentLocations[maKhang] = {
-              lat: position.coords.latitude,
-              lng: position.coords.longitude
-            };
-            showToast("📍 Đã lấy tọa độ thành công! Nhấn GHI để lưu.");
+            const lat = position.coords.latitude;
+            const lng = position.coords.longitude;
+            currentLocations[maKhang] = { lat, lng };
+
+            const payload = cust.items.map(item => ({
+              rowIndex: item.rowIndex,
+              chiso_cu: item.chiso_cu,
+              chiso_moi: "",
+              lat: lat,
+              lng: lng
+            }));
+
+            showToast(`⏳ Đang lưu tọa độ GPS...`);
+            fetch(API_URL, {
+              method: "POST",
+              headers: { "Content-Type": "text/plain;charset=utf-8" },
+              body: JSON.stringify({
+                action: "SAVE_CHISO",
+                ten_ndung: currentUser.ten_ndung,
+                ten_nvien: currentUser.ten_nvien,
+                items: payload
+              })
+            })
+            .then(res => res.json())
+            .then(res => {
+              if (res.status === "success") {
+                showToast("📍 Đã lấy & lưu tọa độ thành công! Hãy nhập chỉ số.");
+                cust.items.forEach(it => { it.lat = lat; it.lng = lng; });
+
+                enableInputsAndSaveBtn(maKhang);
+                
+                const mapSpan = document.getElementById(`map_link_${maKhang}`);
+                if (mapSpan) {
+                  mapSpan.innerHTML = `<a href="https://www.google.com/maps?q=${lat},${lng}" target="_blank" style="color:#007bff; font-weight:bold; text-decoration:none;">Xem trên Google Maps</a>`;
+                }
+              } else {
+                showToast("❌ Lỗi lưu định vị: " + res.message);
+              }
+            })
+            .catch(() => showToast("❌ Lỗi kết nối máy chủ!"));
           },
-          (error) => {
-            showToast("❌ Không thể lấy vị trí GPS! Hãy kiểm tra quyền vị trí.");
-          },
+          (error) => { showToast("❌ Không thể lấy GPS! Hãy bật vị trí thiết bị."); },
           { enableHighAccuracy: true, timeout: 10000 }
         );
       } else {
-        showToast("❌ Thiết bị không hỗ trợ lấy vị trí!");
+        showToast("❌ Thiết bị không hỗ trợ GPS!");
+      }
+    }
+
+    function enableInputsAndSaveBtn(maKhang) {
+      const card = document.getElementById(`card_${maKhang}`);
+      if (!card) return;
+
+      card.querySelectorAll('.input-cs-moi').forEach(input => input.disabled = false);
+      
+      const btnSave = document.getElementById(`btn_save_${maKhang}`);
+      if (btnSave) btnSave.disabled = false;
+    }
+
+    function checkCancelButtonStatus(maKhang) {
+      const cust = groupedData[maKhang];
+      if (!cust) return;
+
+      let hasNewCS = false;
+      cust.items.forEach(item => {
+        const inputEl = document.getElementById(`cs_moi_${item.rowIndex}`);
+        if (inputEl && inputEl.value !== "") {
+          hasNewCS = true;
+        }
+      });
+
+      const btnCancel = document.getElementById(`btn_cancel_${maKhang}`);
+      if (btnCancel) {
+        btnCancel.disabled = !hasNewCS;
       }
     }
 
@@ -401,17 +439,18 @@
       keys.forEach(makh => {
         const cust = groups[makh];
         const isActive = (makh === activeMaKhang) ? "active" : "";
-
         const firstItem = cust.items[0] || {};
         const initSl = firstItem.san_luong !== "" && firstItem.san_luong !== undefined ? firstItem.san_luong : "0";
-
         const cotTramText = [cust.so_cot, cust.ten_tram].filter(Boolean).join(" - ");
 
-        // Hiển thị liên kết xem Google Maps nếu đã có tọa độ (cột lat/lng)
-        let mapLinkHtml = '<span style="color:#dc3545;">Chưa có tọa độ</span>';
-        if (firstItem.lat && firstItem.lng) {
-          mapLinkHtml = `<a href="https://www.google.com/maps?q=${firstItem.lat},${firstItem.lng}" target="_blank" style="color:#007bff; font-weight:bold; text-decoration:none;">Xem trên Google Maps</a>`;
+        const hasLocation = Boolean(firstItem.lat && firstItem.lng);
+        
+        let mapLinkHtml = `<span id="map_link_${cust.ma_khang}" style="color:#dc3545;">Chưa có tọa độ</span>`;
+        if (hasLocation) {
+          mapLinkHtml = `<span id="map_link_${cust.ma_khang}"><a href="https://www.google.com/maps?q=${firstItem.lat},${firstItem.lng}" target="_blank" style="color:#007bff; font-weight:bold; text-decoration:none;">Xem trên Google Maps</a></span>`;
         }
+
+        const alreadyHasCS = cust.items.some(i => i.chiso_moi !== "" && i.chiso_moi !== undefined);
 
         html += `
           <div class="customer-card ${isActive}" id="card_${cust.ma_khang}" onclick="selectCustomer('${cust.ma_khang}')">
@@ -454,18 +493,18 @@
         `;
 
         cust.items.forEach(item => {
-          const bcsClass = `bcs-${item.bcs}`;
           const csMoiVal = item.chiso_moi !== "" ? item.chiso_moi : "";
+          const isDisabled = !hasLocation ? "disabled" : "";
 
           html += `
             <tr id="row_${item.rowIndex}" onclick="event.stopPropagation(); updateRowDetail('${cust.ma_khang}', '${item.bcs}', document.getElementById('sl_val_${item.rowIndex}').value, ${item.sluong_thao}, ${item.sluong_kt});">
-              <td class="text-center" style="padding: 4px 2px;"><span class="bcs-badge ${bcsClass}">${item.bcs}</span></td>
+              <td class="text-center" style="padding: 4px 2px;"><span class="bcs-badge">${item.bcs}</span></td>
               <td class="val-calc-large text-right">${item.chiso_cu}</td>
               <td class="td-input-container">
                 <input type="number" 
                        class="input-cs-moi" 
                        id="cs_moi_${item.rowIndex}" 
-                       value="${csMoiVal}" 
+                       value="${csMoiVal}" ${isDisabled}
                        onclick="event.stopPropagation(); updateRowDetail('${cust.ma_khang}', '${item.bcs}', document.getElementById('sl_val_${item.rowIndex}').value, ${item.sluong_thao}, ${item.sluong_kt});"
                        oninput="calculateRow('${cust.ma_khang}', '${item.bcs}', ${item.rowIndex}, ${item.chiso_cu}, ${item.hsn}, ${item.sluong_thao}, ${item.sluong_kt})">
                 <input type="hidden" id="sl_val_${item.rowIndex}" value="${item.san_luong !== "" && item.san_luong !== undefined ? item.san_luong : '-'}">
@@ -477,6 +516,9 @@
           `;
         });
 
+        const saveDisabledAttr = !hasLocation ? "disabled" : "";
+        const cancelDisabledAttr = !alreadyHasCS ? "disabled" : "";
+
         html += `
                 </tbody>
               </table>
@@ -484,8 +526,8 @@
 
             <div class="card-btn-group">
               <button class="btn-card btn-card-location" onclick="event.stopPropagation(); getLocation('${cust.ma_khang}')">ĐỊNH VỊ</button>
-              <button class="btn-card btn-card-save" onclick="event.stopPropagation(); saveCustomerData('${cust.ma_khang}')">GHI</button>
-              <button class="btn-card btn-card-cancel" onclick="event.stopPropagation(); cancelCustomerData('${cust.ma_khang}')">HỦY</button>
+              <button class="btn-card btn-card-save" id="btn_save_${cust.ma_khang}" ${saveDisabledAttr} onclick="event.stopPropagation(); saveCustomerData('${cust.ma_khang}')">GHI</button>
+              <button class="btn-card btn-card-cancel" id="btn_cancel_${cust.ma_khang}" ${cancelDisabledAttr} onclick="event.stopPropagation(); cancelCustomerData('${cust.ma_khang}')">HỦY</button>
             </div>
           </div>
         `;
@@ -509,6 +551,7 @@
         clechCell.innerText = "-";
         tyleCell.innerText = "-";
         updateRowDetail(maKhang, bcs, "-", sluongThao, sluongKt);
+        checkCancelButtonStatus(maKhang);
         return;
       }
 
@@ -528,6 +571,7 @@
       tyleCell.innerText = tyleClech;
 
       updateRowDetail(maKhang, bcs, sanLuong, sluongThao, sluongKt);
+      checkCancelButtonStatus(maKhang);
     }
 
     function filterData() {
@@ -545,9 +589,7 @@
           String(cust.ma_sogcs).toLowerCase().includes(q) ||
           String(cust.danh_so).toLowerCase().includes(q);
 
-        if (match) {
-          filteredGroups[makh] = cust;
-        }
+        if (match) filteredGroups[makh] = cust;
       });
 
       renderGroupedList(filteredGroups);
@@ -570,13 +612,13 @@
             hsn: item.hsn,
             sluong_thao: item.sluong_thao,
             sluong_kt: item.sluong_kt,
-            lat: loc.lat || "",
-            lng: loc.lng || ""
+            lat: loc.lat || item.lat || "",
+            lng: loc.lng || item.lng || ""
           });
         }
       });
 
-      showToast(`⏳ Đang lưu KH ${maKhang}...`);
+      showToast(`⏳ Đang lưu chỉ số KH ${maKhang}...`);
       fetch(API_URL, {
         method: "POST",
         headers: { "Content-Type": "text/plain;charset=utf-8" },
@@ -591,13 +633,12 @@
       .then(res => {
         if (res.status === "success") {
           showToast("✅ " + res.message);
-          delete currentLocations[maKhang];
           loadChiSoData();
         } else {
           showToast("❌ " + res.message);
         }
       })
-      .catch(err => showToast("❌ Lỗi hệ thống khi lưu!"));
+      .catch(() => showToast("❌ Lỗi hệ thống khi lưu!"));
     }
 
     function cancelCustomerData(maKhang) {
@@ -608,7 +649,7 @@
 
       const rowIndices = cust.items.map(item => item.rowIndex);
 
-      showToast(`⏳ Đang hủy KH ${maKhang}...`);
+      showToast(`⏳ Đang hủy chỉ số KH ${maKhang}...`);
       fetch(API_URL, {
         method: "POST",
         headers: { "Content-Type": "text/plain;charset=utf-8" },
@@ -627,7 +668,7 @@
           showToast("❌ " + res.message);
         }
       })
-      .catch(err => showToast("❌ Lỗi hệ thống!"));
+      .catch(() => showToast("❌ Lỗi hệ thống!"));
     }
   </script>
 </body>
