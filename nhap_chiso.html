@@ -141,12 +141,13 @@
       background: #fff3cd;
       color: #856404;
       border: 1px solid #ffeeba;
-      padding: 5px 8px;
+      padding: 6px 8px;
       border-radius: 4px;
       font-size: 12px;
       font-weight: bold;
       margin-top: 6px;
       display: none;
+      line-height: 1.4;
     }
 
     .table-responsive { overflow-x: auto; -webkit-overflow-scrolling: touch; }
@@ -591,24 +592,20 @@
       clechCell.innerText = chenhLech;
       tyleCell.innerText = tyleClech;
 
-      // XỬ LÝ CẢNH BÁO TỶ LỆ > 150% HOẶC < -150%
+      // HIỂN THỊ DÒNG CẢNH BÁO MÀU VÀNG NẾU TỶ LỆ > 150% HOẶC < -150% (BỎ HẲN ALERT GIÁN ĐOẠN)
       if (slKt !== 0) {
         if (rawTyle > 150) {
           const percentIncrease = (rawTyle - 100).toFixed(1);
-          const msg = `⚠️ Sản lượng (+) tăng ${percentIncrease}% so với tháng trước, kiểm tra chỉ số công tơ kỹ lại dùm tôi...`;
           if (warnBox) {
-            warnBox.innerText = msg;
+            warnBox.innerText = `⚠️ Sản lượng (+) tăng ${percentIncrease}% so với tháng trước, kiểm tra chỉ số công tơ kỹ lại dùm tôi...`;
             warnBox.style.display = "block";
           }
-          alert(msg);
         } else if (rawTyle < -150) {
           const percentDecrease = (100 - rawTyle).toFixed(1);
-          const msg = `⚠️ Sản lượng (-) giảm ${percentDecrease}% so với tháng trước, kiểm tra chỉ số công tơ kỹ lại dùm tôi...`;
           if (warnBox) {
-            warnBox.innerText = msg;
+            warnBox.innerText = `⚠️ Sản lượng (-) giảm ${percentDecrease}% so với tháng trước, kiểm tra chỉ số công tơ kỹ lại dùm tôi...`;
             warnBox.style.display = "block";
           }
-          alert(msg);
         } else {
           if (warnBox) warnBox.style.display = "none";
         }
