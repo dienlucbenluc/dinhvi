@@ -51,7 +51,6 @@
       transition: all 0.2s ease;
     }
 
-    /* Trạng thái khi chọn Khách hàng */
     .customer-card.active {
       border: 2px solid #28a745;
       box-shadow: 0 3px 8px rgba(40, 167, 69, 0.2);
@@ -60,8 +59,22 @@
 
     .cust-header { border-bottom: 1px solid #eee; padding-bottom: 4px; margin-bottom: 6px; }
     .cust-title { font-weight: bold; color: #0056b3; font-size: 13.5px; }
-    .cust-meta { font-size: 11px; color: #555; margin-top: 3px; display: flex; flex-wrap: wrap; gap: 4px 10px; }
+    .cust-meta { font-size: 11px; color: #555; margin-top: 3px; display: flex; flex-wrap: wrap; gap: 4px 8px; }
     .cust-meta span { background: #f0f4f8; padding: 1px 5px; border-radius: 3px; }
+    
+    /* Vùng hiển thị SL chi tiết động khi chọn dòng BCS */
+    .cust-dynamic-info {
+      background: #eef6ff;
+      border: 1px dashed #007bff;
+      padding: 3px 6px;
+      border-radius: 4px;
+      font-size: 11px;
+      color: #004085;
+      font-weight: bold;
+      margin-top: 4px;
+      display: flex;
+      justify-content: space-between;
+    }
 
     /* BẢNG CHỈ SỐ */
     .table-responsive { overflow-x: auto; -webkit-overflow-scrolling: touch; }
@@ -75,7 +88,7 @@
     .bcs-TD { background: #f8d7da; color: #721c24; }
     
     /* Ô NHẬP CHỈ SỐ MỚI */
-    input.input-cs-moi { width: 58px; padding: 3px 2px; border: 1.5px solid #007bff; border-radius: 3px; text-align: right; font-weight: bold; font-size: 11.5px; outline: none; }
+    input.input-cs-moi { width: 62px; padding: 3px 2px; border: 1.5px solid #007bff; border-radius: 3px; text-align: right; font-weight: bold; font-size: 11.5px; outline: none; }
     input.input-cs-moi:focus { background: #e8f0fe; border-color: #0056b3; }
     
     .val-calc { font-weight: 600; color: #212529; }
@@ -90,7 +103,6 @@
       border-top: 1px dashed #28a745; 
     }
 
-    /* HIỆN NÚT BẤM KHI CARD ĐƯỢC CHỌN (ACTIVE) */
     .customer-card.active .card-btn-group {
       display: flex;
     }
@@ -114,7 +126,7 @@
     </div>
 
     <div class="search-box">
-      <input type="text" id="searchInput" placeholder="🔍 Tìm Mã KH, Tên KH, Cột, Trạm..." oninput="filterData()">
+      <input type="text" id="searchInput" placeholder="🔍 Tìm Mã KH, Tên KH, Cột, Trạm, Sổ GCS..." oninput="filterData()">
     </div>
   </div>
 
@@ -126,7 +138,7 @@
     const API_URL = "https://script.google.com/macros/s/AKfycbxJZHenN4zoxZR7wOk4SiBnUx071LKLdAWOdJLToJPScSdBIj8Qn_pOeTDAABlN_UAF/exec";
     let currentUser = null;
     let groupedData = {};
-    let activeMaKhang = null; // Lưu mã khách hàng đang được chọn
+    let activeMaKhang = null;
 
     const BCS_ORDER = ["BT", "CD", "TD", "SG", "VC", "BN", "CN", "TN", "SN", "VN"];
 
@@ -200,7 +212,6 @@
       renderGroupedList(groupedData);
     }
 
-    // Hàm xử lý chọn Khách hàng
     function selectCustomer(maKhang) {
       activeMaKhang = maKhang;
       document.querySelectorAll('.customer-card').forEach(card => {
@@ -209,6 +220,20 @@
       const targetCard = document.getElementById(`card_${maKhang}`);
       if (targetCard) {
         targetCard.classList.add('active');
+      }
+    }
+
+    // Cập nhật thông tin S.Lượng, SL tháo, SL KT của BCS được chọn lên khung Khách Hàng
+    function updateRowDetail(maKhang, bcs, sanLuong, sluongThao, sluongKt) {
+      selectCustomer(maKhang);
+      const detailEl = document.getElementById(`detail_info_${maKhang}`);
+      if (detailEl) {
+        detailEl.innerHTML = `
+          <span>📊 BCS: <b>${bcs}</b></span>
+          <span>S.Lượng: <b>${sanLuong !== "-" ? sanLuong : "0"}</b></span>
+          <span>SL Tháo: <b>${sluongThao}</b></span>
+          <span>SL KT: <b>${sluongKt}</b></span>
+        `;
       }
     }
 
@@ -226,15 +251,29 @@
         const cust = groups[makh];
         const isActive = (makh === activeMaKhang) ? "active" : "";
 
+        // Mặc định lấy BCS đầu tiên để hiện thông tin SL
+        const firstItem = cust.items[0] || {};
+        const initSl = firstItem.san_luong !== "" && firstItem.san_luong !== undefined ? firstItem.san_luong : "0";
+
         html += `
           <div class="customer-card ${isActive}" id="card_${cust.ma_khang}" onclick="selectCustomer('${cust.ma_khang}')">
             <div class="cust-header">
               <div class="cust-title">${cust.ma_khang} - ${cust.ten_khang}</div>
               <div class="cust-meta">
+                <span>📂 Sổ: <b>${cust.ma_sogcs || ''}</b></span>
+                <span>🔢 Danh số: <b>${cust.danh_so || ''}</b></span>
                 <span>📍 ${cust.dia_chi || ''}</span>
                 <span>⚡ Cột: ${cust.so_cot || ''}</span>
                 <span>🏭 Trạm: ${cust.ten_tram || ''}</span>
                 <span>📟 CT: ${cust.so_cto || ''}</span>
+              </div>
+              
+              <!-- Khung thông tin chi tiết S.Lượng hiển thị động -->
+              <div class="cust-dynamic-info" id="detail_info_${cust.ma_khang}">
+                <span>📊 BCS: <b>${firstItem.bcs || '-'}</b></span>
+                <span>S.Lượng: <b>${initSl}</b></span>
+                <span>SL Tháo: <b>${firstItem.sluong_thao || 0}</b></span>
+                <span>SL KT: <b>${firstItem.sluong_kt || 0}</b></span>
               </div>
             </div>
 
@@ -245,10 +284,7 @@
                     <th>BCS</th>
                     <th>CS cũ</th>
                     <th>CS mới</th>
-                    <th>S.Lượng</th>
-                    <th>SL tháo</th>
                     <th>Tổng SL</th>
-                    <th>SL KT</th>
                     <th>C.Lệch</th>
                     <th>Tỷ lệ</th>
                   </tr>
@@ -261,7 +297,7 @@
           const csMoiVal = item.chiso_moi !== "" ? item.chiso_moi : "";
 
           html += `
-            <tr id="row_${item.rowIndex}">
+            <tr id="row_${item.rowIndex}" onclick="event.stopPropagation(); updateRowDetail('${cust.ma_khang}', '${item.bcs}', document.getElementById('sl_val_${item.rowIndex}').value, ${item.sluong_thao}, ${item.sluong_kt});">
               <td><span class="bcs-badge ${bcsClass}">${item.bcs}</span></td>
               <td class="val-calc">${item.chiso_cu}</td>
               <td>
@@ -270,13 +306,11 @@
                        id="cs_moi_${item.rowIndex}" 
                        value="${csMoiVal}" 
                        placeholder="Nhập..." 
-                       onclick="event.stopPropagation(); selectCustomer('${cust.ma_khang}');"
-                       oninput="calculateRow(${item.rowIndex}, ${item.chiso_cu}, ${item.hsn}, ${item.sluong_thao}, ${item.sluong_kt})">
+                       onclick="event.stopPropagation(); updateRowDetail('${cust.ma_khang}', '${item.bcs}', document.getElementById('sl_val_${item.rowIndex}').value, ${item.sluong_thao}, ${item.sluong_kt});"
+                       oninput="calculateRow('${cust.ma_khang}', '${item.bcs}', ${item.rowIndex}, ${item.chiso_cu}, ${item.hsn}, ${item.sluong_thao}, ${item.sluong_kt})">
+                <input type="hidden" id="sl_val_${item.rowIndex}" value="${item.san_luong !== "" && item.san_luong !== undefined ? item.san_luong : '-'}">
               </td>
-              <td id="sl_${item.rowIndex}" class="val-calc">${item.san_luong !== "" && item.san_luong !== undefined ? item.san_luong : '-'}</td>
-              <td>${item.sluong_thao}</td>
               <td id="tong_sl_${item.rowIndex}" class="val-calc">${item.tong_sluong !== "" && item.tong_sluong !== undefined ? item.tong_sluong : '-'}</td>
-              <td>${item.sluong_kt}</td>
               <td id="clech_${item.rowIndex}" class="val-highlight">${item.chenh_lech !== "" && item.chenh_lech !== undefined ? item.chenh_lech : '-'}</td>
               <td id="tyle_${item.rowIndex}" class="val-highlight">${item.tyle_clech !== "" && item.tyle_clech !== undefined ? item.tyle_clech : '-'}</td>
             </tr>
@@ -288,7 +322,7 @@
               </table>
             </div>
 
-            <!-- NÚT CHỈ HIỆN KHI ĐƯỢC CHỌN -->
+            <!-- NÚT GHI VÀ HỦY CHỈ HIỆN KHI CARD ĐƯỢC CHỌN -->
             <div class="card-btn-group">
               <button class="btn-card btn-card-save" onclick="event.stopPropagation(); saveCustomerData('${cust.ma_khang}')">[GHI] LƯU CHỈ SỐ</button>
               <button class="btn-card btn-card-cancel" onclick="event.stopPropagation(); cancelCustomerData('${cust.ma_khang}')">[HỦY] HỦY CHỈ SỐ</button>
@@ -300,20 +334,21 @@
       container.innerHTML = html;
     }
 
-    function calculateRow(rowIndex, csCu, hsn, sluongThao, sluongKt) {
+    function calculateRow(maKhang, bcs, rowIndex, csCu, hsn, sluongThao, sluongKt) {
       const inputEl = document.getElementById(`cs_moi_${rowIndex}`);
       const val = inputEl.value;
 
-      const slCell = document.getElementById(`sl_${rowIndex}`);
+      const slHiddenEl = document.getElementById(`sl_val_${rowIndex}`);
       const tongSlCell = document.getElementById(`tong_sl_${rowIndex}`);
       const clechCell = document.getElementById(`clech_${rowIndex}`);
       const tyleCell = document.getElementById(`tyle_${rowIndex}`);
 
       if (val === "" || isNaN(val)) {
-        slCell.innerText = "-";
+        slHiddenEl.value = "-";
         tongSlCell.innerText = "-";
         clechCell.innerText = "-";
         tyleCell.innerText = "-";
+        updateRowDetail(maKhang, bcs, "-", sluongThao, sluongKt);
         return;
       }
 
@@ -327,10 +362,13 @@
       const chenhLech = tongSluong - slKt;
       const tyleClech = slKt !== 0 ? ((tongSluong / slKt) * 100).toFixed(2) + "%" : "0%";
 
-      slCell.innerText = sanLuong;
+      slHiddenEl.value = sanLuong;
       tongSlCell.innerText = tongSluong;
       clechCell.innerText = chenhLech;
       tyleCell.innerText = tyleClech;
+
+      // Cập nhật thông tin lên phần hiển thị chi tiết động phía trên
+      updateRowDetail(maKhang, bcs, sanLuong, sluongThao, sluongKt);
     }
 
     function filterData() {
@@ -344,7 +382,9 @@
           String(cust.ten_khang).toLowerCase().includes(q) ||
           String(cust.so_cot).toLowerCase().includes(q) ||
           String(cust.ten_tram).toLowerCase().includes(q) ||
-          String(cust.so_cto).toLowerCase().includes(q);
+          String(cust.so_cto).toLowerCase().includes(q) ||
+          String(cust.ma_sogcs).toLowerCase().includes(q) ||
+          String(cust.danh_so).toLowerCase().includes(q);
 
         if (match) {
           filteredGroups[makh] = cust;
