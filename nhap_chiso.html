@@ -166,8 +166,8 @@
 
     /* KHU VỰC THÔNG TIN ĐỘNG GỌN GÀNG */
     .cust-dynamic-info-v2 {
-      background: #eef6ff;
-      border: 1px dashed #007bff;
+      background: #ffffff;
+      border: 0px dashed #007bff;
       padding: 4px 6px;
       border-radius: 4px;
       font-size: 12.5px;
@@ -590,16 +590,16 @@
           <div class="customer-card ${isActive}" id="card_${cust.ma_khang}" onclick="selectCustomer('${cust.ma_khang}')">
             <div class="cust-header">
               <div class="cust-title">${cust.ma_khang} - ${cust.ten_khang}</div>
-              <div class="cust-address">📍 ${cust.dia_chi || ''}</div>
+              <div class="cust-address">Địa chỉ: ${cust.dia_chi || ''}</div>
               
               <div class="cust-row-group">
-                <span class="flex-1">📂 Sổ: <b>${cust.ma_sogcs || ''}</b></span>
-                <span class="flex-1">🔢 DS: <b>${cust.danh_so || ''}</b></span>
-                <span class="flex-1">📟 No: <b>${cust.so_cto || ''}</b></span>
+                <span class="flex-1">Sổ: <b>${cust.ma_sogcs || ''}</b></span>
+                <span class="flex-1">DS: <b>${cust.danh_so || ''}</b></span>
+                <span class="flex-1">No: <b>${cust.so_cto || ''}</b></span>
               </div>
 
               <div class="cust-row-group">
-                <span class="flex-1">⚡ Cột - Trạm: <b>${cotTramText || ''}</b></span>
+                <span class="flex-1">Cột-Trạm: <b>${cotTramText || ''}</b></span>
               </div>
 
               <div class="cust-dynamic-info-v2" id="detail_info_${cust.ma_khang}">
