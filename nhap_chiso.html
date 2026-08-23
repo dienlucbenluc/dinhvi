@@ -149,18 +149,15 @@
       margin-top: 2px; 
     }
     
-    .cust-row-group span { 
-      padding: 1px 4px; 
-      border-radius: 4px; 
-      font-size: 11.5px; 
-      color: #333;
+    .cust-row-inline {
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
-      line-height: 1.2;
+      font-size: 12px;
+      color: #333;
+      margin-top: 3px;
+      line-height: 1.3;
     }
-    
-    .flex-1 { flex: 1; }
 
     .cust-dynamic-info-v2 {
       background: #ffffff;
@@ -586,11 +583,8 @@
               <div class="cust-title">${cust.ma_khang} - ${cust.ten_khang}</div>
               <div class="cust-address">Địa chỉ: ${cust.dia_chi || ''}</div>
               
-              <div class="cust-row-group">
-                <span style="flex: 1;">Sổ: <b>${cust.ma_sogcs || ''}</b></span>
-                <span style="flex: 1;">DS: <b>${cust.danh_so || ''}</b></span>
-                <span style="flex: 1.2;">NO: <b>${cust.so_cto || ''}</b></span>
-                <span style="flex: 1.3;">SĐT: <b>${cust.so_dthoai || ''}</b></span>
+              <div class="cust-row-inline">
+                Sổ: <b>${cust.ma_sogcs || ''}</b> &nbsp; DS: <b>${cust.danh_so || ''}</b> &nbsp; NO: <b>${cust.so_cto || ''}</b> &nbsp; SĐT: <b>${cust.so_dthoai || ''}</b>
               </div>
 
               <div class="cust-row-group">
