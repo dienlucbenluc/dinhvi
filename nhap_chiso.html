@@ -8,7 +8,7 @@
     * { box-sizing: border-box; }
     html, body { height: 100%; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background: #f0f2f5; color: #333; overflow: hidden; }
     
-    /* TOÀN BỘ PHẦN ĐẦU CỐ ĐỊNH */
+    /* KHU VỰC CỐ ĐỊNH PHÍA TRÊN */
     .sticky-top-container {
       position: fixed;
       top: 0;
@@ -16,29 +16,21 @@
       right: 0;
       background: #fff;
       z-index: 1000;
-      padding: 8px 10px 6px 10px;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.12);
+      padding: 8px 10px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
     }
 
     .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
     .title { font-size: 15px; font-weight: bold; color: #0056b3; }
     .user-info { font-weight: 600; font-size: 12px; color: #28a745; }
 
-    .search-box { margin-bottom: 6px; }
     .search-box input { width: 100%; padding: 7px 10px; border-radius: 5px; border: 1px solid #ccc; font-size: 13px; outline: none; }
     .search-box input:focus { border-color: #0056b3; }
 
-    .btn-group { display: flex; gap: 8px; }
-    .btn { flex: 1; padding: 8px 5px; border: none; border-radius: 5px; font-weight: bold; font-size: 13px; cursor: pointer; color: white; transition: 0.2s; box-shadow: 0 1px 3px rgba(0,0,0,0.2); }
-    .btn-save { background: #28a745; }
-    .btn-save:active { background: #218838; }
-    .btn-cancel { background: #dc3545; }
-    .btn-cancel:active { background: #c82333; }
-
-    /* VÙNG DANH SÁCH CUỘN TRƯỢT */
+    /* KHU VỰC DANH SÁCH CUỘN TRƯỢT */
     #listContainer {
       position: absolute;
-      top: 118px; /* Khoảng cách chừa ra cho phần cố định ở trên */
+      top: 75px; /* Khoảng cách chừa phần đầu */
       bottom: 0;
       left: 0;
       right: 0;
@@ -48,13 +40,13 @@
     }
 
     /* CARD KHÁCH HÀNG */
-    .customer-card { background: #fff; border-radius: 6px; padding: 8px; margin-bottom: 8px; border: 1px solid #ddd; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
-    .cust-header { border-bottom: 1px solid #eee; padding-bottom: 5px; margin-bottom: 6px; }
+    .customer-card { background: #fff; border-radius: 6px; padding: 8px; margin-bottom: 10px; border: 1px solid #ddd; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+    .cust-header { border-bottom: 1px solid #eee; padding-bottom: 4px; margin-bottom: 6px; }
     .cust-title { font-weight: bold; color: #0056b3; font-size: 13.5px; }
     .cust-meta { font-size: 11px; color: #555; margin-top: 3px; display: flex; flex-wrap: wrap; gap: 4px 10px; }
     .cust-meta span { background: #f0f4f8; padding: 1px 5px; border-radius: 3px; }
 
-    /* BẢNG TÍNH THU NHỎ KÍCH THƯỚC */
+    /* BẢNG CHỈ SỐ */
     .table-responsive { overflow-x: auto; -webkit-overflow-scrolling: touch; }
     table.chiso-table { width: 100%; border-collapse: collapse; font-size: 11px; text-align: center; }
     table.chiso-table th { background: #e9ecef; color: #333; padding: 4px 2px; border: 1px solid #ccc; white-space: nowrap; font-size: 10.5px; font-weight: bold; }
@@ -65,12 +57,20 @@
     .bcs-CD { background: #fff3cd; color: #856404; }
     .bcs-TD { background: #f8d7da; color: #721c24; }
     
-    /* Ô NHẬP CHỈ SỐ MỚI SIÊU GỌN */
+    /* Ô NHẬP CHỈ SỐ MỚI */
     input.input-cs-moi { width: 58px; padding: 3px 2px; border: 1.5px solid #007bff; border-radius: 3px; text-align: right; font-weight: bold; font-size: 11.5px; outline: none; }
     input.input-cs-moi:focus { background: #e8f0fe; border-color: #0056b3; }
     
     .val-calc { font-weight: 600; color: #212529; }
     .val-highlight { font-weight: bold; color: #d9534f; }
+
+    /* NHÓM NÚT BẤM DƯỚI BẢNG CỦA MỖI KHÁCH HÀNG */
+    .card-btn-group { display: flex; gap: 8px; margin-top: 8px; padding-top: 6px; border-top: 1px dashed #eee; }
+    .btn-card { flex: 1; padding: 6px; border: none; border-radius: 4px; font-weight: bold; font-size: 12px; cursor: pointer; color: white; transition: 0.15s; }
+    .btn-card-save { background: #28a745; }
+    .btn-card-save:active { background: #218838; }
+    .btn-card-cancel { background: #dc3545; }
+    .btn-card-cancel:active { background: #c82333; }
 
     #toast { position: fixed; bottom: 15px; right: 15px; left: 15px; text-align: center; background: rgba(0,0,0,0.85); color: #fff; padding: 8px 12px; border-radius: 5px; font-size: 12px; display: none; z-index: 9999; box-shadow: 0 2px 8px rgba(0,0,0,0.3); }
   </style>
@@ -87,14 +87,9 @@
     <div class="search-box">
       <input type="text" id="searchInput" placeholder="🔍 Tìm Mã KH, Tên KH, Cột, Trạm..." oninput="filterData()">
     </div>
-
-    <div class="btn-group">
-      <button class="btn btn-save" onclick="saveData()">[GHI] LƯU CHỈ SỐ</button>
-      <button class="btn btn-cancel" onclick="cancelData()">[HỦY] HỦY DỮ LIỆU</button>
-    </div>
   </div>
 
-  <!-- PHẦN DANH SÁCH TỰ ĐỘNG CUỘN TRƯỢT -->
+  <!-- DANH SÁCH KHÁCH HÀNG CUỘN TRƯỢT -->
   <div id="listContainer">Đang tải danh sách khách hàng...</div>
   <div id="toast"></div>
 
@@ -247,6 +242,12 @@
                 </tbody>
               </table>
             </div>
+
+            <!-- NÚT GHI VÀ HỦY RIÊNG CHO TỪNG KHÁCH HÀNG -->
+            <div class="card-btn-group">
+              <button class="btn-card btn-card-save" onclick="saveCustomerData('${cust.ma_khang}')">[GHI] LƯU</button>
+              <button class="btn-card btn-card-cancel" onclick="cancelCustomerData('${cust.ma_khang}')">[HỦY]</button>
+            </div>
           </div>
         `;
       });
@@ -308,26 +309,27 @@
       renderGroupedList(filteredGroups);
     }
 
-    function saveData() {
-      const payload = [];
+    // LƯU CHỈ SỐ CỦA RIÊNG TỪNG KHÁCH HÀNG
+    function saveCustomerData(maKhang) {
+      const cust = groupedData[maKhang];
+      if (!cust) return;
 
-      Object.keys(groupedData).forEach(makh => {
-        groupedData[makh].items.forEach(item => {
-          const inputEl = document.getElementById(`cs_moi_${item.rowIndex}`);
-          if (inputEl) {
-            payload.push({
-              rowIndex: item.rowIndex,
-              chiso_cu: item.chiso_cu,
-              chiso_moi: inputEl.value !== "" ? Number(inputEl.value) : "",
-              hsn: item.hsn,
-              sluong_thao: item.sluong_thao,
-              sluong_kt: item.sluong_kt
-            });
-          }
-        });
+      const payload = [];
+      cust.items.forEach(item => {
+        const inputEl = document.getElementById(`cs_moi_${item.rowIndex}`);
+        if (inputEl) {
+          payload.push({
+            rowIndex: item.rowIndex,
+            chiso_cu: item.chiso_cu,
+            chiso_moi: inputEl.value !== "" ? Number(inputEl.value) : "",
+            hsn: item.hsn,
+            sluong_thao: item.sluong_thao,
+            sluong_kt: item.sluong_kt
+          });
+        }
       });
 
-      showToast("⏳ Đang lưu chỉ số...");
+      showToast(`⏳ Đang lưu KH ${maKhang}...`);
       fetch(API_URL, {
         method: "POST",
         headers: { "Content-Type": "text/plain;charset=utf-8" },
@@ -350,16 +352,23 @@
       .catch(err => showToast("❌ Lỗi hệ thống khi lưu!"));
     }
 
-    function cancelData() {
-      if (!confirm("Bạn có chắc chắn muốn HỦY tất cả chỉ số mới đã nhập không?")) return;
+    // HỦY CHỈ SỐ CỦA RIÊNG TỪNG KHÁCH HÀNG
+    function cancelCustomerData(maKhang) {
+      const cust = groupedData[maKhang];
+      if (!cust) return;
 
-      showToast("⏳ Đang xử lý hủy...");
+      if (!confirm(`Bạn có chắc muốn HỦY chỉ số đã nhập của KH ${maKhang}?`)) return;
+
+      const rowIndices = cust.items.map(item => item.rowIndex);
+
+      showToast(`⏳ Đang hủy KH ${maKhang}...`);
       fetch(API_URL, {
         method: "POST",
         headers: { "Content-Type": "text/plain;charset=utf-8" },
         body: JSON.stringify({
           action: "CANCEL_CHISO",
-          ten_ndung: currentUser.ten_ndung
+          ten_ndung: currentUser.ten_ndung,
+          rowIndices: rowIndices
         })
       })
       .then(res => res.json())
