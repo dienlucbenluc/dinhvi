@@ -202,9 +202,34 @@
     .btn-card-cancel { background: #dc3545; }
     .btn-card-cancel:disabled { background: #ef9a9a; cursor: not-allowed; opacity: 0.6; }
 
-    #toast { position: fixed; bottom: 15px; right: 15px; left: 15px; text-align: center; background: rgba(0,0,0,0.85); color: #fff; padding: 8px 12px; border-radius: 5px; font-size: 12px; display: none; z-index: 9999; box-shadow: 0 2px 8px rgba(0,0,0,0.3); }
+    /* Toast Thông báo ở Góc Trên Bên Phải (Giống index.html) */
+    #toast { 
+      position: fixed; 
+      top: 15px; 
+      right: 15px; 
+      left: auto;
+      max-width: 320px;
+      text-align: left; 
+      background: rgba(33, 37, 41, 0.92); 
+      color: #fff; 
+      padding: 10px 15px; 
+      border-radius: 8px; 
+      font-size: 13px; 
+      font-weight: 500;
+      line-height: 1.4;
+      display: none; 
+      z-index: 10001; 
+      box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+      border-left: 4px solid #007bff;
+      animation: fadeInRight 0.25s ease-in-out;
+    }
 
-    /* CSS Modal chuyên nghiệp giống index.html */
+    @keyframes fadeInRight {
+      from { opacity: 0; transform: translateX(20px); }
+      to { opacity: 1; transform: translateX(0); }
+    }
+
+    /* CSS Custom Confirm Modal */
     .modal-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0, 0, 0, 0.4); display: none; align-items: center; justify-content: center; z-index: 10000; }
     .modal-box { background: #ffffff; width: 88%; max-width: 360px; border-radius: 12px; padding: 18px 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); text-align: center; }
     .modal-title { font-size: 16px; font-weight: bold; color: #007bff; margin-bottom: 10px; }
@@ -234,9 +259,11 @@
   </div>
 
   <div id="listContainer">Đang tải danh sách khách hàng...</div>
+
+  <!-- Toast Notification Góc trên phải -->
   <div id="toast"></div>
 
-  <!-- Custom Confirmation Modal (Chuyên nghiệp) -->
+  <!-- Custom Confirmation Modal -->
   <div id="customConfirmModal" class="modal-overlay">
     <div class="modal-box">
       <div class="modal-title" id="confirmModalTitle">XÁC NHẬN</div>
@@ -278,14 +305,18 @@
 
     function goToHome() { window.location.href = "index.html"; }
 
+    let toastTimer = null;
     function showToast(msg) {
       const t = document.getElementById("toast");
       t.innerText = msg;
       t.style.display = "block";
-      setTimeout(() => t.style.display = "none", 3000);
+      
+      if (toastTimer) clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => {
+        t.style.display = "none";
+      }, 3500);
     }
 
-    // Custom Modal Confirmation Helper
     function showCustomConfirm(title, message, isDanger = false) {
       return new Promise((resolve) => {
         const modal = document.getElementById("customConfirmModal");
@@ -396,7 +427,7 @@
       }
 
       if (navigator.geolocation) {
-        showToast(`⏳ Đang lấy vị trí GPS cho KH ${maKhang}...`);
+        showToast(`⏳ Đang lấy vị trí GPS...`);
         navigator.geolocation.getCurrentPosition(
           (position) => {
             const lat = position.coords.latitude;
@@ -425,7 +456,7 @@
             .then(res => res.json())
             .then(res => {
               if (res.status === "success") {
-                showToast("📍 Đã lấy & lưu tọa độ thành công! Hãy nhập chỉ số.");
+                showToast("📍 Đã lấy & lưu tọa độ thành công!");
                 cust.items.forEach(it => { it.lat = lat; it.lng = lng; });
 
                 enableInputsAndSaveBtn(maKhang);
@@ -440,7 +471,7 @@
             })
             .catch(() => showToast("❌ Lỗi kết nối máy chủ!"));
           },
-          (error) => { showToast("❌ Không thể lấy GPS! Hãy bật vị trí thiết bị."); },
+          (error) => { showToast("❌ Không thể lấy GPS! Bật vị trí thiết bị."); },
           { enableHighAccuracy: true, timeout: 10000 }
         );
       } else {
