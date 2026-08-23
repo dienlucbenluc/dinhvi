@@ -405,7 +405,7 @@
               <div class="cust-row-group">
                 <span class="flex-1">📂 Sổ: <b>${cust.ma_sogcs || ''}</b></span>
                 <span class="flex-1">🔢 DS: <b>${cust.danh_so || ''}</b></span>
-                <span class="flex-1">📟 CT: <b>${cust.so_cto || ''}</b></span>
+                <span class="flex-1">📟 No: <b>${cust.so_cto || ''}</b></span>
               </div>
 
               <div class="cust-row-group">
@@ -465,8 +465,8 @@
             </div>
 
             <div class="card-btn-group">
-              <button class="btn-card btn-card-save" onclick="event.stopPropagation(); saveCustomerData('${cust.ma_khang}')">[GHI] LƯU CHỈ SỐ</button>
-              <button class="btn-card btn-card-cancel" onclick="event.stopPropagation(); cancelCustomerData('${cust.ma_khang}')">[HỦY] HỦY CHỈ SỐ</button>
+              <button class="btn-card btn-card-save" onclick="event.stopPropagation(); saveCustomerData('${cust.ma_khang}')">GHI</button>
+              <button class="btn-card btn-card-cancel" onclick="event.stopPropagation(); cancelCustomerData('${cust.ma_khang}')">HỦY</button>
             </div>
           </div>
         `;
