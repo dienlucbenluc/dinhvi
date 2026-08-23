@@ -377,13 +377,6 @@
     }
 
     function loadChiSoData() {
-      document.getElementById("listContainer").innerHTML = `
-        <div class="loading-box">
-          <div class="spinner"></div>
-          <span>Đang tải danh sách khách hàng...</span>
-        </div>
-      `;
-
       fetch(API_URL, {
         method: "POST",
         headers: { "Content-Type": "text/plain;charset=utf-8" },
