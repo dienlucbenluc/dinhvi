@@ -108,15 +108,19 @@
     table.chiso-table th { background: #e9ecef; color: #333; padding: 5px 3px; border: 1px solid #ccc; white-space: nowrap; font-size: 12px; font-weight: bold; text-align: center; }
     table.chiso-table td { border: 1px solid #ddd; padding: 0; vertical-align: middle; white-space: nowrap; }
     
-    /* CĂN PHẢI & TĂNG FONT CÁC DÒNG SỐ CHÍNH */
-    .text-right { text-align: right !important; }
+    /* CĂN PHẢI & THÊM LỀ PHẢI CHO SỐ KHÔNG BỊ DÍNH BORDER */
+    .text-right { 
+      text-align: right !important; 
+      padding-right: 8px !important; 
+    }
     .text-center { text-align: center !important; }
 
     .val-calc-large { 
       font-size: 14px !important; 
       font-weight: bold !important; 
       color: #111;
-      padding: 4px;
+      padding-top: 4px;
+      padding-bottom: 4px;
     }
 
     .bcs-badge { font-weight: bold; padding: 2px 4px; border-radius: 3px; background: #e2e3e5; color: #333; font-size: 11px; }
@@ -124,14 +128,14 @@
     .bcs-CD { background: #fff3cd; color: #856404; }
     .bcs-TD { background: #f8d7da; color: #721c24; }
     
-    /* Ô NHẬP CHỈ SỐ MỚI (FULL BACKGROUND Ô, FONT TO) */
+    /* Ô NHẬP CHỈ SỐ MỚI (BACKGROUND #F0FFFF, CÓ LỀ PHẢI, KHÔNG PLACEHOLDER) */
     .td-input-container { padding: 0 !important; }
     input.input-cs-moi { 
       width: 100%; 
       height: 100%;
       min-height: 32px;
-      padding: 4px; 
-      background-color: #f2f3f5; 
+      padding: 4px 8px 4px 4px; 
+      background-color: #F0FFFF; 
       border: none; 
       border-radius: 0; 
       text-align: right; 
@@ -147,7 +151,12 @@
       box-shadow: inset 0 0 3px rgba(0, 123, 255, 0.4);
     }
     
-    .val-highlight { font-weight: bold; color: #d9534f; padding: 4px; }
+    .val-highlight { 
+      font-weight: bold; 
+      color: #d9534f; 
+      padding-top: 4px;
+      padding-bottom: 4px;
+    }
 
     /* MẶC ĐỊNH ẨN NÚT BẤM DƯỚI BẢNG */
     .card-btn-group { 
@@ -364,12 +373,11 @@
             <tr id="row_${item.rowIndex}" onclick="event.stopPropagation(); updateRowDetail('${cust.ma_khang}', '${item.bcs}', document.getElementById('sl_val_${item.rowIndex}').value, ${item.sluong_thao}, ${item.sluong_kt});">
               <td class="text-center" style="padding: 4px 2px;"><span class="bcs-badge ${bcsClass}">${item.bcs}</span></td>
               <td class="val-calc-large text-right">${item.chiso_cu}</td>
-              <td class="td-input-container text-right">
+              <td class="td-input-container">
                 <input type="number" 
                        class="input-cs-moi" 
                        id="cs_moi_${item.rowIndex}" 
                        value="${csMoiVal}" 
-                       placeholder="Nhập..." 
                        onclick="event.stopPropagation(); updateRowDetail('${cust.ma_khang}', '${item.bcs}', document.getElementById('sl_val_${item.rowIndex}').value, ${item.sluong_thao}, ${item.sluong_kt});"
                        oninput="calculateRow('${cust.ma_khang}', '${item.bcs}', ${item.rowIndex}, ${item.chiso_cu}, ${item.hsn}, ${item.sluong_thao}, ${item.sluong_kt})">
                 <input type="hidden" id="sl_val_${item.rowIndex}" value="${item.san_luong !== "" && item.san_luong !== undefined ? item.san_luong : '-'}">
