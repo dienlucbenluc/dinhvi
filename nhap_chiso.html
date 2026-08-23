@@ -120,49 +120,65 @@
       background: #fafefb;
     }
 
-    .cust-header { border-bottom: 1px solid #eee; padding-bottom: 4px; margin-bottom: 6px; }
-    .cust-title { font-weight: bold; color: #0056b3; font-size: 14px; margin-bottom: 3px; }
+    /* ĐÃ BỎ GẠCH NGHANG VÀ GIẢM LINE-HEIGHT CÁC HÀNG */
+    .cust-header { 
+      border-bottom: none; 
+      padding-bottom: 2px; 
+      margin-bottom: 4px; 
+      line-height: 1.25; 
+    }
+    
+    .cust-title { 
+      font-weight: bold; 
+      color: #0056b3; 
+      font-size: 14px; 
+      margin-bottom: 2px; 
+      line-height: 1.2;
+    }
     
     .cust-address { 
       font-size: 13px; 
       color: #333; 
-      margin: 3px 0 4px 0; 
+      margin: 2px 0; 
       word-break: break-word;
+      line-height: 1.2;
     }
 
     .cust-row-group { 
       display: flex; 
       flex-wrap: nowrap; 
       gap: 4px; 
-      margin-top: 3px; 
+      margin-top: 2px; 
     }
     
     .cust-row-group span { 
-      padding: 3px 6px; 
+      padding: 1px 4px; 
       border-radius: 4px; 
       font-size: 11.5px; 
       color: #333;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
+      line-height: 1.2;
     }
     
     .flex-1 { flex: 1; }
 
-    /* DIV CSS RIÊNG CĂN TỌA ĐỘ BÊN TRÁI -> SL THÁO -> SL KT */
+    /* KHU VỰC THÔNG TIN ĐỘNG GỌN GÀNG */
     .cust-dynamic-info-v2 {
-      background: #FFFFFF;
-      border: 0px dashed #007bff;
-      padding: 6px 8px;
+      background: #eef6ff;
+      border: 1px dashed #007bff;
+      padding: 4px 6px;
       border-radius: 4px;
-      font-size: 13px;
+      font-size: 12.5px;
       color: #004085;
       font-weight: bold;
-      margin-top: 0px;
+      margin-top: 4px;
       display: flex;
       justify-content: space-between;
       align-items: center;
       gap: 4px;
+      line-height: 1.2;
     }
 
     .cust-dynamic-info-v2 span {
@@ -290,7 +306,7 @@
     </div>
   </div>
 
-    <div id="listContainer">
+  <div id="listContainer">
     <div class="loading-box">
       <div class="spinner"></div>
       <span>Đang tải danh sách khách hàng...</span>
@@ -438,7 +454,6 @@
       if (targetCard) targetCard.classList.add('active');
     }
 
-    /* Đưa Tọa độ sang bên TRÁI, đứng trước SL Tháo và SL KT */
     function updateRowDetail(maKhang, bcs, sanLuong, sluongThao, sluongKt) {
       selectCustomer(maKhang);
       const detailEl = document.getElementById(`detail_info_${maKhang}`);
@@ -575,19 +590,18 @@
           <div class="customer-card ${isActive}" id="card_${cust.ma_khang}" onclick="selectCustomer('${cust.ma_khang}')">
             <div class="cust-header">
               <div class="cust-title">${cust.ma_khang} - ${cust.ten_khang}</div>
-              <div class="cust-address">Địa chỉ: ${cust.dia_chi || ''}</div>
+              <div class="cust-address">📍 ${cust.dia_chi || ''}</div>
               
               <div class="cust-row-group">
-                <span class="flex-1">Sổ: <b>${cust.ma_sogcs || ''}</b></span>
-                <span class="flex-1">DS: <b>${cust.danh_so || ''}</b></span>
-                <span class="flex-1">No: <b>${cust.so_cto || ''}</b></span>
+                <span class="flex-1">📂 Sổ: <b>${cust.ma_sogcs || ''}</b></span>
+                <span class="flex-1">🔢 DS: <b>${cust.danh_so || ''}</b></span>
+                <span class="flex-1">📟 No: <b>${cust.so_cto || ''}</b></span>
               </div>
 
               <div class="cust-row-group">
-                <span class="flex-1">Cột: <b>${cotTramText || ''}</b></span>
+                <span class="flex-1">⚡ Cột - Trạm: <b>${cotTramText || ''}</b></span>
               </div>
 
-              <!-- Tọa độ nằm ở TRÁI -> SL Tháo -> SL KT -->
               <div class="cust-dynamic-info-v2" id="detail_info_${cust.ma_khang}">
                 <span>${mapLinkHtml}</span>
                 <span>SL Tháo: <b>${firstItem.sluong_thao || 0}</b></span>
@@ -756,7 +770,7 @@
       }
 
       const confirmSave = await showCustomConfirm(
-        isWarning ? "CẢẢNH BÁO SẢN LƯỢNG" : "XÁC NHẬN GHI DỮ LIỆU",
+        isWarning ? "CẢNH BÁO SẢN LƯỢNG" : "XÁC NHẬN GHI DỮ LIỆU",
         confirmMessage,
         isWarning
       );
