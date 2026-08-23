@@ -158,7 +158,7 @@
       font-size: 13px;
       color: #004085;
       font-weight: bold;
-      margin-top: 5px;
+      margin-top: 0px;
       display: flex;
       justify-content: space-between;
       align-items: center;
@@ -575,16 +575,16 @@
           <div class="customer-card ${isActive}" id="card_${cust.ma_khang}" onclick="selectCustomer('${cust.ma_khang}')">
             <div class="cust-header">
               <div class="cust-title">${cust.ma_khang} - ${cust.ten_khang}</div>
-              <div class="cust-address">📍 ${cust.dia_chi || ''}</div>
+              <div class="cust-address">Địa chỉ: ${cust.dia_chi || ''}</div>
               
               <div class="cust-row-group">
-                <span class="flex-1">📂 Sổ: <b>${cust.ma_sogcs || ''}</b></span>
-                <span class="flex-1">🔢 DS: <b>${cust.danh_so || ''}</b></span>
-                <span class="flex-1">📟 No: <b>${cust.so_cto || ''}</b></span>
+                <span class="flex-1">Sổ: <b>${cust.ma_sogcs || ''}</b></span>
+                <span class="flex-1">DS: <b>${cust.danh_so || ''}</b></span>
+                <span class="flex-1">No: <b>${cust.so_cto || ''}</b></span>
               </div>
 
               <div class="cust-row-group">
-                <span class="flex-1">⚡ Cột - Trạm: <b>${cotTramText || ''}</b></span>
+                <span class="flex-1">Cột: <b>${cotTramText || ''}</b></span>
               </div>
 
               <!-- Tọa độ nằm ở TRÁI -> SL Tháo -> SL KT -->
