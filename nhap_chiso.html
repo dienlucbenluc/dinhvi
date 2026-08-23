@@ -202,7 +202,7 @@
     .btn-card-cancel { background: #dc3545; }
     .btn-card-cancel:disabled { background: #ef9a9a; cursor: not-allowed; opacity: 0.6; }
 
-    /* Toast Thông báo ở Góc Trên Bên Phải (Đã xóa viền trái) */
+    /* Toast Notification */
     #toast { 
       position: fixed; 
       top: 15px; 
@@ -229,7 +229,7 @@
       to { opacity: 1; transform: translateX(0); }
     }
 
-    /* CSS Custom Confirm Modal */
+    /* Modal xác nhận */
     .modal-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0, 0, 0, 0.4); display: none; align-items: center; justify-content: center; z-index: 10000; }
     .modal-box { background: #ffffff; width: 88%; max-width: 360px; border-radius: 12px; padding: 18px 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); text-align: center; }
     .modal-title { font-size: 16px; font-weight: bold; color: #007bff; margin-bottom: 10px; }
@@ -260,7 +260,7 @@
 
   <div id="listContainer">Đang tải danh sách khách hàng...</div>
 
-  <!-- Toast Notification Góc trên phải -->
+  <!-- Toast Notification -->
   <div id="toast"></div>
 
   <!-- Custom Confirmation Modal -->
@@ -645,11 +645,12 @@
       const tongSluong = sanLuong + slThao;
       const chenhLech = tongSluong - slKt;
 
-      let rawTyle = 0;
       let tyleClech = "0%";
       if (slKt !== 0) {
-        rawTyle = (tongSluong / slKt) * 100;
-        tyleClech = rawTyle.toFixed(2) + "%";
+        // Công thức tính tỷ lệ tăng/giảm phần trăm so với kỳ trước: ((Tổng SL - SL Kỳ trước) / SL Kỳ trước) * 100
+        const rawTyle = ((tongSluong - slKt) / slKt) * 100;
+        const prefix = rawTyle > 0 ? "+" : "";
+        tyleClech = prefix + rawTyle.toFixed(2) + "%";
       }
 
       slHiddenEl.value = sanLuong;
@@ -699,13 +700,12 @@
           const tongSluong = sanLuong + slThao;
 
           if (slKt !== 0) {
-            const rawTyle = (tongSluong / slKt) * 100;
-            if (rawTyle > 150) {
-              const percentIncrease = (rawTyle - 100).toFixed(1);
-              warningMsgs.push(`⚠️ [BCS ${item.bcs}]: Sản lượng (+) tăng ${percentIncrease}% so với tháng trước, kiểm tra kỹ lại dùm tôi.`);
-            } else if (rawTyle < -150) {
-              const percentDecrease = (100 - rawTyle).toFixed(1);
-              warningMsgs.push(`⚠️ [BCS ${item.bcs}]: Sản lượng (-) giảm ${percentDecrease}% so với tháng trước, kiểm tra kỹ lại dùm tôi.`);
+            // Tỷ lệ tăng giảm % thực tế
+            const percentChange = ((tongSluong - slKt) / slKt) * 100;
+            if (percentChange > 50) {
+              warningMsgs.push(`⚠️ [BCS ${item.bcs}]: Sản lượng (+) tăng ${percentChange.toFixed(1)}% so với tháng trước, kiểm tra kỹ lại dùm tôi.`);
+            } else if (percentChange < -50) {
+              warningMsgs.push(`⚠️ [BCS ${item.bcs}]: Sản lượng (-) giảm ${Math.abs(percentChange).toFixed(1)}% so với tháng trước, kiểm tra kỹ lại dùm tôi.`);
             }
           }
         }
