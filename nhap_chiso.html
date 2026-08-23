@@ -149,17 +149,24 @@
     
     .flex-1 { flex: 1; }
 
-    .cust-dynamic-info {
+    /* DIV CSS RIÊNG CĂN TỌA ĐỘ BÊN TRÁI -> SL THÁO -> SL KT */
+    .cust-dynamic-info-v2 {
       background: #eef6ff;
       border: 1px dashed #007bff;
-      padding: 4px 6px;
+      padding: 6px 8px;
       border-radius: 4px;
-      font-size: 12px;
+      font-size: 13px;
       color: #004085;
       font-weight: bold;
       margin-top: 5px;
       display: flex;
       justify-content: space-between;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .cust-dynamic-info-v2 span {
+      white-space: nowrap;
     }
 
     .table-responsive { overflow-x: auto; -webkit-overflow-scrolling: touch; }
@@ -431,13 +438,15 @@
       if (targetCard) targetCard.classList.add('active');
     }
 
+    /* Đưa Tọa độ sang bên TRÁI, đứng trước SL Tháo và SL KT */
     function updateRowDetail(maKhang, bcs, sanLuong, sluongThao, sluongKt) {
       selectCustomer(maKhang);
       const detailEl = document.getElementById(`detail_info_${maKhang}`);
       if (detailEl) {
+        const mapSpan = document.getElementById(`map_link_${maKhang}`);
+        const mapHtml = mapSpan ? mapSpan.outerHTML : '';
         detailEl.innerHTML = `
-          <span>📊 BCS: <b>${bcs}</b></span>
-          <span>S.Lượng: <b>${sanLuong !== "-" ? sanLuong : "0"}</b></span>
+          <span>${mapHtml}</span>
           <span>SL Tháo: <b>${sluongThao}</b></span>
           <span>SL KT: <b>${sluongKt}</b></span>
         `;
@@ -493,7 +502,7 @@
                 
                 const mapSpan = document.getElementById(`map_link_${maKhang}`);
                 if (mapSpan) {
-                  mapSpan.innerHTML = `<a href="https://www.google.com/maps?q=${lat},${lng}" target="_blank" style="color:#007bff; font-weight:bold; text-decoration:none;">Xem trên Google Maps</a>`;
+                  mapSpan.innerHTML = `<a href="https://www.google.com/maps?q=${lat},${lng}" target="_blank" style="color:#007bff; font-weight:bold; text-decoration:none;">🗺️ Xem trên Google Maps</a>`;
                 }
               } else {
                 showToast("❌ Lỗi lưu định vị: " + res.message);
@@ -551,14 +560,13 @@
         const cust = groups[makh];
         const isActive = (makh === activeMaKhang) ? "active" : "";
         const firstItem = cust.items[0] || {};
-        const initSl = firstItem.san_luong !== "" && firstItem.san_luong !== undefined ? firstItem.san_luong : "0";
         const cotTramText = [cust.so_cot, cust.ten_tram].filter(Boolean).join(" - ");
 
         const hasLocation = Boolean(firstItem.lat && firstItem.lng);
         
-        let mapLinkHtml = `<span id="map_link_${cust.ma_khang}" style="color:#dc3545;">Chưa có tọa độ</span>`;
+        let mapLinkHtml = `<span id="map_link_${cust.ma_khang}" style="color:#dc3545; font-weight:bold;">Chưa có tọa độ</span>`;
         if (hasLocation) {
-          mapLinkHtml = `<span id="map_link_${cust.ma_khang}"><a href="https://www.google.com/maps?q=${firstItem.lat},${firstItem.lng}" target="_blank" style="color:#007bff; font-weight:bold; text-decoration:none;">Xem trên Google Maps</a></span>`;
+          mapLinkHtml = `<span id="map_link_${cust.ma_khang}"><a href="https://www.google.com/maps?q=${firstItem.lat},${firstItem.lng}" target="_blank" style="color:#007bff; font-weight:bold; text-decoration:none;">🗺️ Xem trên Google Maps</a></span>`;
         }
 
         const alreadyHasCS = cust.items.some(i => i.chiso_moi !== "" && i.chiso_moi !== undefined);
@@ -568,7 +576,6 @@
             <div class="cust-header">
               <div class="cust-title">${cust.ma_khang} - ${cust.ten_khang}</div>
               <div class="cust-address">📍 ${cust.dia_chi || ''}</div>
-              <div class="cust-address" style="font-size:12px; font-weight:600;">🗺️ Tọa độ: ${mapLinkHtml}</div>
               
               <div class="cust-row-group">
                 <span class="flex-1">📂 Sổ: <b>${cust.ma_sogcs || ''}</b></span>
@@ -580,9 +587,9 @@
                 <span class="flex-1">⚡ Cột - Trạm: <b>${cotTramText || ''}</b></span>
               </div>
 
-              <div class="cust-dynamic-info" id="detail_info_${cust.ma_khang}">
-                <span>📊 BCS: <b>${firstItem.bcs || '-'}</b></span>
-                <span>S.Lượng: <b>${initSl}</b></span>
+              <!-- Tọa độ nằm ở TRÁI -> SL Tháo -> SL KT -->
+              <div class="cust-dynamic-info-v2" id="detail_info_${cust.ma_khang}">
+                <span>${mapLinkHtml}</span>
                 <span>SL Tháo: <b>${firstItem.sluong_thao || 0}</b></span>
                 <span>SL KT: <b>${firstItem.sluong_kt || 0}</b></span>
               </div>
@@ -677,7 +684,6 @@
 
       let tyleClech = "0%";
       if (slKt !== 0) {
-        // Công thức tính tỷ lệ tăng/giảm phần trăm so với kỳ trước: ((Tổng SL - SL Kỳ trước) / SL Kỳ trước) * 100
         const rawTyle = ((tongSluong - slKt) / slKt) * 100;
         const prefix = rawTyle > 0 ? "+" : "";
         tyleClech = prefix + rawTyle.toFixed(2) + "%";
@@ -730,7 +736,6 @@
           const tongSluong = sanLuong + slThao;
 
           if (slKt !== 0) {
-            // Tỷ lệ tăng giảm % thực tế
             const percentChange = ((tongSluong - slKt) / slKt) * 100;
             if (percentChange > 50) {
               warningMsgs.push(`* ${item.bcs}: Slượng tăng ${percentChange.toFixed(1)}% so với kỳ trước.`);
@@ -751,7 +756,7 @@
       }
 
       const confirmSave = await showCustomConfirm(
-        isWarning ? "CẢNH BÁO SẢN LƯỢNG" : "XÁC NHẬN GHI DỮ LIỆU",
+        isWarning ? "CẢẢNH BÁO SẢN LƯỢNG" : "XÁC NHẬN GHI DỮ LIỆU",
         confirmMessage,
         isWarning
       );
