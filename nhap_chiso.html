@@ -137,19 +137,6 @@
       justify-content: space-between;
     }
 
-    .warning-alert-msg {
-      background: #fff3cd;
-      color: #856404;
-      border: 1px solid #ffeeba;
-      padding: 6px 8px;
-      border-radius: 4px;
-      font-size: 12px;
-      font-weight: bold;
-      margin-top: 6px;
-      display: none;
-      line-height: 1.4;
-    }
-
     .table-responsive { overflow-x: auto; -webkit-overflow-scrolling: touch; }
     table.chiso-table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
     table.chiso-table th { background: #e9ecef; color: #333; padding: 5px 3px; border: 1px solid #ccc; white-space: nowrap; font-size: 12px; font-weight: bold; text-align: center; }
@@ -488,7 +475,6 @@
                 <span>SL Tháo: <b>${firstItem.sluong_thao || 0}</b></span>
                 <span>SL KT: <b>${firstItem.sluong_kt || 0}</b></span>
               </div>
-              <div class="warning-alert-msg" id="warn_msg_${cust.ma_khang}"></div>
             </div>
 
             <div class="table-responsive">
@@ -558,14 +544,12 @@
       const tongSlCell = document.getElementById(`tong_sl_${rowIndex}`);
       const clechCell = document.getElementById(`clech_${rowIndex}`);
       const tyleCell = document.getElementById(`tyle_${rowIndex}`);
-      const warnBox = document.getElementById(`warn_msg_${maKhang}`);
 
       if (val === "" || isNaN(val)) {
         slHiddenEl.value = "-";
         tongSlCell.innerText = "-";
         clechCell.innerText = "-";
         tyleCell.innerText = "-";
-        if (warnBox) warnBox.style.display = "none";
         updateRowDetail(maKhang, bcs, "-", sluongThao, sluongKt);
         checkCancelButtonStatus(maKhang);
         return;
@@ -591,29 +575,6 @@
       tongSlCell.innerText = tongSluong;
       clechCell.innerText = chenhLech;
       tyleCell.innerText = tyleClech;
-
-      // HIỂN THỊ DÒNG THÔNG BÁO VÀNG DƯỚI THẺ KHÁCH HÀNG KHI GÕ
-      if (slKt !== 0) {
-        if (rawTyle > 150) {
-          const percentIncrease = (rawTyle - 100).toFixed(1);
-          const msg = `⚠️ Sản lượng (+) tăng ${percentIncrease}% so với tháng trước, kiểm tra chỉ số công tơ kỹ lại dùm tôi...`;
-          if (warnBox) {
-            warnBox.innerText = msg;
-            warnBox.style.display = "block";
-          }
-        } else if (rawTyle < -150) {
-          const percentDecrease = (100 - rawTyle).toFixed(1);
-          const msg = `⚠️ Sản lượng (-) giảm ${percentDecrease}% so với tháng trước, kiểm tra chỉ số công tơ kỹ lại dùm tôi...`;
-          if (warnBox) {
-            warnBox.innerText = msg;
-            warnBox.style.display = "block";
-          }
-        } else {
-          if (warnBox) warnBox.style.display = "none";
-        }
-      } else {
-        if (warnBox) warnBox.style.display = "none";
-      }
 
       updateRowDetail(maKhang, bcs, sanLuong, sluongThao, sluongKt);
       checkCancelButtonStatus(maKhang);
@@ -644,8 +605,41 @@
       const cust = groupedData[maKhang];
       if (!cust) return;
 
-      // XÁC NHẬN GHI DỮ LIỆU
-      const confirmSave = confirm("Xác nhận ghi dữ liệu không?");
+      // KIỂM TRA TỶ LỆ TĂNG/GIẢM ĐỂ TẠO CÂU HỎI CONFIRM
+      let warningMsgs = [];
+      cust.items.forEach(item => {
+        const inputEl = document.getElementById(`cs_moi_${item.rowIndex}`);
+        if (inputEl && inputEl.value !== "") {
+          const csMoi = Number(inputEl.value);
+          const hsnVal = Number(item.hsn) || 1;
+          const slThao = Number(item.sluong_thao) || 0;
+          const slKt = Number(item.sluong_kt) || 0;
+
+          const sanLuong = Math.round((csMoi - item.chiso_cu) * hsnVal);
+          const tongSluong = sanLuong + slThao;
+
+          if (slKt !== 0) {
+            const rawTyle = (tongSluong / slKt) * 100;
+            if (rawTyle > 150) {
+              const percentIncrease = (rawTyle - 100).toFixed(1);
+              warningMsgs.push(`⚠️ [BCS ${item.bcs}]: Sản lượng (+) tăng ${percentIncrease}% so với tháng trước, kiểm tra chỉ số công tơ kỹ lại dùm tôi...`);
+            } else if (rawTyle < -150) {
+              const percentDecrease = (100 - rawTyle).toFixed(1);
+              warningMsgs.push(`⚠️ [BCS ${item.bcs}]: Sản lượng (-) giảm ${percentDecrease}% so với tháng trước, kiểm tra chỉ số công tơ kỹ lại dùm tôi...`);
+            }
+          }
+        }
+      });
+
+      // TẠO THÔNG ĐIỆP HỎI CONFIRM
+      let confirmMessage = "";
+      if (warningMsgs.length > 0) {
+        confirmMessage = warningMsgs.join("\n") + "\n\nBạn vẫn muốn xác nhận ghi dữ liệu?";
+      } else {
+        confirmMessage = "Xác nhận ghi dữ liệu không?";
+      }
+
+      const confirmSave = confirm(confirmMessage);
       if (!confirmSave) return;
 
       const loc = currentLocations[maKhang] || {};
