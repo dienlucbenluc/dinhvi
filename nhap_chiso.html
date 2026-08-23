@@ -703,9 +703,9 @@
             // Tỷ lệ tăng giảm % thực tế
             const percentChange = ((tongSluong - slKt) / slKt) * 100;
             if (percentChange > 50) {
-              warningMsgs.push(`⚠️ [BCS ${item.bcs}]: Sản lượng (+) tăng ${percentChange.toFixed(1)}% so với tháng trước, kiểm tra kỹ lại dùm tôi.`);
+              warningMsgs.push(`⚠️ BCS ${item.bcs}: Sản lượng tăng ${percentChange.toFixed(1)}% so với tháng trước.`);
             } else if (percentChange < -50) {
-              warningMsgs.push(`⚠️ [BCS ${item.bcs}]: Sản lượng (-) giảm ${Math.abs(percentChange).toFixed(1)}% so với tháng trước, kiểm tra kỹ lại dùm tôi.`);
+              warningMsgs.push(`⚠️ BCS ${item.bcs}: Sản lượng giảm ${Math.abs(percentChange).toFixed(1)}% so với tháng trước.`);
             }
           }
         }
@@ -715,7 +715,7 @@
       let isWarning = warningMsgs.length > 0;
 
       if (isWarning) {
-        confirmMessage = warningMsgs.join("\n") + "\n\nBạn vẫn muốn xác nhận ghi dữ liệu?";
+        confirmMessage = warningMsgs.join("\n") + "\nKiểm tra kỹ lại, Cty không có cho điều chỉnh HĐ nữa.\nBạn vẫn muốn xác nhận ghi dữ liệu?";
       } else {
         confirmMessage = "Xác nhận ghi dữ liệu chỉ số?";
       }
