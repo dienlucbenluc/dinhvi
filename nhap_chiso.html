@@ -850,6 +850,14 @@
       })
       .catch(() => showToast("❌ Lỗi hệ thống!"));
     }
+
+            function handleLogout() {
+            const menu = document.getElementById('menuDropdown');
+            if (menu) menu.classList.remove('show');
+            
+            const logoutModal = document.getElementById('logoutModal');
+            if (logoutModal) logoutModal.style.display = 'flex';
+        }
   </script>
 </body>
 </html>
