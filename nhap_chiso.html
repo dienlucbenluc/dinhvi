@@ -592,18 +592,20 @@
       clechCell.innerText = chenhLech;
       tyleCell.innerText = tyleClech;
 
-      // HIỂN THỊ DÒNG CẢNH BÁO MÀU VÀNG NẾU TỶ LỆ > 150% HOẶC < -150% (BỎ HẲN ALERT GIÁN ĐOẠN)
+      // HIỂN THỊ DÒNG THÔNG BÁO VÀNG DƯỚI THẺ KHÁCH HÀNG KHI GÕ
       if (slKt !== 0) {
         if (rawTyle > 150) {
           const percentIncrease = (rawTyle - 100).toFixed(1);
+          const msg = `⚠️ Sản lượng (+) tăng ${percentIncrease}% so với tháng trước, kiểm tra chỉ số công tơ kỹ lại dùm tôi...`;
           if (warnBox) {
-            warnBox.innerText = `⚠️ Sản lượng (+) tăng ${percentIncrease}% so với tháng trước, kiểm tra chỉ số công tơ kỹ lại dùm tôi...`;
+            warnBox.innerText = msg;
             warnBox.style.display = "block";
           }
         } else if (rawTyle < -150) {
           const percentDecrease = (100 - rawTyle).toFixed(1);
+          const msg = `⚠️ Sản lượng (-) giảm ${percentDecrease}% so với tháng trước, kiểm tra chỉ số công tơ kỹ lại dùm tôi...`;
           if (warnBox) {
-            warnBox.innerText = `⚠️ Sản lượng (-) giảm ${percentDecrease}% so với tháng trước, kiểm tra chỉ số công tơ kỹ lại dùm tôi...`;
+            warnBox.innerText = msg;
             warnBox.style.display = "block";
           }
         } else {
@@ -641,6 +643,10 @@
     function saveCustomerData(maKhang) {
       const cust = groupedData[maKhang];
       if (!cust) return;
+
+      // XÁC NHẬN GHI DỮ LIỆU
+      const confirmSave = confirm("Xác nhận ghi dữ liệu không?");
+      if (!confirmSave) return;
 
       const loc = currentLocations[maKhang] || {};
       const payload = [];
