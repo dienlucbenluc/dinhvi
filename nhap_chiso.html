@@ -425,6 +425,7 @@
             ten_tram: item.ten_tram,
             so_cto: item.so_cto,
             so_dthoai: item.so_dthoai || "",
+            ghi_chu: item.ghi_chu || "",
             items: []
           };
         }
@@ -597,6 +598,11 @@
                 <span class="flex-1">Cột-Trạm: <b>${cotTramText || ''}</b></span>
               </div>
 
+              <!-- DÒNG GHI CHÚ NẰM BÊN DƯỚI CỘT-TRẠM -->
+              <div class="cust-row-group">
+                <span class="flex-1" style="color: #d9534f;">Ghi chú: <b>${cust.ghi_chu || ''}</b></span>
+              </div>
+
               <div class="cust-dynamic-info-v2" id="detail_info_${cust.ma_khang}">
                 <span>${mapLinkHtml}</span>
                 <span>SL Tháo(<b>${firstItem.bcs}</b>): <b>${firstItem.sluong_thao || 0}</b></span>
@@ -721,7 +727,8 @@
           String(cust.so_cto).toLowerCase().includes(q) ||
           String(cust.ma_sogcs).toLowerCase().includes(q) ||
           String(cust.danh_so).toLowerCase().includes(q) ||
-          String(cust.so_dthoai).toLowerCase().includes(q);
+          String(cust.so_dthoai).toLowerCase().includes(q) ||
+          String(cust.ghi_chu).toLowerCase().includes(q);
 
         if (match) filteredGroups[makh] = cust;
       });
@@ -851,22 +858,23 @@
       .catch(() => showToast("❌ Lỗi hệ thống!"));
     }
 
-            function handleLogout() {
-            const menu = document.getElementById('menuDropdown');
-            if (menu) menu.classList.remove('show');
-            
-            const logoutModal = document.getElementById('logoutModal');
-            if (logoutModal) logoutModal.style.display = 'flex';
-        }
-            function closeLogoutModal() {
-            const logoutModal = document.getElementById('logoutModal');
-            if (logoutModal) logoutModal.style.display = 'none';
-        }
+    function handleLogout() {
+      const menu = document.getElementById('menuDropdown');
+      if (menu) menu.classList.remove('show');
+      
+      const logoutModal = document.getElementById('logoutModal');
+      if (logoutModal) logoutModal.style.display = 'flex';
+    }
 
-        function confirmLogout() {
-            localStorage.removeItem("cmis_user_session");
-            window.location.href = "login.html";
-        }
+    function closeLogoutModal() {
+      const logoutModal = document.getElementById('logoutModal');
+      if (logoutModal) logoutModal.style.display = 'none';
+    }
+
+    function confirmLogout() {
+      localStorage.removeItem("cmis_user_session");
+      window.location.href = "login.html";
+    }
   </script>
 </body>
 </html>
