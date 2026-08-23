@@ -579,9 +579,9 @@
 
         const hasLocation = Boolean(firstItem.lat && firstItem.lng);
         
-        let mapLinkHtml = `<span id="map_link_${cust.ma_khang}" style="color:#dc3545; font-weight:bold;">Chưa có tọa độ</span>`;
+        let mapLinkHtml = `<span id="map_link_${cust.ma_khang}" style="color:#dc3545; font-weight:bold;">🌏 Chưa có tọa độ</span>`;
         if (hasLocation) {
-          mapLinkHtml = `<span id="map_link_${cust.ma_khang}"><a href="https://www.google.com/maps?q=${firstItem.lat},${firstItem.lng}" target="_blank" style="color:#007bff; font-weight:bold; text-decoration:none;">🗺️ Xem trên Google Maps</a></span>`;
+          mapLinkHtml = `<span id="map_link_${cust.ma_khang}"><a href="https://www.google.com/maps?q=${firstItem.lat},${firstItem.lng}" target="_blank" style="color:#007bff; font-weight:bold; text-decoration:none;">🌏 Xem trên Google Maps</a></span>`;
         }
 
         const alreadyHasCS = cust.items.some(i => i.chiso_moi !== "" && i.chiso_moi !== undefined);
@@ -658,8 +658,8 @@
 
             <div class="card-btn-group">
               <button class="btn-card btn-card-location" onclick="event.stopPropagation(); getLocation('${cust.ma_khang}')">ĐỊNH VỊ</button>
-              <button class="btn-card btn-card-save" id="btn_save_${cust.ma_khang}" ${saveDisabledAttr} onclick="event.stopPropagation(); saveCustomerData('${cust.ma_khang}')">GHI</button>
-              <button class="btn-card btn-card-cancel" id="btn_cancel_${cust.ma_khang}" ${cancelDisabledAttr} onclick="event.stopPropagation(); cancelCustomerData('${cust.ma_khang}')">HỦY</button>
+              <button class="btn-card btn-card-save" id="btn_save_${cust.ma_khang}" ${saveDisabledAttr} onclick="event.stopPropagation(); saveCustomerData('${cust.ma_khang}')">GHI CS</button>
+              <button class="btn-card btn-card-cancel" id="btn_cancel_${cust.ma_khang}" ${cancelDisabledAttr} onclick="event.stopPropagation(); cancelCustomerData('${cust.ma_khang}')">HỦY CS</button>
             </div>
           </div>
         `;
