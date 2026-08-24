@@ -393,6 +393,20 @@
         </div>
     </div>
 
+    <!-- Modal Thông Báo Chuyên Nghiệp -->
+    <div id="alertModal" class="modal-overlay">
+        <div class="modal-box" style="text-align: center;">
+            <div class="alert-icon" style="font-size: 40px; margin-bottom: 8px;">✅</div>
+            <div class="modal-title alert-title" style="color: #36b37e; margin-bottom: 8px;">Thành Công</div>
+            <p id="alertMessage" style="font-size: 14px; color: var(--text-sub); line-height: 1.5; margin-bottom: 16px;">
+                Mật khẩu của bạn đã được cập nhật thành công!
+            </p>
+            <div class="modal-buttons">
+                <button class="btn-modal-confirm" onclick="closeAlertModal()" style="width: 100%;">Xác nhận</button>
+            </div>
+        </div>
+    </div>
+
     <script>
         const API_URL = "https://script.google.com/macros/s/AKfycbxJZHenN4zoxZR7wOk4SiBnUx071LKLdAWOdJLToJPScSdBIj8Qn_pOeTDAABlN_UAF/exec"; 
 
@@ -435,19 +449,16 @@
             document.getElementById('devModal').style.display = 'none';
         }
 
-function openPassModal() {
-    closeAllMenus();
-    
-    // Đảm bảo ẩn modal thông báo thành công (nếu đang mở)
-    closeAlertModal();
+        function openPassModal() {
+            closeAllMenus();
+            closeAlertModal();
 
-    // Reset lại 2 ô nhập mật khẩu về trống
-    document.getElementById('oldPassInput').value = '';
-    document.getElementById('newPassInput').value = '';
+            // Clear dữ liệu cũ
+            document.getElementById('oldPassInput').value = '';
+            document.getElementById('newPassInput').value = '';
 
-    // Hiển thị modal đổi mật khẩu
-    document.getElementById('passModal').style.display = 'flex';
-}
+            document.getElementById('passModal').style.display = 'flex';
+        }
 
         function closePassModal() {
             document.getElementById('passModal').style.display = 'none';
@@ -473,61 +484,42 @@ function openPassModal() {
         }
 
         function showAlert(message, title = "Thành Công", isSuccess = true) {
-    const alertModal = document.getElementById('alertModal');
-    const icon = alertModal.querySelector('div[style*="font-size: 40px"]');
-    const titleEl = alertModal.querySelector('.modal-title');
-    const messageEl = document.getElementById('alertMessage');
+            const alertModal = document.getElementById('alertModal');
+            const icon = alertModal.querySelector('.alert-icon');
+            const titleEl = alertModal.querySelector('.alert-title');
+            const messageEl = document.getElementById('alertMessage');
 
-    // Tùy chỉnh giao diện theo trạng thái Thành công / Thất bại
-    if (isSuccess) {
-        icon.innerText = "✅";
-        titleEl.innerText = title;
-        titleEl.style.color = "#36b37e"; // Xanh lá
-    } else {
-        icon.innerText = "⚠️";
-        titleEl.innerText = title;
-        titleEl.style.color = "var(--danger-color)"; // Đỏ
-    }
+            if (isSuccess) {
+                icon.innerText = "✅";
+                titleEl.innerText = title;
+                titleEl.style.color = "#36b37e";
+            } else {
+                icon.innerText = "⚠️";
+                titleEl.innerText = title;
+                titleEl.style.color = "var(--danger-color)";
+            }
 
-    messageEl.innerText = message;
-    alertModal.style.display = 'flex';
-}
+            messageEl.innerText = message;
+            alertModal.style.display = 'flex';
+        }
 
-function closeAlertModal() {
-    document.getElementById('alertModal').style.display = 'none';
-}
-        
-function saveNewPassword() {
-    const oldPass = document.getElementById('oldPassInput').value;
-    const newPass = document.getElementById('newPassInput').value;
+        function closeAlertModal() {
+            document.getElementById('alertModal').style.display = 'none';
+        }
 
-    // Kiểm tra dữ liệu nhập (Ví dụ)
-    if (!oldPass || !newPass) {
-        showAlert("Vui lòng nhập đầy đủ thông tin mật khẩu!", "Lỗi Nhập Liệu", false);
-        return;
-    }
+        function saveNewPassword() {
+            const oldPass = document.getElementById('oldPassInput').value.trim();
+            const newPass = document.getElementById('newPassInput').value.trim();
 
-    // Sau khi gọi API đổi mật khẩu thành công:
-    closePassModal();
-    showAlert("Mật khẩu của bạn đã được cập nhật thành công.");
+            if (!oldPass || !newPass) {
+                showAlert("Vui lòng nhập đầy đủ thông tin mật khẩu!", "Lỗi Nhập Liệu", false);
+                return;
+            }
 
-    // Clear lại ô input
-    document.getElementById('oldPassInput').value = '';
-    document.getElementById('newPassInput').value = '';
-}
-        
-<div id="alertModal" class="modal-overlay">
-    <div class="modal-box" style="text-align: center;">
-        <div style="font-size: 40px; margin-bottom: 8px;">✅</div>
-        <div class="modal-title" style="color: #36b37e; margin-bottom: 8px;">Thành Công</div>
-        <p id="alertMessage" style="font-size: 14px; color: var(--text-sub); line-height: 1.5; margin-bottom: 16px;">
-            Mật khẩu của bạn đã được cập nhật thành công!
-        </p>
-        <div class="modal-buttons">
-            <button class="btn-modal-confirm" onclick="closeAlertModal()" style="width: 100%;">Xác nhận</button>
-        </div>
-    </div>
-</div>
+            // Gọi logic đổi mật khẩu ở đây
+            closePassModal();
+            showAlert("Mật khẩu của bạn đã được cập nhật thành công.");
+        }
     </script>
 </body>
 </html>
