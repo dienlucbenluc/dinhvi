@@ -221,6 +221,8 @@
         .icon-green { background: #e3fcef; color: #36b37e; }
         .icon-orange { background: #fffae6; color: #ffab00; }
         .icon-purple { background: #eae6ff; color: #6554c0; }
+        .icon-cyan { background: #e6f7ff; color: #0091ff; }
+        .icon-red { background: #ffebe6; color: #ff5630; }
 
         .feature-title { font-size: 14px; font-weight: 700; color: var(--text-main); }
         .feature-desc { font-size: 11px; color: var(--text-sub); }
@@ -292,6 +294,7 @@
                         <div class="menu-item" onclick="openDevModal()">🛠️ Lập trình phần mềm</div>
                         <div class="menu-item" onclick="window.location.href='dinh_vi.html'">🌏 Định vị công tác</div>
                         <div class="menu-item" onclick="window.location.href='nhap_chiso.html'">📝 Ghi chỉ số</div>
+                        <div class="menu-item" onclick="window.location.href='xem_chiso.html'">📊 Nhập CMIS (xem chỉ số)</div>
                         <div class="menu-item" onclick="openPassModal()">🔑 Đổi mật khẩu</div>
                         <div class="menu-item danger" onclick="handleLogout()">🛑 Thoát ứng dụng</div>
                     </div>
@@ -324,6 +327,14 @@
                     </div>
                 </div>
 
+                <div class="feature-card" onclick="window.location.href='xem_chiso.html'">
+                    <div class="feature-icon icon-cyan">📊</div>
+                    <div>
+                        <div class="feature-title">Nhập CMIS</div>
+                        <div class="feature-desc">Xem & tra cứu chỉ số CMIS</div>
+                    </div>
+                </div>
+
                 <div class="feature-card" onclick="openPassModal()">
                     <div class="feature-icon icon-orange">🔑</div>
                     <div>
@@ -337,6 +348,14 @@
                     <div>
                         <div class="feature-title">Hỗ trợ</div>
                         <div class="feature-desc">Thông tin nhà phát triển</div>
+                    </div>
+                </div>
+
+                <div class="feature-card" onclick="handleLogout()">
+                    <div class="feature-icon icon-red">🛑</div>
+                    <div>
+                        <div class="feature-title">Thoát</div>
+                        <div class="feature-desc">Đăng xuất tài khoản</div>
                     </div>
                 </div>
             </div>
@@ -506,55 +525,53 @@
             document.getElementById('alertModal').style.display = 'none';
         }
 
-       async function saveNewPassword() {
-    const oldPass = document.getElementById('oldPassInput').value.trim();
-    const newPass = document.getElementById('newPassInput').value.trim();
-    const btnSave = document.getElementById('btnSavePass');
+        async function saveNewPassword() {
+            const oldPass = document.getElementById('oldPassInput').value.trim();
+            const newPass = document.getElementById('newPassInput').value.trim();
+            const btnSave = document.getElementById('btnSavePass');
 
-    if (!oldPass || !newPass) {
-        showAlert("Vui lòng nhập đầy đủ mật khẩu cũ và mật khẩu mới!", "Lỗi Nhập Liệu", false);
-        return;
-    }
+            if (!oldPass || !newPass) {
+                showAlert("Vui lòng nhập đầy đủ mật khẩu cũ và mật khẩu mới!", "Lỗi Nhập Liệu", false);
+                return;
+            }
 
-    // Kiểm tra tên người dùng từ session (lấy ten_ndung hoặc ma_nvien)
-    const username = currentUser ? (currentUser.ten_ndung || currentUser.ma_nvien) : null;
+            const username = currentUser ? (currentUser.ten_ndung || currentUser.ma_nvien) : null;
 
-    if (!currentUser || !username) {
-        showAlert("Không tìm thấy thông tin đăng nhập. Vui lòng đăng nhập lại!", "Lỗi Phiên Đăng Nhập", false);
-        return;
-    }
+            if (!currentUser || !username) {
+                showAlert("Không tìm thấy thông tin đăng nhập. Vui lòng đăng nhập lại!", "Lỗi Phiên Đăng Nhập", false);
+                return;
+            }
 
-    btnSave.disabled = true;
-    btnSave.innerText = "Đang lưu...";
+            btnSave.disabled = true;
+            btnSave.innerText = "Đang lưu...";
 
-    try {
-        // Gửi request POST tới Google Apps Script với đúng key mà .gs yêu cầu
-        const response = await fetch(API_URL, {
-            method: "POST",
-            body: JSON.stringify({
-                action: "CHANGE_PASSWORD",     // Viết hoa đúng như file .gs kiểm tra
-                ten_ndung: username,           // Tên tài khoản để tìm trong cột 1 sheet nhan_vien
-                mat_khau_cu: oldPass,          // Khớp với data.mat_khau_cu trong .gs
-                mat_khau_moi: newPass          // Khớp với data.mat_khau_moi trong .gs
-            })
-        });
+            try {
+                const response = await fetch(API_URL, {
+                    method: "POST",
+                    body: JSON.stringify({
+                        action: "CHANGE_PASSWORD",
+                        ten_ndung: username,
+                        mat_khau_cu: oldPass,
+                        mat_khau_moi: newPass
+                    })
+                });
 
-        const result = await response.json();
+                const result = await response.json();
 
-        if (result.status === "success") {
-            closePassModal();
-            showAlert("Mật khẩu của bạn đã được cập nhật thành công vào hệ thống!", "Thành Công", true);
-        } else {
-            showAlert(result.message || "Đổi mật khẩu thất bại. Vui lòng kiểm tra lại mật khẩu cũ!", "Lỗi Thất Bại", false);
+                if (result.status === "success") {
+                    closePassModal();
+                    showAlert("Mật khẩu của bạn đã được cập nhật thành công vào hệ thống!", "Thành Công", true);
+                } else {
+                    showAlert(result.message || "Đổi mật khẩu thất bại. Vui lòng kiểm tra lại mật khẩu cũ!", "Lỗi Thất Bại", false);
+                }
+            } catch (err) {
+                showAlert("Lỗi kết nối máy chủ. Vui lòng thử lại sau!", "Lỗi Kết Nối", false);
+                console.error(err);
+            } finally {
+                btnSave.disabled = false;
+                btnSave.innerText = "Lưu thay đổi";
+            }
         }
-    } catch (err) {
-        showAlert("Lỗi kết nối máy chủ. Vui lòng thử lại sau!", "Lỗi Kết Nối", false);
-        console.error(err);
-    } finally {
-        btnSave.disabled = false;
-        btnSave.innerText = "Lưu thay đổi";
-    }
-}
     </script>
 </body>
 </html>
