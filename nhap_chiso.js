@@ -81,7 +81,7 @@ function loadChiSoData() {
     }
   })
   .catch(() => {
-    document.getElementById("listContainer").innerHTML = "<p style='color:red; text-align:center;'>L?i k?t n?i m�y ch?!</p>";
+    document.getElementById("listContainer").innerHTML = "<p style='color:red; text-align:center;'>Lỗi kết nối máy chủ!</p>";
   });
 }
 
@@ -166,7 +166,7 @@ function updateRowDetail(maKhang, bcs, sanLuong, sluongThao, sluongKt) {
     const mapHtml = mapSpan ? mapSpan.outerHTML : '';
     detailEl.innerHTML = `
       <span>${mapHtml}</span>
-      <span>SL Th�o(<b>${bcs}</b>): <b>${sluongThao}</b></span>
+      <span>SL Tháo(<b>${bcs}</b>): <b>${sluongThao}</b></span>
       <span>SL KT: <b>${sluongKt}</b></span>
     `;
   }
@@ -180,12 +180,12 @@ async function getLocation(maKhang) {
   const hasCoords = (firstItem && firstItem.lat && firstItem.lng) || currentLocations[maKhang];
 
   if (hasCoords) {
-    const confirmAgain = await showCustomConfirm("L?Y T?A �? GPS", `B?n c� mu?n l?y l?i t?a d? m?i cho m� kh�ch h�ng ${maKhang} n�y kh�ng?`);
+    const confirmAgain = await showCustomConfirm("LẤY TỌA ĐỘ GPS", `Bạn có muốn lấy lại tọa độ mới cho mã khách hàng ${maKhang} này không?`);
     if (!confirmAgain) return;
   }
 
   if (navigator.geolocation) {
-    showToast(`? �ang l?y v? tr� GPS...`);
+    showToast(`⏳ Đang lấy vị trí GPS...`);
     navigator.geolocation.getCurrentPosition(
       (position) => {
         const lat = position.coords.latitude;
@@ -204,7 +204,7 @@ async function getLocation(maKhang) {
           nhap_cmis: 0
         }));
 
-        showToast(`? �ang luu t?a d? GPS...`);
+        showToast(`⏳ Đang lưu tọa độ GPS...`);
         fetch(API_URL, {
           method: "POST",
           headers: { "Content-Type": "text/plain;charset=utf-8" },
@@ -218,26 +218,26 @@ async function getLocation(maKhang) {
         .then(res => res.json())
         .then(res => {
           if (res.status === "success") {
-            showToast("?? �� l?y & luu t?a d? th�nh c�ng!");
+            showToast("📍 Đã lấy & lưu tọa độ thành công!");
             cust.items.forEach(it => { it.lat = lat; it.lng = lng; });
 
             enableInputsAndSaveBtn(maKhang);
             
             const mapSpan = document.getElementById(`map_link_${maKhang}`);
             if (mapSpan) {
-              mapSpan.innerHTML = `<a href="https://www.google.com/maps?q=${lat},${lng}" target="_blank" style="color:#007bff; font-weight:bold; text-decoration:none;">?? Xem Google Maps</a>`;
+              mapSpan.innerHTML = `<a href="https://www.google.com/maps?q=${lat},${lng}" target="_blank" style="color:#007bff; font-weight:bold; text-decoration:none;">🌏 Xem Google Maps</a>`;
             }
           } else {
-            showToast("? L?i luu d?nh v?: " + res.message);
+            showToast("❌ Lỗi lưu định vị: " + res.message);
           }
         })
-        .catch(() => showToast("? L?i k?t n?i m�y ch?!"));
+        .catch(() => showToast("❌ Lỗi kết nối máy chủ!"));
       },
-      (error) => { showToast("? Kh�ng th? l?y GPS! B?t v? tr� thi?t b?."); },
+      (error) => { showToast("❌ Không thể lấy GPS! Bật vị trí thiết bị."); },
       { enableHighAccuracy: true, timeout: 10000 }
     );
   } else {
-    showToast("? Thi?t b? kh�ng h? tr? GPS!");
+    showToast("❌ Thiết bị không hỗ trợ GPS!");
   }
 }
 
@@ -274,7 +274,7 @@ function renderGroupedList(groups) {
   const keys = Object.keys(groups);
 
   if (keys.length === 0) {
-    container.innerHTML = "<p style='text-align:center; padding-top:20px;'>Kh�ng c� d? li?u kh�ch h�ng.</p>";
+    container.innerHTML = "<p style='text-align:center; padding-top:20px;'>Không có dữ liệu khách hàng.</p>";
     return;
   }
 
@@ -287,9 +287,9 @@ function renderGroupedList(groups) {
 
     const hasLocation = Boolean(firstItem.lat && firstItem.lng);
     
-    let mapLinkHtml = `<span id="map_link_${cust.ma_khang}" style="color:#dc3545; font-weight:bold;">?? Chua c� t?a d?</span>`;
+    let mapLinkHtml = `<span id="map_link_${cust.ma_khang}" style="color:#dc3545; font-weight:bold;">🌏 Chưa có tọa độ</span>`;
     if (hasLocation) {
-      mapLinkHtml = `<span id="map_link_${cust.ma_khang}"><a href="https://www.google.com/maps?q=${firstItem.lat},${firstItem.lng}" target="_blank" style="color:#007bff; font-weight:bold; text-decoration:none;">?? Xem Google Maps</a></span>`;
+      mapLinkHtml = `<span id="map_link_${cust.ma_khang}"><a href="https://www.google.com/maps?q=${firstItem.lat},${firstItem.lng}" target="_blank" style="color:#007bff; font-weight:bold; text-decoration:none;">🌏 Xem Google Maps</a></span>`;
     }
 
     const alreadyHasCS = cust.items.some(i => i.chiso_moi !== "" && i.chiso_moi !== undefined && i.chiso_moi !== null);
@@ -298,32 +298,32 @@ function renderGroupedList(groups) {
       <div class="customer-card ${isActive}" id="card_${cust.ma_khang}" onclick="selectCustomer('${cust.ma_khang}')">
         <div class="cust-header">
           <div class="cust-title">${cust.ma_khang} - ${cust.ten_khang}</div>
-          <div class="cust-address">�?a ch?: ${cust.dia_chi || ''}</div>
+          <div class="cust-address">Địa chỉ: ${cust.dia_chi || ''}</div>
           
           <div class="cust-row-group">
             <span style="width: 100%; font-size: 11.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
-              S?:<b>${cust.ma_sogcs || ''}</b>  DS:<b>${cust.danh_so || ''}</b>  NO:<b>${cust.so_cto || ''}</b>  �T:<b>${cust.so_dthoai || ''}</b>
+              S?:<b>${cust.ma_sogcs || ''}</b>  DS:<b>${cust.danh_so || ''}</b>  NO:<b>${cust.so_cto || ''}</b>  ÐT:<b>${cust.so_dthoai || ''}</b>
             </span>
           </div>
 
           <div class="cust-row-group">
-            <span class="flex-1">C?t-Tr?m: <b>${cotTramText || ''}</b></span>
+            <span class="flex-1">Cột-Trạm: <b>${cotTramText || ''}</b></span>
           </div>
 
           <div class="cust-row-group" style="margin-top: 3px;">
-            <span style="padding-left:0; color:#000; min-width:55px;">Ghi ch�:</span>
+            <span style="padding-left:0; color:#000; min-width:55px;">Ghi chú:</span>
             <input type="text" 
                    class="input-ghichu" 
                    id="ghi_chu_${cust.ma_khang}" 
                    value="${cust.ghi_chu || ''}" 
-                   placeholder="Nh?p, s?a ghi ch� n?u c�..." 
+                   placeholder="Nhập, sửa ghi chú nếu có..." 
                    onclick="event.stopPropagation(); selectCustomer('${cust.ma_khang}');"
                    onchange="groupedData['${cust.ma_khang}'].ghi_chu = this.value;">
           </div>
 
           <div class="cust-dynamic-info-v2" id="detail_info_${cust.ma_khang}">
             <span>${mapLinkHtml}</span>
-            <span>SL Th�o(<b>${firstItem.bcs}</b>): <b>${firstItem.sluong_thao || 0}</b></span>
+            <span>SL Tháo(<b>${firstItem.bcs}</b>): <b>${firstItem.sluong_thao || 0}</b></span>
             <span>SL KT: <b>${firstItem.sluong_kt || 0}</b></span>
           </div>
         </div>
@@ -376,9 +376,9 @@ function renderGroupedList(groups) {
         </div>
 
         <div class="card-btn-group">
-          <button class="btn-card btn-card-location" onclick="event.stopPropagation(); getLocation('${cust.ma_khang}')">�?NH V?</button>
-          <button class="btn-card btn-card-save" id="btn_save_${cust.ma_khang}" ${saveDisabledAttr} onclick="event.stopPropagation(); saveCustomerData('${cust.ma_khang}')">LUU CS</button>
-          <button class="btn-card btn-card-cancel" id="btn_cancel_${cust.ma_khang}" ${cancelDisabledAttr} onclick="event.stopPropagation(); cancelCustomerData('${cust.ma_khang}')">H?Y CS</button>
+          <button class="btn-card btn-card-location" onclick="event.stopPropagation(); getLocation('${cust.ma_khang}')">ĐỊNH VỊ</button>
+          <button class="btn-card btn-card-save" id="btn_save_${cust.ma_khang}" ${saveDisabledAttr} onclick="event.stopPropagation(); saveCustomerData('${cust.ma_khang}')">LƯU</button>
+          <button class="btn-card btn-card-cancel" id="btn_cancel_${cust.ma_khang}" ${cancelDisabledAttr} onclick="event.stopPropagation(); cancelCustomerData('${cust.ma_khang}')">HỦY</button>
         </div>
       </div>
     `;
@@ -497,9 +497,9 @@ async function saveCustomerData(maKhang) {
       if (slKt !== 0) {
         const percentChange = ((tongSluong - slKt) / slKt) * 100;
         if (percentChange > 50) {
-          warningMsgs.push(`* ${item.bcs}: Slu?ng tang ${percentChange.toFixed(1)}% so v?i k? tru?c.`);
+          warningMsgs.push(`* ${item.bcs}: Slượng tăng ${percentChange.toFixed(1)}% so với kỳ trước.`);
         } else if (percentChange < -50) {
-          warningMsgs.push(`* ${item.bcs}: Slu?ng gi?m ${Math.abs(percentChange).toFixed(1)}% so v?i k? tru?c.`);
+          warningMsgs.push(`* ${item.bcs}: Slượng giảm ${Math.abs(percentChange).toFixed(1)}% so với kỳ trước.`);
         }
       }
     }
@@ -509,13 +509,13 @@ async function saveCustomerData(maKhang) {
   let isWarning = warningMsgs.length > 0;
 
   if (isWarning) {
-    confirmMessage = warningMsgs.join("\n") + "\n?Ki?m tra ch? s? tr�n c�ng to k? l?i.\n?? B?n v?n mu?n x�c nh?n ghi d? li?u?";
+    confirmMessage = warningMsgs.join("\n") + "\n⚡Kiểm tra chỉ số trên công tơ kỹ lại.\n📂 Bạn vẫn muốn xác nhận ghi dữ liệu?";
   } else {
-    confirmMessage = "X�c nh?n ghi d? li?u ch? s? v� ghi ch�?";
+    confirmMessage = "Xác nhận ghi dữ liệu chỉ số và ghi chú?";
   }
 
   const confirmSave = await showCustomConfirm(
-    isWarning ? "C?NH B�O S?N LU?NG" : "X�C NH?N GHI D? LI?U",
+    isWarning ? "CẢNH BÁO SẢN LƯỢNG" : "XÁC NHẬN GHI DỮ LIỆU",
     confirmMessage,
     isWarning
   );
@@ -543,7 +543,7 @@ async function saveCustomerData(maKhang) {
     }
   });
 
-  showToast(`? �ang luu d? li?u KH ${maKhang}...`);
+  showToast(`⏳ Đang lưu dữ liệu KH ${maKhang}...`);
   fetch(API_URL, {
     method: "POST",
     headers: { "Content-Type": "text/plain;charset=utf-8" },
@@ -557,13 +557,13 @@ async function saveCustomerData(maKhang) {
   .then(res => res.json())
   .then(res => {
     if (res.status === "success") {
-      showToast("? " + res.message);
+      showToast("✅ " + res.message);
       loadChiSoData();
     } else {
-      showToast("? " + res.message);
+      showToast("❌ " + res.message);
     }
   })
-  .catch(() => showToast("? L?i h? th?ng khi luu!"));
+  .catch(() => showToast("❌ Lỗi hệ thống khi lưu!"));
 }
 
 async function cancelCustomerData(maKhang) {
@@ -571,8 +571,8 @@ async function cancelCustomerData(maKhang) {
   if (!cust) return;
 
   const confirmCancel = await showCustomConfirm(
-    "X�C NH?N H?Y", 
-    `B?n c� ch?c ch?n mu?n H?Y ch? s? d� nh?p c?a kh�ch h�ng ${maKhang}? (Ghi ch� v� tr?ng th�i nh?p CMIS s? gi? nguy�n)`,
+        "XÁC NHẬN HỦY", 
+        `Bạn có chắc chắn muốn HỦY chỉ số đã nhập của khách hàng ${maKhang}? (Ghi chú sẽ giữ nguyên)`,
     true
   );
 
@@ -580,7 +580,7 @@ async function cancelCustomerData(maKhang) {
 
   const rowIndices = cust.items.map(item => item.rowIndex);
 
-  showToast(`? �ang h?y ch? s? KH ${maKhang}...`);
+  showToast(`⏳ Đang hủy chỉ số KH ${maKhang}...`);
   fetch(API_URL, {
     method: "POST",
     headers: { "Content-Type": "text/plain;charset=utf-8" },
@@ -593,13 +593,13 @@ async function cancelCustomerData(maKhang) {
   .then(res => res.json())
   .then(res => {
     if (res.status === "success") {
-      showToast("? " + res.message);
+      showToast("✅ " + res.message);
       loadChiSoData();
     } else {
-      showToast("? " + res.message);
+      showToast("❌ " + res.message);
     }
   })
-  .catch(() => showToast("? L?i h? th?ng!"));
+  .catch(() => showToast("❌ Lỗi hệ thống!"));
 }
 
 function handleLogout() {
