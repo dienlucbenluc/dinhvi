@@ -203,7 +203,7 @@ function renderGroupedList(groups) {
                        onchange="toggleCheckCMIS('${cust.ma_khang}', this.checked)">
                 CMIS
               </label>
-              <span>Sổ:<b>${cust.ma_sogcs || ''}</b>-DS:<b>${cust.danh_so || ''}</b>-Số CTO: <b>${cust.so_cto || ''}</b></span>
+              <span>Sổ: <b>${cust.ma_sogcs || ''}</b> - DS:${cust.danh_so || ''}-Số CTO:${cust.so_cto || ''}</span>
 
             </div>
           </div>
