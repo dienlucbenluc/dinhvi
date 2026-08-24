@@ -506,52 +506,55 @@
             document.getElementById('alertModal').style.display = 'none';
         }
 
-        async function saveNewPassword() {
-            const oldPass = document.getElementById('oldPassInput').value.trim();
-            const newPass = document.getElementById('newPassInput').value.trim();
-            const btnSave = document.getElementById('btnSavePass');
+       async function saveNewPassword() {
+    const oldPass = document.getElementById('oldPassInput').value.trim();
+    const newPass = document.getElementById('newPassInput').value.trim();
+    const btnSave = document.getElementById('btnSavePass');
 
-            if (!oldPass || !newPass) {
-                showAlert("Vui lòng nhập đầy đủ mật khẩu cũ và mật khẩu mới!", "Lỗi Nhập Liệu", false);
-                return;
-            }
+    if (!oldPass || !newPass) {
+        showAlert("Vui lòng nhập đầy đủ mật khẩu cũ và mật khẩu mới!", "Lỗi Nhập Liệu", false);
+        return;
+    }
 
-            if (!currentUser || !currentUser.ma_nvien) {
-                showAlert("Không tìm thấy thông tin đăng nhập. Vui lòng đăng nhập lại!", "Lỗi Phiên Đăng Nhập", false);
-                return;
-            }
+    // Kiểm tra tên người dùng từ session (lấy ten_ndung hoặc ma_nvien)
+    const username = currentUser ? (currentUser.ten_ndung || currentUser.ma_nvien) : null;
 
-            btnSave.disabled = true;
-            btnSave.innerText = "Đang lưu...";
+    if (!currentUser || !username) {
+        showAlert("Không tìm thấy thông tin đăng nhập. Vui lòng đăng nhập lại!", "Lỗi Phiên Đăng Nhập", false);
+        return;
+    }
 
-            try {
-                // Gửi request POST tới Google Apps Script
-                const response = await fetch(API_URL, {
-                    method: "POST",
-                    body: JSON.stringify({
-                        action: "changePassword",
-                        ma_nvien: currentUser.ma_nvien,
-                        oldPass: oldPass,
-                        newPass: newPass
-                    })
-                });
+    btnSave.disabled = true;
+    btnSave.innerText = "Đang lưu...";
 
-                const result = await response.json();
+    try {
+        // Gửi request POST tới Google Apps Script với đúng key mà .gs yêu cầu
+        const response = await fetch(API_URL, {
+            method: "POST",
+            body: JSON.stringify({
+                action: "CHANGE_PASSWORD",     // Viết hoa đúng như file .gs kiểm tra
+                ten_ndung: username,           // Tên tài khoản để tìm trong cột 1 sheet nhan_vien
+                mat_khau_cu: oldPass,          // Khớp với data.mat_khau_cu trong .gs
+                mat_khau_moi: newPass          // Khớp với data.mat_khau_moi trong .gs
+            })
+        });
 
-                if (result.status === "success") {
-                    closePassModal();
-                    showAlert("Mật khẩu của bạn đã được cập nhật thành công vào hệ thống!", "Thành Công", true);
-                } else {
-                    showAlert(result.message || "Đổi mật khẩu thất bại. Vui lòng kiểm tra lại mật khẩu cũ!", "Lỗi Thất Bại", false);
-                }
-            } catch (err) {
-                showAlert("Lỗi kết nối máy chủ. Vui lòng thử lại sau!", "Lỗi Kết Nối", false);
-                console.error(err);
-            } finally {
-                btnSave.disabled = false;
-                btnSave.innerText = "Lưu thay đổi";
-            }
+        const result = await response.json();
+
+        if (result.status === "success") {
+            closePassModal();
+            showAlert("Mật khẩu của bạn đã được cập nhật thành công vào hệ thống!", "Thành Công", true);
+        } else {
+            showAlert(result.message || "Đổi mật khẩu thất bại. Vui lòng kiểm tra lại mật khẩu cũ!", "Lỗi Thất Bại", false);
         }
+    } catch (err) {
+        showAlert("Lỗi kết nối máy chủ. Vui lòng thử lại sau!", "Lỗi Kết Nối", false);
+        console.error(err);
+    } finally {
+        btnSave.disabled = false;
+        btnSave.innerText = "Lưu thay đổi";
+    }
+}
     </script>
 </body>
 </html>
