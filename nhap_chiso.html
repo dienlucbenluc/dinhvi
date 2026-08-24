@@ -92,7 +92,7 @@
 
     #listContainer {
       position: absolute;
-      top: 105px; /* Điều chỉnh khoảng cách top cho danh sách */
+      top: 105px;
       bottom: 0;
       left: 0;
       right: 0;
@@ -187,7 +187,6 @@
     
     .flex-1 { flex: 1; }
 
-    /* Input cho ô Ghi chú */
     .input-ghichu {
       width: 100%;
       border: 1px solid #ced4da;
@@ -494,7 +493,6 @@
       renderGroupedList(groupedData);
     }
 
-    /* Tính toán số liệu thống kê */
     function updateSummaryBar() {
       const keys = Object.keys(groupedData);
       const tongKh = keys.length;
@@ -512,7 +510,6 @@
       document.getElementById("sumChuaGhi").innerText = chuaGhi;
     }
 
-    /* Lọc danh sách KH chưa nhập chiso_moi */
     function filterChuaGhi() {
       document.getElementById("searchInput").value = "";
       const filteredGroups = {};
@@ -577,7 +574,8 @@
               chiso_moi: "",
               ghi_chu: currentGhiChu,
               lat: lat,
-              lng: lng
+              lng: lng,
+              nhap_cmis: 0
             }));
 
             showToast(`⏳ Đang lưu tọa độ GPS...`);
@@ -807,11 +805,9 @@
       checkCancelButtonStatus(maKhang);
     }
 
-    /* Tìm kiếm: Thêm kiểm tra điều kiện dia_chi */
     function filterData() {
       const q = document.getElementById("searchInput").value.toLowerCase().trim();
       
-      // Nếu xóa trống ô tìm kiếm thì bỏ chọn active
       if (!q) {
         document.querySelectorAll('.customer-card').forEach(card => card.classList.remove('active'));
         activeMaKhang = null;
@@ -821,7 +817,7 @@
       let foundMaKhang = null;
 
       Object.keys(groupedData).forEach(makh => {
-        if (foundMaKhang) return; // Lấy kết quả phù hợp đầu tiên
+        if (foundMaKhang) return;
 
         const cust = groupedData[makh];
         const ghiChuInput = document.getElementById(`ghi_chu_${makh}`);
@@ -915,7 +911,8 @@
             sluong_thao: item.sluong_thao,
             sluong_kt: item.sluong_kt,
             lat: loc.lat || item.lat || "",
-            lng: loc.lng || item.lng || ""
+            lng: loc.lng || item.lng || "",
+            nhap_cmis: 0
           });
         }
       });
@@ -949,7 +946,7 @@
 
       const confirmCancel = await showCustomConfirm(
         "XÁC NHẬN HỦY", 
-        `Bạn có chắc chắn muốn HỦY chỉ số đã nhập của khách hàng ${maKhang}? (Ghi chú sẽ giữ nguyên)`,
+        `Bạn có chắc chắn muốn HỦY chỉ số đã nhập của khách hàng ${maKhang}? (Ghi chú và trạng thái nhập CMIS sẽ giữ nguyên)`,
         true
       );
 
