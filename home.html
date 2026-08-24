@@ -453,7 +453,6 @@
             closeAllMenus();
             closeAlertModal();
 
-            // Clear dữ liệu cũ
             document.getElementById('oldPassInput').value = '';
             document.getElementById('newPassInput').value = '';
 
@@ -516,7 +515,6 @@
                 return;
             }
 
-            // Gọi logic đổi mật khẩu ở đây
             closePassModal();
             showAlert("Mật khẩu của bạn đã được cập nhật thành công.");
         }
