@@ -77,12 +77,41 @@ function loadChiSoData() {
     if (res.status === "success") {
       groupAndRender(res.list);
     } else {
-      document.getElementById("listContainer").innerHTML = "<p style='color:red; text-align:center;'>L?i: " + res.message + "</p>";
+      document.getElementById("listContainer").innerHTML = "<p style='color:red; text-align:center;'>Lỗi: " + res.message + "</p>";
     }
   })
   .catch(() => {
     document.getElementById("listContainer").innerHTML = "<p style='color:red; text-align:center;'>Lỗi kết nối máy chủ!</p>";
   });
+}
+
+// Cập nhật âm thầm dữ liệu từ Database mà không làm nhấp nháy UI
+function fetchChiSoDataInBackground() {
+  fetch(API_URL, {
+    method: "POST",
+    headers: { "Content-Type": "text/plain;charset=utf-8" },
+    body: JSON.stringify({ action: "GET_CHISO_DATA", ten_ndung: currentUser.ten_ndung })
+  })
+  .then(res => res.json())
+  .then(res => {
+    if (res.status === "success") {
+      updateLocalGroupedData(res.list);
+    }
+  })
+  .catch(err => console.log("Tải ngầm dữ liệu thất bại:", err));
+}
+
+function updateLocalGroupedData(flatList) {
+  flatList.forEach(item => {
+    const makh = item.ma_khang;
+    if (groupedData[makh]) {
+      const targetItem = groupedData[makh].items.find(i => i.rowIndex === item.rowIndex);
+      if (targetItem) {
+        Object.assign(targetItem, item);
+      }
+    }
+  });
+  updateSummaryBar();
 }
 
 function groupAndRender(flatList) {
@@ -219,14 +248,18 @@ async function getLocation(maKhang) {
         .then(res => {
           if (res.status === "success") {
             showToast("📍 Đã lấy & lưu tọa độ thành công!");
+            
+            // Cập nhật trực tiếp UI và bộ nhớ địa phương
             cust.items.forEach(it => { it.lat = lat; it.lng = lng; });
-
             enableInputsAndSaveBtn(maKhang);
             
             const mapSpan = document.getElementById(`map_link_${maKhang}`);
             if (mapSpan) {
               mapSpan.innerHTML = `<a href="https://www.google.com/maps?q=${lat},${lng}" target="_blank" style="color:#007bff; font-weight:bold; text-decoration:none;">🌏 Xem Google Maps</a>`;
             }
+
+            // Âm thầm đồng bộ lại dữ liệu
+            fetchChiSoDataInBackground();
           } else {
             showToast("❌ Lỗi lưu định vị: " + res.message);
           }
@@ -302,7 +335,7 @@ function renderGroupedList(groups) {
           
           <div class="cust-row-group">
             <span style="width: 100%; font-size: 11.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
-              S?:<b>${cust.ma_sogcs || ''}</b>  DS:<b>${cust.danh_so || ''}</b>  NO:<b>${cust.so_cto || ''}</b>  ÐT:<b>${cust.so_dthoai || ''}</b>
+              Sổ:<b>${cust.ma_sogcs || ''}</b>  DS:<b>${cust.danh_so || ''}</b>  NO:<b>${cust.so_cto || ''}</b>  ĐT:<b>${cust.so_dthoai || ''}</b>
             </span>
           </div>
 
@@ -505,14 +538,10 @@ async function saveCustomerData(maKhang) {
     }
   });
 
-  let confirmMessage = "";
   let isWarning = warningMsgs.length > 0;
-
-  if (isWarning) {
-    confirmMessage = warningMsgs.join("\n") + "\n⚡Kiểm tra chỉ số trên công tơ kỹ lại.\n📂 Bạn vẫn muốn xác nhận ghi dữ liệu?";
-  } else {
-    confirmMessage = "Xác nhận ghi dữ liệu chỉ số và ghi chú?";
-  }
+  let confirmMessage = isWarning 
+    ? warningMsgs.join("\n") + "\n⚡Kiểm tra chỉ số trên công tơ kỹ lại.\n📂 Bạn vẫn muốn xác nhận ghi dữ liệu?" 
+    : "Xác nhận ghi dữ liệu chỉ số và ghi chú?";
 
   const confirmSave = await showCustomConfirm(
     isWarning ? "CẢNH BÁO SẢN LƯỢNG" : "XÁC NHẬN GHI DỮ LIỆU",
@@ -558,7 +587,25 @@ async function saveCustomerData(maKhang) {
   .then(res => {
     if (res.status === "success") {
       showToast("✅ " + res.message);
-      loadChiSoData();
+
+      // Cập nhật ngay tại chỗ trên bộ nhớ địa phương và thẻ UI
+      cust.ghi_chu = newGhiChu;
+      cust.items.forEach(item => {
+        const inputEl = document.getElementById(`cs_moi_${item.rowIndex}`);
+        if (inputEl && inputEl.value !== "") {
+          item.chiso_moi = Number(inputEl.value);
+          item.san_luong = document.getElementById(`sl_val_${item.rowIndex}`).value;
+          item.tong_sluong = document.getElementById(`tong_sl_${item.rowIndex}`).innerText;
+          item.chenh_lech = document.getElementById(`clech_${item.rowIndex}`).innerText;
+          item.tyle_clech = document.getElementById(`tyle_${item.rowIndex}`).innerText;
+        }
+      });
+
+      updateSummaryBar();
+      checkCancelButtonStatus(maKhang);
+
+      // Tải âm thầm dữ liệu về
+      fetchChiSoDataInBackground();
     } else {
       showToast("❌ " + res.message);
     }
@@ -571,8 +618,8 @@ async function cancelCustomerData(maKhang) {
   if (!cust) return;
 
   const confirmCancel = await showCustomConfirm(
-        "XÁC NHẬN HỦY", 
-        `Bạn có chắc chắn muốn HỦY chỉ số đã nhập của khách hàng ${maKhang}? (Ghi chú sẽ giữ nguyên)`,
+    "XÁC NHẬN HỦY", 
+    `Bạn có chắc chắn muốn HỦY chỉ số đã nhập của khách hàng ${maKhang}? (Ghi chú sẽ giữ nguyên)`,
     true
   );
 
@@ -594,7 +641,38 @@ async function cancelCustomerData(maKhang) {
   .then(res => {
     if (res.status === "success") {
       showToast("✅ " + res.message);
-      loadChiSoData();
+
+      // Reset các trường dữ liệu trực tiếp trên màn hình
+      cust.items.forEach(item => {
+        item.chiso_moi = "";
+        item.san_luong = "-";
+        item.tong_sluong = "-";
+        item.chenh_lech = "-";
+        item.tyle_clech = "-";
+
+        const csMoiInput = document.getElementById(`cs_moi_${item.rowIndex}`);
+        if (csMoiInput) csMoiInput.value = "";
+
+        const slHiddenEl = document.getElementById(`sl_val_${item.rowIndex}`);
+        if (slHiddenEl) slHiddenEl.value = "-";
+
+        const tongSlCell = document.getElementById(`tong_sl_${item.rowIndex}`);
+        if (tongSlCell) tongSlCell.innerText = "-";
+
+        const clechCell = document.getElementById(`clech_${item.rowIndex}`);
+        if (clechCell) clechCell.innerText = "-";
+
+        const tyleCell = document.getElementById(`tyle_${item.rowIndex}`);
+        if (tyleCell) tyleCell.innerText = "-";
+      });
+
+      const btnCancel = document.getElementById(`btn_cancel_${maKhang}`);
+      if (btnCancel) btnCancel.disabled = true;
+
+      updateSummaryBar();
+
+      // Tải âm thầm dữ liệu về
+      fetchChiSoDataInBackground();
     } else {
       showToast("❌ " + res.message);
     }
