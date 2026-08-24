@@ -201,8 +201,10 @@ function renderGroupedList(groups) {
       const hasLocation = Boolean(firstItem.lat && firstItem.lng);
       
       let mapLinkHtml = `<span id="map_link_${cust.ma_khang}" style="color:#dc3545; font-weight:bold;">🌏 Chưa có tọa độ</span>`;
+      let btnLocationText = "LẤY ĐỊNH VỊ";
       if (hasLocation) {
         mapLinkHtml = `<span id="map_link_${cust.ma_khang}"><a href="https://www.google.com/maps?q=${firstItem.lat},${firstItem.lng}" target="_blank" style="color:#007bff; font-weight:bold; text-decoration:none;">🌏 Xem Google Maps</a></span>`;
+        btnLocationText = "SỬA ĐỊNH VỊ";
       }
 
       const alreadyHasCS = cust.items.some(i => i.chiso_moi !== "" && i.chiso_moi !== undefined && i.chiso_moi !== null);
