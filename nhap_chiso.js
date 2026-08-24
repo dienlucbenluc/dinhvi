@@ -67,6 +67,7 @@ function showCustomConfirm(title, message, isDanger = false) {
 }
 
 function loadChiSoData() {
+  document.getElementById("listContainer").innerHTML = "<p style='text-align:center; padding-top:20px;'>⏳ Đang tải dữ liệu...</p>";
   fetch(API_URL, {
     method: "POST",
     headers: { "Content-Type": "text/plain;charset=utf-8" },
@@ -83,34 +84,6 @@ function loadChiSoData() {
   .catch(() => {
     document.getElementById("listContainer").innerHTML = "<p style='color:red; text-align:center;'>Lỗi kết nối máy chủ!</p>";
   });
-}
-
-function fetchChiSoDataInBackground() {
-  fetch(API_URL, {
-    method: "POST",
-    headers: { "Content-Type": "text/plain;charset=utf-8" },
-    body: JSON.stringify({ action: "GET_CHISO_DATA", ten_ndung: currentUser.ten_ndung })
-  })
-  .then(res => res.json())
-  .then(res => {
-    if (res.status === "success") {
-      updateLocalGroupedData(res.list);
-    }
-  })
-  .catch(err => console.log("Tải ngầm dữ liệu thất bại:", err));
-}
-
-function updateLocalGroupedData(flatList) {
-  flatList.forEach(item => {
-    const makh = item.ma_khang;
-    if (groupedData[makh]) {
-      const targetItem = groupedData[makh].items.find(i => i.rowIndex === item.rowIndex);
-      if (targetItem) {
-        Object.assign(targetItem, item);
-      }
-    }
-  });
-  updateSummaryBar();
 }
 
 function groupAndRender(flatList) {
@@ -181,7 +154,7 @@ function filterChuaGhi() {
 
 function selectCustomer(maKhang) {
   activeMaKhang = maKhang;
-  document.querySelectorAll('.customer-card').forEach(card => card.classList.remove('active'));
+  document.querySelectorAll('.customer-card.active').forEach(card => card.classList.remove('active'));
   const targetCard = document.getElementById(`card_${maKhang}`);
   if (targetCard) targetCard.classList.add('active');
 }
@@ -198,6 +171,146 @@ function updateRowDetail(maKhang, bcs, sanLuong, sluongThao, sluongKt) {
       <span>SL KT: <b>${sluongKt}</b></span>
     `;
   }
+}
+
+// TỐI ƯU HÀM RENDER DÙNG CHUNK RENDERING
+function renderGroupedList(groups) {
+  const container = document.getElementById("listContainer");
+  const keys = Object.keys(groups);
+
+  if (keys.length === 0) {
+    container.innerHTML = "<p style='text-align:center; padding-top:20px;'>Không có dữ liệu khách hàng.</p>";
+    return;
+  }
+
+  container.innerHTML = "";
+  
+  const CHUNK_SIZE = 30; // Render trước 30 khách hàng để hiện ngay màn hình
+  let currentIndex = 0;
+
+  function renderChunk() {
+    const nextKeys = keys.slice(currentIndex, currentIndex + CHUNK_SIZE);
+    if (nextKeys.length === 0) return;
+
+    let html = "";
+    nextKeys.forEach(makh => {
+      const cust = groups[makh];
+      const isActive = (makh === activeMaKhang) ? "active" : "";
+      const firstItem = cust.items[0] || {};
+      const cotTramText = [cust.so_cot, cust.ten_tram].filter(Boolean).join(" - ");
+      const hasLocation = Boolean(firstItem.lat && firstItem.lng);
+      
+      let mapLinkHtml = `<span id="map_link_${cust.ma_khang}" style="color:#dc3545; font-weight:bold;">🌏 Chưa có tọa độ</span>`;
+      if (hasLocation) {
+        mapLinkHtml = `<span id="map_link_${cust.ma_khang}"><a href="https://www.google.com/maps?q=${firstItem.lat},${firstItem.lng}" target="_blank" style="color:#007bff; font-weight:bold; text-decoration:none;">🌏 Xem Google Maps</a></span>`;
+      }
+
+      const alreadyHasCS = cust.items.some(i => i.chiso_moi !== "" && i.chiso_moi !== undefined && i.chiso_moi !== null);
+
+      html += `
+        <div class="customer-card ${isActive}" id="card_${cust.ma_khang}" onclick="selectCustomer('${cust.ma_khang}')">
+          <div class="cust-header">
+            <div class="cust-title">${cust.ma_khang} - ${cust.ten_khang}</div>
+            <div class="cust-address">Địa chỉ: ${cust.dia_chi || ''}</div>
+            
+            <div class="cust-row-group">
+              <span style="width: 100%; font-size: 11.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                Sổ:<b>${cust.ma_sogcs || ''}</b>  DS:<b>${cust.danh_so || ''}</b>  NO:<b>${cust.so_cto || ''}</b>  ĐT:<b>${cust.so_dthoai || ''}</b>
+              </span>
+            </div>
+
+            <div class="cust-row-group">
+              <span class="flex-1">Cột-Trạm: <b>${cotTramText || ''}</b></span>
+            </div>
+
+            <div class="cust-row-group" style="margin-top: 3px;">
+              <span style="padding-left:0; color:#000; min-width:55px;">Ghi chú:</span>
+              <input type="text" 
+                     class="input-ghichu" 
+                     id="ghi_chu_${cust.ma_khang}" 
+                     value="${cust.ghi_chu || ''}" 
+                     placeholder="Nhập, sửa ghi chú nếu có..." 
+                     style="font-style: italic; font-weight: normal;"
+                     onclick="event.stopPropagation(); selectCustomer('${cust.ma_khang}');"
+                     onchange="groupedData['${cust.ma_khang}'].ghi_chu = this.value;">
+            </div>
+
+            <div class="cust-dynamic-info-v2" id="detail_info_${cust.ma_khang}">
+              <span>${mapLinkHtml}</span>
+              <span>SL Tháo(<b>${firstItem.bcs}</b>): <b>${firstItem.sluong_thao || 0}</b></span>
+              <span>SL KT: <b>${firstItem.sluong_kt || 0}</b></span>
+            </div>
+          </div>
+
+          <div class="table-responsive">
+            <table class="chiso-table">
+              <thead>
+                <tr>
+                  <th style="width: 12%;">BCS</th>
+                  <th style="width: 18%;">CS cũ</th>
+                  <th style="width: 26%;">CS mới</th>
+                  <th style="width: 18%;">Tổng SL</th>
+                  <th style="width: 13%;">C.Lệch</th>
+                  <th style="width: 13%;">Tỷ lệ</th>
+                </tr>
+              </thead>
+              <tbody>
+      `;
+
+      cust.items.forEach(item => {
+        const csMoiVal = (item.chiso_moi !== "" && item.chiso_moi !== undefined && item.chiso_moi !== null) ? item.chiso_moi : "";
+        const isDisabled = !hasLocation ? "disabled" : "";
+
+        html += `
+          <tr id="row_${item.rowIndex}" onclick="event.stopPropagation(); updateRowDetail('${cust.ma_khang}', '${item.bcs}', document.getElementById('sl_val_${item.rowIndex}').value, ${item.sluong_thao}, ${item.sluong_kt});">
+            <td class="text-center" style="padding: 4px 2px;"><span class="bcs-badge">${item.bcs}</span></td>
+            <td class="val-calc-large text-right">${item.chiso_cu}</td>
+            <td class="td-input-container">
+              <input type="number" 
+                     class="input-cs-moi" 
+                     id="cs_moi_${item.rowIndex}" 
+                     value="${csMoiVal}" ${isDisabled}
+                     onclick="event.stopPropagation(); updateRowDetail('${cust.ma_khang}', '${item.bcs}', document.getElementById('sl_val_${item.rowIndex}').value, ${item.sluong_thao}, ${item.sluong_kt});"
+                     oninput="calculateRow('${cust.ma_khang}', '${item.bcs}', ${item.rowIndex}, ${item.chiso_cu}, ${item.hsn}, ${item.sluong_thao}, ${item.sluong_kt})">
+              <input type="hidden" id="sl_val_${item.rowIndex}" value="${item.san_luong !== "" && item.san_luong !== undefined ? item.san_luong : '-'}">
+            </td>
+            <td id="tong_sl_${item.rowIndex}" class="val-calc-large text-right">${item.tong_sluong !== "" && item.tong_sluong !== undefined ? item.tong_sluong : '-'}</td>
+            <td id="clech_${item.rowIndex}" class="val-highlight text-right">${item.chenh_lech !== "" && item.chenh_lech !== undefined ? item.chenh_lech : '-'}</td>
+            <td id="tyle_${item.rowIndex}" class="val-highlight text-right">${item.tyle_clech !== "" && item.tyle_clech !== undefined ? item.tyle_clech : '-'}</td>
+          </tr>
+        `;
+      });
+
+      const saveDisabledAttr = !hasLocation ? "disabled" : "";
+      const cancelDisabledAttr = !alreadyHasCS ? "disabled" : "";
+
+      html += `
+              </tbody>
+            </table>
+          </div>
+
+          <div class="card-btn-group">
+            <button class="btn-card btn-card-location" onclick="event.stopPropagation(); getLocation('${cust.ma_khang}')">ĐỊNH VỊ</button>
+            <button class="btn-card btn-card-save" id="btn_save_${cust.ma_khang}" ${saveDisabledAttr} onclick="event.stopPropagation(); saveCustomerData('${cust.ma_khang}')">LƯU</button>
+            <button class="btn-card btn-card-cancel" id="btn_cancel_${cust.ma_khang}" ${cancelDisabledAttr} onclick="event.stopPropagation(); cancelCustomerData('${cust.ma_khang}')">HỦY</button>
+          </div>
+        </div>
+      `;
+    });
+
+    const tempDiv = document.createElement("div");
+    tempDiv.innerHTML = html;
+    while (tempDiv.firstChild) {
+      container.appendChild(tempDiv.firstChild);
+    }
+
+    currentIndex += CHUNK_SIZE;
+    if (currentIndex < keys.length) {
+      setTimeout(renderChunk, 0); // Đưa công việc tiếp theo vào Event Loop để không khóa UI
+    }
+  }
+
+  renderChunk();
 }
 
 async function getLocation(maKhang) {
@@ -255,8 +368,6 @@ async function getLocation(maKhang) {
             if (mapSpan) {
               mapSpan.innerHTML = `<a href="https://www.google.com/maps?q=${lat},${lng}" target="_blank" style="color:#007bff; font-weight:bold; text-decoration:none;">🌏 Xem Google Maps</a>`;
             }
-
-            fetchChiSoDataInBackground();
           } else {
             showToast("❌ Lỗi lưu định vị: " + res.message);
           }
@@ -297,125 +408,6 @@ function checkCancelButtonStatus(maKhang) {
   if (btnCancel) {
     btnCancel.disabled = !hasNewCS;
   }
-}
-
-function renderGroupedList(groups) {
-  const container = document.getElementById("listContainer");
-  const keys = Object.keys(groups);
-
-  if (keys.length === 0) {
-    container.innerHTML = "<p style='text-align:center; padding-top:20px;'>Không có dữ liệu khách hàng.</p>";
-    return;
-  }
-
-  let html = "";
-  keys.forEach(makh => {
-    const cust = groups[makh];
-    const isActive = (makh === activeMaKhang) ? "active" : "";
-    const firstItem = cust.items[0] || {};
-    const cotTramText = [cust.so_cot, cust.ten_tram].filter(Boolean).join(" - ");
-
-    const hasLocation = Boolean(firstItem.lat && firstItem.lng);
-    
-    let mapLinkHtml = `<span id="map_link_${cust.ma_khang}" style="color:#dc3545; font-weight:bold;">🌏 Chưa có tọa độ</span>`;
-    if (hasLocation) {
-      mapLinkHtml = `<span id="map_link_${cust.ma_khang}"><a href="https://www.google.com/maps?q=${firstItem.lat},${firstItem.lng}" target="_blank" style="color:#007bff; font-weight:bold; text-decoration:none;">🌏 Xem Google Maps</a></span>`;
-    }
-
-    const alreadyHasCS = cust.items.some(i => i.chiso_moi !== "" && i.chiso_moi !== undefined && i.chiso_moi !== null);
-
-    html += `
-      <div class="customer-card ${isActive}" id="card_${cust.ma_khang}" onclick="selectCustomer('${cust.ma_khang}')">
-        <div class="cust-header">
-          <div class="cust-title">${cust.ma_khang} - ${cust.ten_khang}</div>
-          <div class="cust-address">Địa chỉ: ${cust.dia_chi || ''}</div>
-          
-          <div class="cust-row-group">
-            <span style="width: 100%; font-size: 11.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
-              Sổ:<b>${cust.ma_sogcs || ''}</b>  DS:<b>${cust.danh_so || ''}</b>  NO:<b>${cust.so_cto || ''}</b>  ĐT:<b>${cust.so_dthoai || ''}</b>
-            </span>
-          </div>
-
-          <div class="cust-row-group">
-            <span class="flex-1">Cột-Trạm: <b>${cotTramText || ''}</b></span>
-          </div>
-
-          <div class="cust-row-group" style="margin-top: 3px;">
-            <span style="padding-left:0; color:#000; min-width:55px;">Ghi chú:</span>
-            <input type="text" 
-                   class="input-ghichu" 
-                   id="ghi_chu_${cust.ma_khang}" 
-                   value="${cust.ghi_chu || ''}" 
-                   placeholder="Nhập, sửa ghi chú nếu có..." 
-                   style="font-style: normal; font-weight: bold;"
-                   onclick="event.stopPropagation(); selectCustomer('${cust.ma_khang}');"
-                   onchange="groupedData['${cust.ma_khang}'].ghi_chu = this.value;">
-          </div>
-
-          <div class="cust-dynamic-info-v2" id="detail_info_${cust.ma_khang}">
-            <span>${mapLinkHtml}</span>
-            <span>SL Tháo(<b>${firstItem.bcs}</b>): <b>${firstItem.sluong_thao || 0}</b></span>
-            <span>SL KT: <b>${firstItem.sluong_kt || 0}</b></span>
-          </div>
-        </div>
-
-        <div class="table-responsive">
-          <table class="chiso-table">
-            <thead>
-              <tr>
-                    <th style="width: 12%;">BCS</th>
-                    <th style="width: 18%;">CS cũ</th>
-                    <th style="width: 26%;">CS mới</th>
-                    <th style="width: 18%;">Tổng SL</th>
-                    <th style="width: 13%;">C.Lệch</th>
-                    <th style="width: 13%;">Tỷ lệ</th>
-              </tr>
-            </thead>
-            <tbody>
-    `;
-
-    cust.items.forEach(item => {
-      const csMoiVal = (item.chiso_moi !== "" && item.chiso_moi !== undefined && item.chiso_moi !== null) ? item.chiso_moi : "";
-      const isDisabled = !hasLocation ? "disabled" : "";
-
-      html += `
-        <tr id="row_${item.rowIndex}" onclick="event.stopPropagation(); updateRowDetail('${cust.ma_khang}', '${item.bcs}', document.getElementById('sl_val_${item.rowIndex}').value, ${item.sluong_thao}, ${item.sluong_kt});">
-          <td class="text-center" style="padding: 4px 2px;"><span class="bcs-badge">${item.bcs}</span></td>
-          <td class="val-calc-large text-right">${item.chiso_cu}</td>
-          <td class="td-input-container">
-            <input type="number" 
-                   class="input-cs-moi" 
-                   id="cs_moi_${item.rowIndex}" 
-                   value="${csMoiVal}" ${isDisabled}
-                   onclick="event.stopPropagation(); updateRowDetail('${cust.ma_khang}', '${item.bcs}', document.getElementById('sl_val_${item.rowIndex}').value, ${item.sluong_thao}, ${item.sluong_kt});"
-                   oninput="calculateRow('${cust.ma_khang}', '${item.bcs}', ${item.rowIndex}, ${item.chiso_cu}, ${item.hsn}, ${item.sluong_thao}, ${item.sluong_kt})">
-            <input type="hidden" id="sl_val_${item.rowIndex}" value="${item.san_luong !== "" && item.san_luong !== undefined ? item.san_luong : '-'}">
-          </td>
-          <td id="tong_sl_${item.rowIndex}" class="val-calc-large text-right">${item.tong_sluong !== "" && item.tong_sluong !== undefined ? item.tong_sluong : '-'}</td>
-          <td id="clech_${item.rowIndex}" class="val-highlight text-right">${item.chenh_lech !== "" && item.chenh_lech !== undefined ? item.chenh_lech : '-'}</td>
-          <td id="tyle_${item.rowIndex}" class="val-highlight text-right">${item.tyle_clech !== "" && item.tyle_clech !== undefined ? item.tyle_clech : '-'}</td>
-        </tr>
-      `;
-    });
-
-    const saveDisabledAttr = !hasLocation ? "disabled" : "";
-    const cancelDisabledAttr = !alreadyHasCS ? "disabled" : "";
-
-    html += `
-            </tbody>
-          </table>
-        </div>
-
-        <div class="card-btn-group">
-          <button class="btn-card btn-card-location" onclick="event.stopPropagation(); getLocation('${cust.ma_khang}')">ĐỊNH VỊ</button>
-          <button class="btn-card btn-card-save" id="btn_save_${cust.ma_khang}" ${saveDisabledAttr} onclick="event.stopPropagation(); saveCustomerData('${cust.ma_khang}')">LƯU</button>
-          <button class="btn-card btn-card-cancel" id="btn_cancel_${cust.ma_khang}" ${cancelDisabledAttr} onclick="event.stopPropagation(); cancelCustomerData('${cust.ma_khang}')">HỦY</button>
-        </div>
-      </div>
-    `;
-  });
-
-  container.innerHTML = html;
 }
 
 function calculateRow(maKhang, bcs, rowIndex, csCu, hsn, sluongThao, sluongKt) {
@@ -466,7 +458,7 @@ function filterData() {
   const q = document.getElementById("searchInput").value.toLowerCase().trim();
   
   if (!q) {
-    document.querySelectorAll('.customer-card').forEach(card => card.classList.remove('active'));
+    document.querySelectorAll('.customer-card.active').forEach(card => card.classList.remove('active'));
     activeMaKhang = null;
     return;
   }
@@ -600,8 +592,6 @@ async function saveCustomerData(maKhang) {
 
       updateSummaryBar();
       checkCancelButtonStatus(maKhang);
-
-      fetchChiSoDataInBackground();
     } else {
       showToast("❌ " + res.message);
     }
@@ -665,8 +655,6 @@ async function cancelCustomerData(maKhang) {
       if (btnCancel) btnCancel.disabled = true;
 
       updateSummaryBar();
-
-      fetchChiSoDataInBackground();
     } else {
       showToast("❌ " + res.message);
     }
