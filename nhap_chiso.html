@@ -341,7 +341,7 @@
       <div class="user-info" id="userDisplay">👷 ...</div>
     </div>
     <div class="search-box">
-      <input type="text" id="searchInput" placeholder="🔍 Tìm Mã KH, Tên KH, Cột, Trạm, Sổ, SĐT, Ghi chú..." oninput="filterData()">
+      <input type="text" id="searchInput" placeholder="🔍 Tìm Mã KH, Tên KH, Địa chỉ, Cột, Trạm, Sổ, SĐT, Ghi chú..." oninput="filterData()">
     </div>
     
     <div class="summary-bar">
@@ -807,7 +807,7 @@
       checkCancelButtonStatus(maKhang);
     }
 
-    /* Tìm kiếm: Giữ nguyên toàn bộ danh sách, cuộn tới và chọn khách hàng đầu tiên khớp với từ khóa */
+    /* Tìm kiếm: Thêm kiểm tra điều kiện dia_chi */
     function filterData() {
       const q = document.getElementById("searchInput").value.toLowerCase().trim();
       
@@ -828,14 +828,15 @@
         const currentGhiChu = ghiChuInput ? ghiChuInput.value : (cust.ghi_chu || "");
 
         const match = 
-          String(cust.ma_khang).toLowerCase().includes(q) ||
-          String(cust.ten_khang).toLowerCase().includes(q) ||
-          String(cust.so_cot).toLowerCase().includes(q) ||
-          String(cust.ten_tram).toLowerCase().includes(q) ||
-          String(cust.so_cto).toLowerCase().includes(q) ||
-          String(cust.ma_sogcs).toLowerCase().includes(q) ||
-          String(cust.danh_so).toLowerCase().includes(q) ||
-          String(cust.so_dthoai).toLowerCase().includes(q) ||
+          String(cust.ma_khang || "").toLowerCase().includes(q) ||
+          String(cust.ten_khang || "").toLowerCase().includes(q) ||
+          String(cust.dia_chi || "").toLowerCase().includes(q) ||
+          String(cust.so_cot || "").toLowerCase().includes(q) ||
+          String(cust.ten_tram || "").toLowerCase().includes(q) ||
+          String(cust.so_cto || "").toLowerCase().includes(q) ||
+          String(cust.ma_sogcs || "").toLowerCase().includes(q) ||
+          String(cust.danh_so || "").toLowerCase().includes(q) ||
+          String(cust.so_dthoai || "").toLowerCase().includes(q) ||
           String(currentGhiChu).toLowerCase().includes(q);
 
         if (match) {
