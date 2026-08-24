@@ -388,7 +388,7 @@
             </div>
             <div class="modal-buttons">
                 <button class="btn-modal-cancel" onclick="closePassModal()">Hủy</button>
-                <button class="btn-modal-confirm" onclick="saveNewPassword()">Lưu thay đổi</button>
+                <button class="btn-modal-confirm" id="btnSavePass" onclick="saveNewPassword()">Lưu thay đổi</button>
             </div>
         </div>
     </div>
@@ -422,7 +422,7 @@
             currentUser = JSON.parse(sessionStr);
             const userDisplay = document.getElementById("currentUserDisplay");
             if (userDisplay) {
-                userDisplay.innerText = `👷 ${currentUser.ten_nvien}`;
+                userDisplay.innerText = `👷 ${currentUser.ten_nvien || currentUser.ma_nvien}`;
             }
 
             window.addEventListener('click', function(e) {
@@ -506,17 +506,51 @@
             document.getElementById('alertModal').style.display = 'none';
         }
 
-        function saveNewPassword() {
+        async function saveNewPassword() {
             const oldPass = document.getElementById('oldPassInput').value.trim();
             const newPass = document.getElementById('newPassInput').value.trim();
+            const btnSave = document.getElementById('btnSavePass');
 
             if (!oldPass || !newPass) {
-                showAlert("Vui lòng nhập đầy đủ thông tin mật khẩu!", "Lỗi Nhập Liệu", false);
+                showAlert("Vui lòng nhập đầy đủ mật khẩu cũ và mật khẩu mới!", "Lỗi Nhập Liệu", false);
                 return;
             }
 
-            closePassModal();
-            showAlert("Mật khẩu của bạn đã được cập nhật thành công.");
+            if (!currentUser || !currentUser.ma_nvien) {
+                showAlert("Không tìm thấy thông tin đăng nhập. Vui lòng đăng nhập lại!", "Lỗi Phiên Đăng Nhập", false);
+                return;
+            }
+
+            btnSave.disabled = true;
+            btnSave.innerText = "Đang lưu...";
+
+            try {
+                // Gửi request POST tới Google Apps Script
+                const response = await fetch(API_URL, {
+                    method: "POST",
+                    body: JSON.stringify({
+                        action: "changePassword",
+                        ma_nvien: currentUser.ma_nvien,
+                        oldPass: oldPass,
+                        newPass: newPass
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.status === "success") {
+                    closePassModal();
+                    showAlert("Mật khẩu của bạn đã được cập nhật thành công vào hệ thống!", "Thành Công", true);
+                } else {
+                    showAlert(result.message || "Đổi mật khẩu thất bại. Vui lòng kiểm tra lại mật khẩu cũ!", "Lỗi Thất Bại", false);
+                }
+            } catch (err) {
+                showAlert("Lỗi kết nối máy chủ. Vui lòng thử lại sau!", "Lỗi Kết Nối", false);
+                console.error(err);
+            } finally {
+                btnSave.disabled = false;
+                btnSave.innerText = "Lưu thay đổi";
+            }
         }
     </script>
 </body>
