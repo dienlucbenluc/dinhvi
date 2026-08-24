@@ -294,7 +294,7 @@
                         <div class="menu-item" onclick="openDevModal()">🛠️ Lập trình phần mềm</div>
                         <div class="menu-item" onclick="window.location.href='dinh_vi.html'">🌏 Định vị công tác</div>
                         <div class="menu-item" onclick="window.location.href='nhap_chiso.html'">📝 Ghi chỉ số</div>
-                        <div class="menu-item" onclick="window.location.href='xem_chiso.html'">📊 Nhập CMIS (xem chỉ số)</div>
+                        <div class="menu-item" onclick="openAdminAuthModal()">📊 Nhập CMIS (xem chỉ số)</div>
                         <div class="menu-item" onclick="openPassModal()">🔑 Đổi mật khẩu</div>
                         <div class="menu-item danger" onclick="handleLogout()">🛑 Thoát ứng dụng</div>
                     </div>
@@ -327,7 +327,7 @@
                     </div>
                 </div>
 
-                <div class="feature-card" onclick="window.location.href='xem_chiso.html'">
+                <div class="feature-card" onclick="openAdminAuthModal()">
                     <div class="feature-icon icon-cyan">📊</div>
                     <div>
                         <div class="feature-title">Nhập CMIS</div>
@@ -358,6 +358,21 @@
                         <div class="feature-desc">Đăng xuất tài khoản</div>
                     </div>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Xác Nhận Quyền Admin -->
+    <div id="adminAuthModal" class="modal-overlay">
+        <div class="modal-box">
+            <div class="modal-title" style="color: var(--primary-color);">Xác Nhận Quyền Admin</div>
+            <div class="form-group">
+                <label>Nhập mật khẩu Admin để truy cập</label>
+                <input type="password" id="adminPasswordInput" placeholder="••••••••" onkeyup="if(event.key === 'Enter') verifyAdminPassword()">
+            </div>
+            <div class="modal-buttons">
+                <button class="btn-modal-cancel" onclick="closeAdminAuthModal()">Hủy</button>
+                <button class="btn-modal-confirm" onclick="verifyAdminPassword()">Xác nhận</button>
             </div>
         </div>
     </div>
@@ -429,6 +444,9 @@
     <script>
         const API_URL = "https://script.google.com/macros/s/AKfycbxJZHenN4zoxZR7wOk4SiBnUx071LKLdAWOdJLToJPScSdBIj8Qn_pOeTDAABlN_UAF/exec"; 
 
+        // Cấu hình mật khẩu Admin tại đây
+        const ADMIN_PASSWORD = "123456";
+
         let currentUser = null;
 
         document.addEventListener("DOMContentLoaded", () => {
@@ -457,6 +475,30 @@
         function toggleMenu() {
             const dropdown = document.getElementById("menuDropdown");
             if (dropdown) dropdown.classList.toggle("show");
+        }
+
+        /* Logic Modal Admin Auth */
+        function openAdminAuthModal() {
+            closeAllMenus();
+            document.getElementById('adminPasswordInput').value = '';
+            document.getElementById('adminAuthModal').style.display = 'flex';
+            setTimeout(() => {
+                document.getElementById('adminPasswordInput').focus();
+            }, 100);
+        }
+
+        function closeAdminAuthModal() {
+            document.getElementById('adminAuthModal').style.display = 'none';
+        }
+
+        function verifyAdminPassword() {
+            const passInput = document.getElementById('adminPasswordInput').value.trim();
+            if (passInput === ADMIN_PASSWORD) {
+                closeAdminAuthModal();
+                window.location.href = "xem_chiso.html";
+            } else {
+                showAlert("Mật khẩu Admin không đúng. Vui lòng kiểm tra lại!", "Truy Cập Bị Từ Chối", false);
+            }
         }
 
         function openDevModal() {
