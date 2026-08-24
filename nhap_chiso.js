@@ -1,4 +1,4 @@
-const SPREADSHEET_ID = "1YjitfjIz9V7Uiprc989O5Z2155ARp36toiUQR0TKo_Q";
+const API_URL = "https://script.google.com/macros/s/AKfycbxJZHenN4zoxZR7wOk4SiBnUx071LKLdAWOdJLToJPScSdBIj8Qn_pOeTDAABlN_UAF/exec"; 
 
 function doPost(e) {
   try {
