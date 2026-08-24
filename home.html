@@ -159,6 +159,24 @@
     </div>
 
     <script>
+        const API_URL = "https://script.google.com/macros/s/AKfycbxJZHenN4zoxZR7wOk4SiBnUx071LKLdAWOdJLToJPScSdBIj8Qn_pOeTDAABlN_UAF/exec"; 
+
+let allLocations = [];
+let currentId = null;
+let currentUser = null;
+
+document.addEventListener("DOMContentLoaded", () => {
+  const sessionStr = localStorage.getItem("cmis_user_session");
+  if (!sessionStr) {
+    window.location.href = "login.html";
+    return;
+  }
+  
+  currentUser = JSON.parse(sessionStr);
+  const userDisplay = document.getElementById("currentUserDisplay");
+  if (userDisplay) {
+    userDisplay.innerText = `ðŸ‘· ${currentUser.ten_nvien}`;
+  }
         function openDevModal() {
             const menu = document.getElementById('menuDropdown');
             if (menu) menu.classList.remove('show');
