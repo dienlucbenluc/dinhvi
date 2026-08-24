@@ -468,6 +468,19 @@
             alert("Đã cập nhật mật khẩu!");
             closePassModal();
         }
+        
+<div id="alertModal" class="modal-overlay">
+    <div class="modal-box" style="text-align: center;">
+        <div style="font-size: 40px; margin-bottom: 8px;">✅</div>
+        <div class="modal-title" style="color: #36b37e; margin-bottom: 8px;">Thành Công</div>
+        <p id="alertMessage" style="font-size: 14px; color: var(--text-sub); line-height: 1.5; margin-bottom: 16px;">
+            Mật khẩu của bạn đã được cập nhật thành công!
+        </p>
+        <div class="modal-buttons">
+            <button class="btn-modal-confirm" onclick="closeAlertModal()" style="width: 100%;">Xác nhận</button>
+        </div>
+    </div>
+</div>
     </script>
 </body>
 </html>
