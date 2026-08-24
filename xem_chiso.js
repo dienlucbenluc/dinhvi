@@ -196,14 +196,15 @@ function renderGroupedList(groups) {
             
             <!-- Yêu cầu 1: dòng 2 ma_sogcs - danh_so - so_cto - check (đã nhập CMIS) -->
             <div class="cust-row-group">
-              <span>Sổ: <b>${cust.ma_sogcs || ''}</b> - DS: <b>${cust.danh_so || ''}</b> - Số CTO: <b>${cust.so_cto || ''}</b></span>
-              <label class="chk-cmis-label" onclick="event.stopPropagation();">
+                          <label class="chk-cmis-label" onclick="event.stopPropagation();">
                 <input type="checkbox" 
                        id="chk_cmis_${cust.ma_khang}" 
                        ${isChecked ? 'checked' : ''} 
                        onchange="toggleCheckCMIS('${cust.ma_khang}', this.checked)">
-                (đã nhập CMIS)
+                CMIS
               </label>
+              <span>Sổ:<b>${cust.ma_sogcs || ''}</b>-DS:<b>${cust.danh_so || ''}</b>-Số CTO: <b>${cust.so_cto || ''}</b></span>
+
             </div>
           </div>
 
