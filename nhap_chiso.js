@@ -355,12 +355,15 @@ function getChiSoData(data) {
   if (!sheet || sheet.getLastRow() < 2) return responseJSON({ status: "success", list: [] });
 
   const currentUser = String(data.ten_ndung || "").trim().toLowerCase();
-  const values = sheet.getRange(2, 1, sheet.getLastRow() - 1, 30).getValues();
+  // Lấy toàn bộ giá trị hiển thị thô (getDisplayValues) để KHÔNG TỐN THỜI GIAN parse Date/Number
+  const displayValues = sheet.getRange(2, 1, sheet.getLastRow() - 1, 30).getDisplayValues();
 
   const list = [];
-  for (let i = 0; i < values.length; i++) {
-    const row = values[i];
-    const tenNdungInRow = String(row[8] || "").trim().toLowerCase();
+  const len = displayValues.length;
+
+  for (let i = 0; i < len; i++) {
+    const row = displayValues[i];
+    const tenNdungInRow = row[8].trim().toLowerCase();
 
     if (tenNdungInRow === currentUser) {
       list.push({
@@ -375,42 +378,28 @@ function getChiSoData(data) {
         so_cto: row[7],
         ten_ndung: row[8],
         ten_nvien: row[9],
-        hsn: Number(row[10]) || 1,
+        hsn: row[10] !== "" ? Number(row[10]) : 1,
         bcs: row[11],
-        chiso_cu: Number(row[12]) || 0,
+        chiso_cu: row[12] !== "" ? Number(row[12]) : 0,
         chiso_moi: row[13] !== "" ? Number(row[13]) : "",
         san_luong: row[14],
-        sluong_thao: Number(row[15]) || 0,
+        sluong_thao: row[15] !== "" ? Number(row[15]) : 0,
         tong_sluong: row[16],
-        sluong_kt: Number(row[17]) || 0,
+        sluong_kt: row[17] !== "" ? Number(row[17]) : 0,
         chenh_lech: row[18],
         tyle_clech: row[19],
-        ngay_nhap: row[23] ? Utilities.formatDate(new Date(row[23]), "GMT+7", "dd/MM/yyyy HH:mm:ss") : "",
+        ngay_nhap: row[23] || "", // Lấy trực tiếp chuỗi hiển thị, bỏ Utilities.formatDate
         nguoi_nhap: row[24],
         lat: row[25],
         lng: row[26],
         so_dthoai: row[27] || "",
         ghi_chu: row[28] || "",
-        nhap_cmis: row[29] !== undefined ? row[29] : 0
+        nhap_cmis: row[29] !== "" ? row[29] : 0
       });
     }
   }
 
-  list.sort((a, b) => {
-    const sogcsA = String(a.ma_sogcs || "").toUpperCase();
-    const sogcsB = String(b.ma_sogcs || "").toUpperCase();
-
-    if (sogcsA < sogcsB) return -1;
-    if (sogcsA > sogcsB) return 1;
-
-    const dsA = isNaN(a.danh_so) ? String(a.danh_so || "") : Number(a.danh_so);
-    const dsB = isNaN(b.danh_so) ? String(b.danh_so || "") : Number(b.danh_so);
-
-    if (dsA < dsB) return -1;
-    if (dsA > dsB) return 1;
-    return 0;
-  });
-
+  // Bỏ logic list.sort() ở Apps Script -> Trả về JSON ngay lập tức
   return responseJSON({ status: "success", list: list });
 }
 
