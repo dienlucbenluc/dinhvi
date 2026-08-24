@@ -193,12 +193,6 @@ function toggleMenu() {
   if (dropdown) dropdown.classList.toggle("show");
 }
 
-  
-  currentUser = JSON.parse(sessionStr);
-  const userDisplay = document.getElementById("currentUserDisplay");
-  if (userDisplay) {
-    userDisplay.innerText = `ðŸ‘· ${currentUser.ten_nvien}`;
-  }
         function openDevModal() {
             const menu = document.getElementById('menuDropdown');
             if (menu) menu.classList.remove('show');
@@ -230,38 +224,6 @@ function toggleMenu() {
             window.location.href = "login.html";
         }
 
-        document.addEventListener('DOMContentLoaded', () => {
-            const loaiTimSelect = document.getElementById('loai_tim');
-            const locNameInput = document.getElementById('locName');
-
-            function updateInputState(selectEl, inputEl) {
-                if (selectEl.value === 'MKH') { 
-                    inputEl.value = 'PB060600'; 
-                    inputEl.placeholder = '';
-                } else { 
-                    inputEl.value = ''; 
-                    inputEl.placeholder = 'Nhập 8 số cuối'; 
-                }
-            }
-
-            if (loaiTimSelect && locNameInput) {
-                loaiTimSelect.addEventListener('change', function() {
-                    updateInputState(this, locNameInput);
-                });
-                
-                setTimeout(() => {
-                    updateInputState(loaiTimSelect, locNameInput);
-                }, 150);
-            }
-
-            const editLoaiTimSelect = document.getElementById('editLoaiTim');
-            const editNameInput = document.getElementById('editNameInput');
-            if (editLoaiTimSelect && editNameInput) {
-                editLoaiTimSelect.addEventListener('change', function() {
-                    updateInputState(this, editNameInput);
-                });
-            }
-        });
     </script>
 </body>
 </html>
