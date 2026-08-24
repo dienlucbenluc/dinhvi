@@ -85,7 +85,6 @@ function loadChiSoData() {
   });
 }
 
-// Cập nhật âm thầm dữ liệu từ Database mà không làm nhấp nháy UI
 function fetchChiSoDataInBackground() {
   fetch(API_URL, {
     method: "POST",
@@ -249,7 +248,6 @@ async function getLocation(maKhang) {
           if (res.status === "success") {
             showToast("📍 Đã lấy & lưu tọa độ thành công!");
             
-            // Cập nhật trực tiếp UI và bộ nhớ địa phương
             cust.items.forEach(it => { it.lat = lat; it.lng = lng; });
             enableInputsAndSaveBtn(maKhang);
             
@@ -258,7 +256,6 @@ async function getLocation(maKhang) {
               mapSpan.innerHTML = `<a href="https://www.google.com/maps?q=${lat},${lng}" target="_blank" style="color:#007bff; font-weight:bold; text-decoration:none;">🌏 Xem Google Maps</a>`;
             }
 
-            // Âm thầm đồng bộ lại dữ liệu
             fetchChiSoDataInBackground();
           } else {
             showToast("❌ Lỗi lưu định vị: " + res.message);
@@ -350,6 +347,7 @@ function renderGroupedList(groups) {
                    id="ghi_chu_${cust.ma_khang}" 
                    value="${cust.ghi_chu || ''}" 
                    placeholder="Nhập, sửa ghi chú nếu có..." 
+                   style="font-style: normal; font-weight: bold;"
                    onclick="event.stopPropagation(); selectCustomer('${cust.ma_khang}');"
                    onchange="groupedData['${cust.ma_khang}'].ghi_chu = this.value;">
           </div>
@@ -588,7 +586,6 @@ async function saveCustomerData(maKhang) {
     if (res.status === "success") {
       showToast("✅ " + res.message);
 
-      // Cập nhật ngay tại chỗ trên bộ nhớ địa phương và thẻ UI
       cust.ghi_chu = newGhiChu;
       cust.items.forEach(item => {
         const inputEl = document.getElementById(`cs_moi_${item.rowIndex}`);
@@ -604,7 +601,6 @@ async function saveCustomerData(maKhang) {
       updateSummaryBar();
       checkCancelButtonStatus(maKhang);
 
-      // Tải âm thầm dữ liệu về
       fetchChiSoDataInBackground();
     } else {
       showToast("❌ " + res.message);
@@ -642,7 +638,6 @@ async function cancelCustomerData(maKhang) {
     if (res.status === "success") {
       showToast("✅ " + res.message);
 
-      // Reset các trường dữ liệu trực tiếp trên màn hình
       cust.items.forEach(item => {
         item.chiso_moi = "";
         item.san_luong = "-";
@@ -671,7 +666,6 @@ async function cancelCustomerData(maKhang) {
 
       updateSummaryBar();
 
-      // Tải âm thầm dữ liệu về
       fetchChiSoDataInBackground();
     } else {
       showToast("❌ " + res.message);
