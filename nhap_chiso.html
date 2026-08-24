@@ -67,9 +67,32 @@
     .search-box input { width: 100%; padding: 7px 10px; border-radius: 5px; border: 1px solid #ccc; font-size: 13px; outline: none; }
     .search-box input:focus { border-color: #0056b3; }
 
+    /* CSS Hàng thống kê chỉ số */
+    .summary-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 6px;
+      padding: 4px 6px;
+      background: #eef5fc;
+      border-radius: 5px;
+      font-size: 11.5px;
+      color: #004085;
+      font-weight: 600;
+      line-height: 1.2;
+    }
+    .summary-bar span { white-space: nowrap; }
+    .link-filter-chuaghi {
+      color: #d9534f;
+      text-decoration: underline;
+      cursor: pointer;
+      font-weight: bold;
+    }
+    .link-filter-chuaghi:hover { color: #c9302c; }
+
     #listContainer {
       position: absolute;
-      top: 75px;
+      top: 105px; /* Điều chỉnh khoảng cách top cho danh sách */
       bottom: 0;
       left: 0;
       right: 0;
@@ -319,6 +342,14 @@
     <div class="search-box">
       <input type="text" id="searchInput" placeholder="🔍 Tìm Mã KH, Tên KH, Cột, Trạm, Sổ, SĐT, Ghi chú..." oninput="filterData()">
     </div>
+    
+    <!-- Hàng thống kê tổng quan -->
+    <div class="summary-bar">
+      <span>Tổng KH: <b id="sumTongKh">0</b></span>
+      <span>Đã ghi: <b id="sumDaCS" style="color:#28a745;">0</b></span>
+      <span>Chưa ghi: <b id="sumChuaGhi" style="color:#d9534f;">0</b></span>
+      <span class="link-filter-chuaghi" onclick="filterChuaGhi()">Xem KH chưa ghi</span>
+    </div>
   </div>
 
   <div id="listContainer">
@@ -459,7 +490,42 @@
         });
       });
 
+      updateSummaryBar();
       renderGroupedList(groupedData);
+    }
+
+    /* Tính toán số liệu thống kê */
+    function updateSummaryBar() {
+      const keys = Object.keys(groupedData);
+      const tongKh = keys.length;
+      let daCoCS = 0;
+
+      keys.forEach(makh => {
+        const hasCS = groupedData[makh].items.some(i => i.chiso_moi !== "" && i.chiso_moi !== undefined && i.chiso_moi !== null);
+        if (hasCS) daCoCS++;
+      });
+
+      const chuaGhi = tongKh - daCoCS;
+
+      document.getElementById("sumTongKh").innerText = tongKh;
+      document.getElementById("sumDaCS").innerText = daCoCS;
+      document.getElementById("sumChuaGhi").innerText = chuaGhi;
+    }
+
+    /* Lọc danh sách KH chưa nhập chiso_moi */
+    function filterChuaGhi() {
+      document.getElementById("searchInput").value = "";
+      const filteredGroups = {};
+
+      Object.keys(groupedData).forEach(makh => {
+        const cust = groupedData[makh];
+        const hasCS = cust.items.some(i => i.chiso_moi !== "" && i.chiso_moi !== undefined && i.chiso_moi !== null);
+        if (!hasCS) {
+          filteredGroups[makh] = cust;
+        }
+      });
+
+      renderGroupedList(filteredGroups);
     }
 
     function selectCustomer(maKhang) {
@@ -602,7 +668,7 @@
           mapLinkHtml = `<span id="map_link_${cust.ma_khang}"><a href="https://www.google.com/maps?q=${firstItem.lat},${firstItem.lng}" target="_blank" style="color:#007bff; font-weight:bold; text-decoration:none;">🌏 Xem Google Maps</a></span>`;
         }
 
-        const alreadyHasCS = cust.items.some(i => i.chiso_moi !== "" && i.chiso_moi !== undefined);
+        const alreadyHasCS = cust.items.some(i => i.chiso_moi !== "" && i.chiso_moi !== undefined && i.chiso_moi !== null);
 
         html += `
           <div class="customer-card ${isActive}" id="card_${cust.ma_khang}" onclick="selectCustomer('${cust.ma_khang}')">
@@ -655,7 +721,7 @@
         `;
 
         cust.items.forEach(item => {
-          const csMoiVal = item.chiso_moi !== "" ? item.chiso_moi : "";
+          const csMoiVal = (item.chiso_moi !== "" && item.chiso_moi !== undefined && item.chiso_moi !== null) ? item.chiso_moi : "";
           const isDisabled = !hasLocation ? "disabled" : "";
 
           html += `
@@ -772,7 +838,6 @@
       const cust = groupedData[maKhang];
       if (!cust) return;
 
-      // Lấy nội dung ghi chú từ input hiện tại
       const ghiChuInput = document.getElementById(`ghi_chu_${maKhang}`);
       const newGhiChu = ghiChuInput ? ghiChuInput.value.trim() : (cust.ghi_chu || "");
 
@@ -826,7 +891,7 @@
             rowIndex: item.rowIndex,
             chiso_cu: item.chiso_cu,
             chiso_moi: inputEl.value !== "" ? Number(inputEl.value) : "",
-            ghi_chu: newGhiChu, // Truyền ghi chú lên server
+            ghi_chu: newGhiChu,
             hsn: item.hsn,
             sluong_thao: item.sluong_thao,
             sluong_kt: item.sluong_kt,
@@ -895,10 +960,10 @@
       .catch(() => showToast("❌ Lỗi hệ thống!"));
     }
 
-function handleLogout() {
-  localStorage.removeItem("cmis_user_session");
-  window.location.href = "login.html";
-}
+    function handleLogout() {
+      localStorage.removeItem("cmis_user_session");
+      window.location.href = "login.html";
+    }
 
     function closeLogoutModal() {
       const logoutModal = document.getElementById('logoutModal');
@@ -911,14 +976,14 @@ function handleLogout() {
     }
   </script>
   <div id="logoutModal" class="modal-overlay">
-  <div class="modal-box">
-    <div class="modal-title" style="color: #dc3545;">XÁC NHẬN THOÁT</div>
-    <div class="modal-message">Bạn có chắc chắn muốn đăng xuất khỏi hệ thống?</div>
-    <div class="modal-buttons">
-      <button class="btn-modal-cancel" onclick="closeLogoutModal()">Hủy</button>
-      <button class="btn-modal-confirm" style="background: #dc3545;" onclick="confirmLogout()">Thoát</button>
+    <div class="modal-box">
+      <div class="modal-title" style="color: #dc3545;">XÁC NHẬN THOÁT</div>
+      <div class="modal-message">Bạn có chắc chắn muốn đăng xuất khỏi hệ thống?</div>
+      <div class="modal-buttons">
+        <button class="btn-modal-cancel" onclick="closeLogoutModal()">Hủy</button>
+        <button class="btn-modal-confirm" style="background: #dc3545;" onclick="confirmLogout()">Thoát</button>
+      </div>
     </div>
   </div>
-</div>
 </body>
 </html>
