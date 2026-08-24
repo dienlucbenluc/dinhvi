@@ -332,12 +332,12 @@ function renderGroupedList(groups) {
           <table class="chiso-table">
             <thead>
               <tr>
-                <th style="width: 12%;">BCS</th>
-                <th style="width: 18%;">CS cu</th>
-                <th style="width: 26%;">CS m?i</th>
-                <th style="width: 18%;">T?ng SL</th>
-                <th style="width: 13%;">C.L?ch</th>
-                <th style="width: 13%;">T? l?</th>
+                    <th style="width: 12%;">BCS</th>
+                    <th style="width: 18%;">CS cũ</th>
+                    <th style="width: 26%;">CS mới</th>
+                    <th style="width: 18%;">Tổng SL</th>
+                    <th style="width: 13%;">C.Lệch</th>
+                    <th style="width: 13%;">Tỷ lệ</th>
               </tr>
             </thead>
             <tbody>
