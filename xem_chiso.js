@@ -2,7 +2,6 @@ const API_URL = "https://script.google.com/macros/s/AKfycbxJZHenN4zoxZR7wOk4SiBn
 let currentUser = null;
 let groupedData = {};
 let activeMaKhang = null;
-let currentLocations = {};
 
 const BCS_ORDER = ["BT", "CD", "TD", "SG", "VC", "BN", "CN", "TN", "SN", "VN"];
 
@@ -16,8 +15,9 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 function toggleMenu(e) {
-  e.stopPropagation();
-  document.getElementById("menuDropdown").classList.toggle("show");
+  if (e) e.stopPropagation();
+  const dropdown = document.getElementById("menuDropdown");
+  if (dropdown) dropdown.classList.toggle("show");
 }
 
 document.addEventListener("click", () => {
@@ -25,11 +25,10 @@ document.addEventListener("click", () => {
   if (menu && menu.classList.contains("show")) menu.classList.remove("show");
 });
 
-function goToHome() { window.location.href = "home.html"; }
-
 let toastTimer = null;
 function showToast(msg) {
   const t = document.getElementById("toast");
+  if (!t) return;
   t.innerText = msg;
   t.style.display = "block";
   
@@ -97,11 +96,8 @@ function groupAndRender(flatList) {
         dia_chi: item.dia_chi,
         ma_sogcs: item.ma_sogcs,
         danh_so: item.danh_so,
-        so_cot: item.so_cot,
-        ten_tram: item.ten_tram,
         so_cto: item.so_cto,
-        so_dthoai: item.so_dthoai || "",
-        ghi_chu: item.ghi_chu || "",
+        nhap_cmis: Number(item.nhap_cmis || 0),
         items: []
       };
     }
@@ -120,32 +116,33 @@ function groupAndRender(flatList) {
   renderGroupedList(groupedData);
 }
 
+// Cập nhật Yêu cầu 4: Thống kê nhap_cmis
 function updateSummaryBar() {
   const keys = Object.keys(groupedData);
   const tongKh = keys.length;
-  let daCoCS = 0;
+  let daNhap = 0;
 
   keys.forEach(makh => {
-    const hasCS = groupedData[makh].items.some(i => i.chiso_moi !== "" && i.chiso_moi !== undefined && i.chiso_moi !== null);
-    if (hasCS) daCoCS++;
+    if (groupedData[makh].nhap_cmis === 1) {
+      daNhap++;
+    }
   });
 
-  const chuaGhi = tongKh - daCoCS;
+  const chuaNhap = tongKh - daNhap;
 
   document.getElementById("sumTongKh").innerText = tongKh;
-  document.getElementById("sumDaCS").innerText = daCoCS;
-  document.getElementById("sumChuaGhi").innerText = chuaGhi;
+  document.getElementById("sumDaNhap").innerText = daNhap;
+  document.getElementById("sumChuaNhap").innerText = chuaNhap;
 }
 
-function filterChuaGhi() {
+// Xem danh sách nhap_cmis = 0 (Yêu cầu 4)
+function filterChuaNhap() {
   document.getElementById("searchInput").value = "";
   const filteredGroups = {};
 
   Object.keys(groupedData).forEach(makh => {
-    const cust = groupedData[makh];
-    const hasCS = cust.items.some(i => i.chiso_moi !== "" && i.chiso_moi !== undefined && i.chiso_moi !== null);
-    if (!hasCS) {
-      filteredGroups[makh] = cust;
+    if (groupedData[makh].nhap_cmis === 0) {
+      filteredGroups[makh] = groupedData[makh];
     }
   });
 
@@ -159,21 +156,13 @@ function selectCustomer(maKhang) {
   if (targetCard) targetCard.classList.add('active');
 }
 
-function updateRowDetail(maKhang, bcs, sanLuong, sluongThao, sluongKt) {
-  selectCustomer(maKhang);
-  const detailEl = document.getElementById(`detail_info_${maKhang}`);
-  if (detailEl) {
-    const mapSpan = document.getElementById(`map_link_${maKhang}`);
-    const mapHtml = mapSpan ? mapSpan.outerHTML : '';
-    detailEl.innerHTML = `
-      <span>${mapHtml}</span>
-      <span>SL Tháo(<b>${bcs}</b>): <b>${sluongThao}</b></span>
-      <span>SL KT: <b>${sluongKt}</b></span>
-    `;
+function toggleCheckCMIS(maKhang, isChecked) {
+  if (groupedData[maKhang]) {
+    groupedData[maKhang].is_checked = isChecked;
   }
 }
 
-// TỐI ƯU HÀM RENDER DÙNG CHUNK RENDERING
+// Render lại danh sách theo Yêu cầu 1, 2, 3
 function renderGroupedList(groups) {
   const container = document.getElementById("listContainer");
   const keys = Object.keys(groups);
@@ -185,7 +174,7 @@ function renderGroupedList(groups) {
 
   container.innerHTML = "";
   
-  const CHUNK_SIZE = 30; // Render trước 30 khách hàng để hiện ngay màn hình
+  const CHUNK_SIZE = 30;
   let currentIndex = 0;
 
   function renderChunk() {
@@ -196,106 +185,61 @@ function renderGroupedList(groups) {
     nextKeys.forEach(makh => {
       const cust = groups[makh];
       const isActive = (makh === activeMaKhang) ? "active" : "";
-      const firstItem = cust.items[0] || {};
-      const cotTramText = [cust.so_cot, cust.ten_tram].filter(Boolean).join(" - ");
-      const hasLocation = Boolean(firstItem.lat && firstItem.lng);
-      
-      let mapLinkHtml = `<span id="map_link_${cust.ma_khang}" style="color:#dc3545; font-weight:bold;">🌏 Chưa có tọa độ</span>`;
-      let btnLocationText = "LẤY ĐỊNH VỊ";
-      if (hasLocation) {
-        mapLinkHtml = `<span id="map_link_${cust.ma_khang}"><a href="https://www.google.com/maps?q=${firstItem.lat},${firstItem.lng}" target="_blank" style="color:#007bff; font-weight:bold; text-decoration:none;">🌏 Xem Google Maps</a></span>`;
-        btnLocationText = "SỬA ĐỊNH VỊ";
-      }
-
-      const alreadyHasCS = cust.items.some(i => i.chiso_moi !== "" && i.chiso_moi !== undefined && i.chiso_moi !== null);
+      const isCMIS = cust.nhap_cmis === 1;
+      const isChecked = cust.is_checked || isCMIS;
 
       html += `
         <div class="customer-card ${isActive}" id="card_${cust.ma_khang}" onclick="selectCustomer('${cust.ma_khang}')">
           <div class="cust-header">
+            <!-- Yêu cầu 1: dòng 1 ma_khang - ten_khang -->
             <div class="cust-title">${cust.ma_khang} - ${cust.ten_khang}</div>
-            <div class="cust-address">Địa chỉ: ${cust.dia_chi || ''}</div>
             
+            <!-- Yêu cầu 1: dòng 2 ma_sogcs - danh_so - so_cto - check (đã nhập CMIS) -->
             <div class="cust-row-group">
-              <span style="width: 100%; font-size: 11.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
-                Sổ:<b>${cust.ma_sogcs || ''}</b>  DS:<b>${cust.danh_so || ''}</b>  NO:<b>${cust.so_cto || ''}</b>  ĐT:<b>${cust.so_dthoai || ''}</b>
-              </span>
-            </div>
-
-            <div class="cust-row-group">
-              <span class="flex-1">Cột-Trạm: <b>${cotTramText || ''}</b></span>
-            </div>
-
-            <div class="cust-row-group" style="margin-top: 3px;">
-              <span style="padding-left:0; color:#000; min-width:55px;">Ghi chú:</span>
-              <input type="text" 
-                     class="input-ghichu" 
-                     id="ghi_chu_${cust.ma_khang}" 
-                     value="${cust.ghi_chu || ''}" 
-                     placeholder="Nhập, sửa ghi chú nếu có..." 
-                     style="font-style: italic; font-weight: normal;"
-                     onclick="event.stopPropagation(); selectCustomer('${cust.ma_khang}');"
-                     onchange="groupedData['${cust.ma_khang}'].ghi_chu = this.value;">
-            </div>
-
-            <div class="cust-dynamic-info-v2" id="detail_info_${cust.ma_khang}">
-              <span>${mapLinkHtml}</span>
-              <span>SL Tháo(<b>${firstItem.bcs}</b>): <b>${firstItem.sluong_thao || 0}</b></span>
-              <span>SL KT: <b>${firstItem.sluong_kt || 0}</b></span>
+              <span>Sổ: <b>${cust.ma_sogcs || ''}</b> - DS: <b>${cust.danh_so || ''}</b> - Số CTO: <b>${cust.so_cto || ''}</b></span>
+              <label class="chk-cmis-label" onclick="event.stopPropagation();">
+                <input type="checkbox" 
+                       id="chk_cmis_${cust.ma_khang}" 
+                       ${isChecked ? 'checked' : ''} 
+                       onchange="toggleCheckCMIS('${cust.ma_khang}', this.checked)">
+                (đã nhập CMIS)
+              </label>
             </div>
           </div>
 
+          <!-- Yêu cầu 2: Table chỉ số chừa 4 cột: bcs, chiso_cu, chiso_moi, san_luong -->
           <div class="table-responsive">
             <table class="chiso-table">
               <thead>
                 <tr>
-                  <th style="width: 12%;">BCS</th>
-                  <th style="width: 18%;">CS cũ</th>
-                  <th style="width: 26%;">CS mới</th>
-                  <th style="width: 18%;">Tổng SL</th>
-                  <th style="width: 13%;">C.Lệch</th>
-                  <th style="width: 13%;">Tỷ lệ</th>
+                  <th style="width: 20%;">BCS</th>
+                  <th style="width: 26%;">CS cũ</th>
+                  <th style="width: 27%;">CS mới</th>
+                  <th style="width: 27%;">Sản lượng</th>
                 </tr>
               </thead>
               <tbody>
       `;
 
       cust.items.forEach(item => {
-        const csMoiVal = (item.chiso_moi !== "" && item.chiso_moi !== undefined && item.chiso_moi !== null) ? item.chiso_moi : "";
-        const isDisabled = !hasLocation ? "disabled" : "";
+        const csMoiVal = (item.chiso_moi !== "" && item.chiso_moi !== undefined && item.chiso_moi !== null) ? item.chiso_moi : "-";
+        const sanLuongVal = (item.san_luong !== "" && item.san_luong !== undefined && item.san_luong !== null) ? item.san_luong : "-";
 
         html += `
-          <tr id="row_${item.rowIndex}" onclick="event.stopPropagation(); updateRowDetail('${cust.ma_khang}', '${item.bcs}', document.getElementById('sl_val_${item.rowIndex}').value, ${item.sluong_thao}, ${item.sluong_kt});">
-            <td class="text-center" style="padding: 4px 2px;"><span class="bcs-badge">${item.bcs}</span></td>
-            <td class="val-calc-large text-right">${item.chiso_cu}</td>
-            <td class="td-input-container">
-              <input type="number" 
-                     class="input-cs-moi" 
-                     id="cs_moi_${item.rowIndex}" 
-                     value="${csMoiVal}" ${isDisabled}
-                     onclick="event.stopPropagation(); updateRowDetail('${cust.ma_khang}', '${item.bcs}', document.getElementById('sl_val_${item.rowIndex}').value, ${item.sluong_thao}, ${item.sluong_kt});"
-                     oninput="calculateRow('${cust.ma_khang}', '${item.bcs}', ${item.rowIndex}, ${item.chiso_cu}, ${item.hsn}, ${item.sluong_thao}, ${item.sluong_kt})">
-              <input type="hidden" id="sl_val_${item.rowIndex}" value="${item.san_luong !== "" && item.san_luong !== undefined ? item.san_luong : '-'}">
-            </td>
-            <td id="tong_sl_${item.rowIndex}" class="val-calc-large text-right">${item.tong_sluong !== "" && item.tong_sluong !== undefined ? item.tong_sluong : '-'}</td>
-            <td id="clech_${item.rowIndex}" class="val-highlight text-right">${item.chenh_lech !== "" && item.chenh_lech !== undefined ? item.chenh_lech : '-'}</td>
-            <td id="tyle_${item.rowIndex}" class="val-highlight text-right">${item.tyle_clech !== "" && item.tyle_clech !== undefined ? item.tyle_clech : '-'}</td>
+          <tr>
+            <td class="text-center"><span class="bcs-badge">${item.bcs}</span></td>
+            <td class="val-calc-large text-right">${item.chiso_cu !== undefined ? item.chiso_cu : '-'}</td>
+            <td class="val-calc-large text-right" style="color: #0056b3;">${csMoiVal}</td>
+            <td class="val-calc-large text-right" style="color: #28a745;">${sanLuongVal}</td>
           </tr>
         `;
       });
-
-      const saveDisabledAttr = !hasLocation ? "disabled" : "";
-      const cancelDisabledAttr = !alreadyHasCS ? "disabled" : "";
 
       html += `
               </tbody>
             </table>
           </div>
-
-          <div class="card-btn-group">
-            <button class="btn-card btn-card-location" onclick="event.stopPropagation(); getLocation('${cust.ma_khang}')">${btnLocationText}</button>
-            <button class="btn-card btn-card-save" id="btn_save_${cust.ma_khang}" ${saveDisabledAttr} onclick="event.stopPropagation(); saveCustomerData('${cust.ma_khang}')">LƯU</button>
-            <button class="btn-card btn-card-cancel" id="btn_cancel_${cust.ma_khang}" ${cancelDisabledAttr} onclick="event.stopPropagation(); cancelCustomerData('${cust.ma_khang}')">HỦY</button>
-          </div>
+          <!-- Yêu cầu 3: Bỏ 3 nút LẤY ĐỊNH VỊ, GHI và HỦY -->
         </div>
       `;
     });
@@ -308,152 +252,81 @@ function renderGroupedList(groups) {
 
     currentIndex += CHUNK_SIZE;
     if (currentIndex < keys.length) {
-      setTimeout(renderChunk, 0); // Đưa công việc tiếp theo vào Event Loop để không khóa UI
+      setTimeout(renderChunk, 0);
     }
   }
 
   renderChunk();
 }
 
-async function getLocation(maKhang) {
-  selectCustomer(maKhang);
-  const cust = groupedData[maKhang];
-  const firstItem = cust ? cust.items[0] : {};
+// Yêu cầu 5: Lưu trạng thái nhap_cmis = 1 cho các khách hàng đã check
+async function saveCheckedCMIS() {
+  const checkedMaKhangs = [];
 
-  const hasCoords = (firstItem && firstItem.lat && firstItem.lng) || currentLocations[maKhang];
-
-  if (hasCoords) {
-    const confirmAgain = await showCustomConfirm("LẤY TỌA ĐỘ GPS", `Bạn có muốn lấy lại tọa độ mới cho mã khách hàng ${maKhang} này không?`);
-    if (!confirmAgain) return;
-  }
-
-  if (navigator.geolocation) {
-    showToast(`⏳ Đang lấy vị trí GPS...`);
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        const lat = position.coords.latitude;
-        const lng = position.coords.longitude;
-        currentLocations[maKhang] = { lat, lng };
-
-        const currentGhiChu = document.getElementById(`ghi_chu_${maKhang}`) ? document.getElementById(`ghi_chu_${maKhang}`).value : cust.ghi_chu;
-
-        const payload = cust.items.map(item => ({
-          rowIndex: item.rowIndex,
-          chiso_cu: item.chiso_cu,
-          chiso_moi: "",
-          ghi_chu: currentGhiChu,
-          lat: lat,
-          lng: lng,
-          nhap_cmis: 0
-        }));
-
-        showToast(`⏳ Đang lưu tọa độ GPS...`);
-        fetch(API_URL, {
-          method: "POST",
-          headers: { "Content-Type": "text/plain;charset=utf-8" },
-          body: JSON.stringify({
-            action: "SAVE_CHISO",
-            ten_ndung: currentUser.ten_ndung,
-            ten_nvien: currentUser.ten_nvien,
-            items: payload
-          })
-        })
-        .then(res => res.json())
-        .then(res => {
-          if (res.status === "success") {
-            showToast("📍 Đã lấy & lưu tọa độ thành công!");
-            
-            cust.items.forEach(it => { it.lat = lat; it.lng = lng; });
-            enableInputsAndSaveBtn(maKhang);
-            
-            const mapSpan = document.getElementById(`map_link_${maKhang}`);
-            if (mapSpan) {
-              mapSpan.innerHTML = `<a href="https://www.google.com/maps?q=${lat},${lng}" target="_blank" style="color:#007bff; font-weight:bold; text-decoration:none;">🌏 Xem Google Maps</a>`;
-            }
-          } else {
-            showToast("❌ Lỗi lưu định vị: " + res.message);
-          }
-        })
-        .catch(() => showToast("❌ Lỗi kết nối máy chủ!"));
-      },
-      (error) => { showToast("❌ Không thể lấy GPS! Bật vị trí thiết bị."); },
-      { enableHighAccuracy: true, timeout: 10000 }
-    );
-  } else {
-    showToast("❌ Thiết bị không hỗ trợ GPS!");
-  }
-}
-
-function enableInputsAndSaveBtn(maKhang) {
-  const card = document.getElementById(`card_${maKhang}`);
-  if (!card) return;
-
-  card.querySelectorAll('.input-cs-moi').forEach(input => input.disabled = false);
-  
-  const btnSave = document.getElementById(`btn_save_${maKhang}`);
-  if (btnSave) btnSave.disabled = false;
-}
-
-function checkCancelButtonStatus(maKhang) {
-  const cust = groupedData[maKhang];
-  if (!cust) return;
-
-  let hasNewCS = false;
-  cust.items.forEach(item => {
-    const inputEl = document.getElementById(`cs_moi_${item.rowIndex}`);
-    if (inputEl && inputEl.value !== "") {
-      hasNewCS = true;
+  Object.keys(groupedData).forEach(makh => {
+    const chk = document.getElementById(`chk_cmis_${makh}`);
+    if (chk && chk.checked) {
+      checkedMaKhangs.push(makh);
+    } else if (groupedData[makh].is_checked) {
+      checkedMaKhangs.push(makh);
     }
   });
 
-  const btnCancel = document.getElementById(`btn_cancel_${maKhang}`);
-  if (btnCancel) {
-    btnCancel.disabled = !hasNewCS;
-  }
-}
-
-function calculateRow(maKhang, bcs, rowIndex, csCu, hsn, sluongThao, sluongKt) {
-  const inputEl = document.getElementById(`cs_moi_${rowIndex}`);
-  const val = inputEl.value;
-
-  const slHiddenEl = document.getElementById(`sl_val_${rowIndex}`);
-  const tongSlCell = document.getElementById(`tong_sl_${rowIndex}`);
-  const clechCell = document.getElementById(`clech_${rowIndex}`);
-  const tyleCell = document.getElementById(`tyle_${rowIndex}`);
-
-  if (val === "" || isNaN(val)) {
-    slHiddenEl.value = "-";
-    tongSlCell.innerText = "-";
-    clechCell.innerText = "-";
-    tyleCell.innerText = "-";
-    updateRowDetail(maKhang, bcs, "-", sluongThao, sluongKt);
-    checkCancelButtonStatus(maKhang);
+  if (checkedMaKhangs.length === 0) {
+    showToast("⚠️ Vui lòng tick chọn ít nhất một khách hàng!");
     return;
   }
 
-  const csMoi = Number(val);
-  const hsnVal = Number(hsn) || 1;
-  const slThao = Number(sluongThao) || 0;
-  const slKt = Number(sluongKt) || 0;
+  const confirmSave = await showCustomConfirm(
+    "XÁC NHẬN LƯU ĐÃ NHẬP CMIS",
+    "Bạn có muốn ghi nhận các khách hàng đã check về trạng thái đã nhập CMIS không?"
+  );
 
-  const sanLuong = Math.round((csMoi - csCu) * hsnVal);
-  const tongSluong = sanLuong + slThao;
-  const chenhLech = tongSluong - slKt;
+  if (!confirmSave) return;
 
-  let tyleClech = "0%";
-  if (slKt !== 0) {
-    const rawTyle = ((tongSluong - slKt) / slKt) * 100;
-    const prefix = rawTyle > 0 ? "+" : "";
-    tyleClech = prefix + rawTyle.toFixed(2) + "%";
-  }
+  // Lấy danh sách tất cả rowIndices của các khách hàng được check
+  let payloadRowIndices = [];
+  checkedMaKhangs.forEach(makh => {
+    if (groupedData[makh] && groupedData[makh].items) {
+      groupedData[makh].items.forEach(item => {
+        if (item.rowIndex !== undefined) {
+          payloadRowIndices.push(item.rowIndex);
+        }
+      });
+    }
+  });
 
-  slHiddenEl.value = sanLuong;
-  tongSlCell.innerText = tongSluong;
-  clechCell.innerText = chenhLech;
-  tyleCell.innerText = tyleClech;
+  showToast(`⏳ Đang cập nhật trạng thái đã nhập CMIS...`);
+  
+  fetch(API_URL, {
+    method: "POST",
+    headers: { "Content-Type": "text/plain;charset=utf-8" },
+    body: JSON.stringify({
+      action: "UPDATE_NHAP_CMIS",
+      ten_ndung: currentUser.ten_ndung,
+      rowIndices: payloadRowIndices,
+      nhap_cmis: 1
+    })
+  })
+  .then(res => res.json())
+  .then(res => {
+    if (res.status === "success") {
+      showToast("✅ Đã cập nhật trạng thái thành công!");
+      
+      // Cập nhật lại dữ liệu cục bộ
+      checkedMaKhangs.forEach(makh => {
+        if (groupedData[makh]) {
+          groupedData[makh].nhap_cmis = 1;
+          groupedData[makh].items.forEach(i => i.nhap_cmis = 1);
+        }
+      });
 
-  updateRowDetail(maKhang, bcs, sanLuong, sluongThao, sluongKt);
-  checkCancelButtonStatus(maKhang);
+      updateSummaryBar();
+    } else {
+      showToast("❌ Lỗi: " + res.message);
+    }
+  })
+  .catch(() => showToast("❌ Lỗi kết nối máy chủ!"));
 }
 
 function filterData() {
@@ -471,20 +344,12 @@ function filterData() {
     if (foundMaKhang) return;
 
     const cust = groupedData[makh];
-    const ghiChuInput = document.getElementById(`ghi_chu_${makh}`);
-    const currentGhiChu = ghiChuInput ? ghiChuInput.value : (cust.ghi_chu || "");
-
     const match = 
       String(cust.ma_khang || "").toLowerCase().includes(q) ||
       String(cust.ten_khang || "").toLowerCase().includes(q) ||
-      String(cust.dia_chi || "").toLowerCase().includes(q) ||
-      String(cust.so_cot || "").toLowerCase().includes(q) ||
-      String(cust.ten_tram || "").toLowerCase().includes(q) ||
       String(cust.so_cto || "").toLowerCase().includes(q) ||
       String(cust.ma_sogcs || "").toLowerCase().includes(q) ||
-      String(cust.danh_so || "").toLowerCase().includes(q) ||
-      String(cust.so_dthoai || "").toLowerCase().includes(q) ||
-      String(currentGhiChu).toLowerCase().includes(q);
+      String(cust.danh_so || "").toLowerCase().includes(q);
 
     if (match) {
       foundMaKhang = makh;
@@ -498,170 +363,6 @@ function filterData() {
       targetCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
   }
-}
-
-async function saveCustomerData(maKhang) {
-  const cust = groupedData[maKhang];
-  if (!cust) return;
-
-  const ghiChuInput = document.getElementById(`ghi_chu_${maKhang}`);
-  const newGhiChu = ghiChuInput ? ghiChuInput.value.trim() : (cust.ghi_chu || "");
-
-  let warningMsgs = [];
-  cust.items.forEach(item => {
-    const inputEl = document.getElementById(`cs_moi_${item.rowIndex}`);
-    if (inputEl && inputEl.value !== "") {
-      const csMoi = Number(inputEl.value);
-      const hsnVal = Number(item.hsn) || 1;
-      const slThao = Number(item.sluong_thao) || 0;
-      const slKt = Number(item.sluong_kt) || 0;
-
-      const sanLuong = Math.round((csMoi - item.chiso_cu) * hsnVal);
-      const tongSluong = sanLuong + slThao;
-
-      if (slKt !== 0) {
-        const percentChange = ((tongSluong - slKt) / slKt) * 100;
-        if (percentChange > 50) {
-          warningMsgs.push(`* ${item.bcs}: Slượng tăng ${percentChange.toFixed(1)}% so với kỳ trước.`);
-        } else if (percentChange < -50) {
-          warningMsgs.push(`* ${item.bcs}: Slượng giảm ${Math.abs(percentChange).toFixed(1)}% so với kỳ trước.`);
-        }
-      }
-    }
-  });
-
-  let isWarning = warningMsgs.length > 0;
-  let confirmMessage = isWarning 
-    ? warningMsgs.join("\n") + "\n⚡Kiểm tra chỉ số trên công tơ kỹ lại.\n📂 Bạn vẫn muốn xác nhận ghi dữ liệu?" 
-    : "Xác nhận ghi dữ liệu chỉ số và ghi chú?";
-
-  const confirmSave = await showCustomConfirm(
-    isWarning ? "CẢNH BÁO SẢN LƯỢNG" : "XÁC NHẬN GHI DỮ LIỆU",
-    confirmMessage,
-    isWarning
-  );
-
-  if (!confirmSave) return;
-
-  const loc = currentLocations[maKhang] || {};
-  const payload = [];
-
-  cust.items.forEach(item => {
-    const inputEl = document.getElementById(`cs_moi_${item.rowIndex}`);
-    if (inputEl) {
-      payload.push({
-        rowIndex: item.rowIndex,
-        chiso_cu: item.chiso_cu,
-        chiso_moi: inputEl.value !== "" ? Number(inputEl.value) : "",
-        ghi_chu: newGhiChu,
-        hsn: item.hsn,
-        sluong_thao: item.sluong_thao,
-        sluong_kt: item.sluong_kt,
-        lat: loc.lat || item.lat || "",
-        lng: loc.lng || item.lng || "",
-        nhap_cmis: 0
-      });
-    }
-  });
-
-  showToast(`⏳ Đang lưu dữ liệu KH ${maKhang}...`);
-  fetch(API_URL, {
-    method: "POST",
-    headers: { "Content-Type": "text/plain;charset=utf-8" },
-    body: JSON.stringify({
-      action: "SAVE_CHISO",
-      ten_ndung: currentUser.ten_ndung,
-      ten_nvien: currentUser.ten_nvien,
-      items: payload
-    })
-  })
-  .then(res => res.json())
-  .then(res => {
-    if (res.status === "success") {
-      showToast("✅ " + res.message);
-
-      cust.ghi_chu = newGhiChu;
-      cust.items.forEach(item => {
-        const inputEl = document.getElementById(`cs_moi_${item.rowIndex}`);
-        if (inputEl && inputEl.value !== "") {
-          item.chiso_moi = Number(inputEl.value);
-          item.san_luong = document.getElementById(`sl_val_${item.rowIndex}`).value;
-          item.tong_sluong = document.getElementById(`tong_sl_${item.rowIndex}`).innerText;
-          item.chenh_lech = document.getElementById(`clech_${item.rowIndex}`).innerText;
-          item.tyle_clech = document.getElementById(`tyle_${item.rowIndex}`).innerText;
-        }
-      });
-
-      updateSummaryBar();
-      checkCancelButtonStatus(maKhang);
-    } else {
-      showToast("❌ " + res.message);
-    }
-  })
-  .catch(() => showToast("❌ Lỗi hệ thống khi lưu!"));
-}
-
-async function cancelCustomerData(maKhang) {
-  const cust = groupedData[maKhang];
-  if (!cust) return;
-
-  const confirmCancel = await showCustomConfirm(
-    "XÁC NHẬN HỦY", 
-    `Bạn có chắc chắn muốn HỦY chỉ số đã nhập của khách hàng ${maKhang}? (Ghi chú sẽ giữ nguyên)`,
-    true
-  );
-
-  if (!confirmCancel) return;
-
-  const rowIndices = cust.items.map(item => item.rowIndex);
-
-  showToast(`⏳ Đang hủy chỉ số KH ${maKhang}...`);
-  fetch(API_URL, {
-    method: "POST",
-    headers: { "Content-Type": "text/plain;charset=utf-8" },
-    body: JSON.stringify({
-      action: "CANCEL_CHISO",
-      ten_ndung: currentUser.ten_ndung,
-      rowIndices: rowIndices
-    })
-  })
-  .then(res => res.json())
-  .then(res => {
-    if (res.status === "success") {
-      showToast("✅ " + res.message);
-
-      cust.items.forEach(item => {
-        item.chiso_moi = "";
-        item.san_luong = "-";
-        item.tong_sluong = "-";
-        item.chenh_lech = "-";
-        item.tyle_clech = "-";
-
-        const csMoiInput = document.getElementById(`cs_moi_${item.rowIndex}`);
-        if (csMoiInput) csMoiInput.value = "";
-
-        const slHiddenEl = document.getElementById(`sl_val_${item.rowIndex}`);
-        if (slHiddenEl) slHiddenEl.value = "-";
-
-        const tongSlCell = document.getElementById(`tong_sl_${item.rowIndex}`);
-        if (tongSlCell) tongSlCell.innerText = "-";
-
-        const clechCell = document.getElementById(`clech_${item.rowIndex}`);
-        if (clechCell) clechCell.innerText = "-";
-
-        const tyleCell = document.getElementById(`tyle_${item.rowIndex}`);
-        if (tyleCell) tyleCell.innerText = "-";
-      });
-
-      const btnCancel = document.getElementById(`btn_cancel_${maKhang}`);
-      if (btnCancel) btnCancel.disabled = true;
-
-      updateSummaryBar();
-    } else {
-      showToast("❌ " + res.message);
-    }
-  })
-  .catch(() => showToast("❌ Lỗi hệ thống!"));
 }
 
 function handleLogout() {
