@@ -10,7 +10,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const sessionStr = localStorage.getItem("cmis_user_session");
   if (!sessionStr) { window.location.href = "login.html"; return; }
   currentUser = JSON.parse(sessionStr);
-  document.getElementById("userDisplay").innerText = `?? ${currentUser.ten_nvien || currentUser.ten_ndung}`;
+  document.getElementById("userDisplay").innerText = `👷 ${currentUser.ten_nvien || currentUser.ten_ndung}`;
   
   loadChiSoData();
 });
