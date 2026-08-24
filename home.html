@@ -435,10 +435,19 @@
             document.getElementById('devModal').style.display = 'none';
         }
 
-        function openPassModal() {
-            closeAllMenus();
-            document.getElementById('passModal').style.display = 'flex';
-        }
+function openPassModal() {
+    closeAllMenus();
+    
+    // Đảm bảo ẩn modal thông báo thành công (nếu đang mở)
+    closeAlertModal();
+
+    // Reset lại 2 ô nhập mật khẩu về trống
+    document.getElementById('oldPassInput').value = '';
+    document.getElementById('newPassInput').value = '';
+
+    // Hiển thị modal đổi mật khẩu
+    document.getElementById('passModal').style.display = 'flex';
+}
 
         function closePassModal() {
             document.getElementById('passModal').style.display = 'none';
