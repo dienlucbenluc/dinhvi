@@ -99,6 +99,7 @@
       overflow-y: auto;
       padding: 8px;
       -webkit-overflow-scrolling: touch;
+      scroll-behavior: smooth;
     }
     .loading-box {
       display: flex;
@@ -343,7 +344,6 @@
       <input type="text" id="searchInput" placeholder="🔍 Tìm Mã KH, Tên KH, Cột, Trạm, Sổ, SĐT, Ghi chú..." oninput="filterData()">
     </div>
     
-    <!-- Hàng thống kê tổng quan -->
     <div class="summary-bar">
       <span>Tổng KH: <b id="sumTongKh">0</b></span>
       <span>Đã ghi: <b id="sumDaCS" style="color:#28a745;">0</b></span>
@@ -678,7 +678,7 @@
               
               <div class="cust-row-group">
                 <span style="width: 100%; font-size: 11.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
-                  Sổ:<b>${cust.ma_sogcs || ''}</b> &nbsp;DS:<b>${cust.danh_so || ''}</b> &nbsp;NO:<b>${cust.so_cto || ''}</b> &nbsp;ĐT:<b>${cust.so_dthoai || ''}</b>
+                  Sổ:<b>${cust.ma_sogcs || ''}</b>  DS:<b>${cust.danh_so || ''}</b>  NO:<b>${cust.so_cto || ''}</b>  ĐT:<b>${cust.so_dthoai || ''}</b>
                 </span>
               </div>
 
@@ -686,7 +686,6 @@
                 <span class="flex-1">Cột-Trạm: <b>${cotTramText || ''}</b></span>
               </div>
 
-              <!-- Ô SỬA GHI CHÚ NẰM BÊN DƯỚI CỘT-TRẠM -->
               <div class="cust-row-group" style="margin-top: 3px;">
                 <span style="padding-left:0; color:#000; min-width:55px;">Ghi chú:</span>
                 <input type="text" 
@@ -808,11 +807,22 @@
       checkCancelButtonStatus(maKhang);
     }
 
+    /* Tìm kiếm: Giữ nguyên toàn bộ danh sách, cuộn tới và chọn khách hàng đầu tiên khớp với từ khóa */
     function filterData() {
       const q = document.getElementById("searchInput").value.toLowerCase().trim();
-      const filteredGroups = {};
+      
+      // Nếu xóa trống ô tìm kiếm thì bỏ chọn active
+      if (!q) {
+        document.querySelectorAll('.customer-card').forEach(card => card.classList.remove('active'));
+        activeMaKhang = null;
+        return;
+      }
+
+      let foundMaKhang = null;
 
       Object.keys(groupedData).forEach(makh => {
+        if (foundMaKhang) return; // Lấy kết quả phù hợp đầu tiên
+
         const cust = groupedData[makh];
         const ghiChuInput = document.getElementById(`ghi_chu_${makh}`);
         const currentGhiChu = ghiChuInput ? ghiChuInput.value : (cust.ghi_chu || "");
@@ -828,10 +838,18 @@
           String(cust.so_dthoai).toLowerCase().includes(q) ||
           String(currentGhiChu).toLowerCase().includes(q);
 
-        if (match) filteredGroups[makh] = cust;
+        if (match) {
+          foundMaKhang = makh;
+        }
       });
 
-      renderGroupedList(filteredGroups);
+      if (foundMaKhang) {
+        selectCustomer(foundMaKhang);
+        const targetCard = document.getElementById(`card_${foundMaKhang}`);
+        if (targetCard) {
+          targetCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      }
     }
 
     async function saveCustomerData(maKhang) {
