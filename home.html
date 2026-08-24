@@ -463,11 +463,49 @@
             window.location.href = "login.html";
         }
 
-        function saveNewPassword() {
-            // Giữ nguyên logic lưu mật khẩu của bác ở đây
-            alert("Đã cập nhật mật khẩu!");
-            closePassModal();
-        }
+        function showAlert(message, title = "Thành Công", isSuccess = true) {
+    const alertModal = document.getElementById('alertModal');
+    const icon = alertModal.querySelector('div[style*="font-size: 40px"]');
+    const titleEl = alertModal.querySelector('.modal-title');
+    const messageEl = document.getElementById('alertMessage');
+
+    // Tùy chỉnh giao diện theo trạng thái Thành công / Thất bại
+    if (isSuccess) {
+        icon.innerText = "✅";
+        titleEl.innerText = title;
+        titleEl.style.color = "#36b37e"; // Xanh lá
+    } else {
+        icon.innerText = "⚠️";
+        titleEl.innerText = title;
+        titleEl.style.color = "var(--danger-color)"; // Đỏ
+    }
+
+    messageEl.innerText = message;
+    alertModal.style.display = 'flex';
+}
+
+function closeAlertModal() {
+    document.getElementById('alertModal').style.display = 'none';
+}
+        
+function saveNewPassword() {
+    const oldPass = document.getElementById('oldPassInput').value;
+    const newPass = document.getElementById('newPassInput').value;
+
+    // Kiểm tra dữ liệu nhập (Ví dụ)
+    if (!oldPass || !newPass) {
+        showAlert("Vui lòng nhập đầy đủ thông tin mật khẩu!", "Lỗi Nhập Liệu", false);
+        return;
+    }
+
+    // Sau khi gọi API đổi mật khẩu thành công:
+    closePassModal();
+    showAlert("Mật khẩu của bạn đã được cập nhật thành công.");
+
+    // Clear lại ô input
+    document.getElementById('oldPassInput').value = '';
+    document.getElementById('newPassInput').value = '';
+}
         
 <div id="alertModal" class="modal-overlay">
     <div class="modal-box" style="text-align: center;">
