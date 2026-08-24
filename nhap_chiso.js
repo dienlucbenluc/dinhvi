@@ -1,678 +1,518 @@
-const API_URL = "https://script.google.com/macros/s/AKfycbxJZHenN4zoxZR7wOk4SiBnUx071LKLdAWOdJLToJPScSdBIj8Qn_pOeTDAABlN_UAF/exec";
-let currentUser = null;
-let groupedData = {};
-let activeMaKhang = null;
-let currentLocations = {};
+const SPREADSHEET_ID = "1YjitfjIz9V7Uiprc989O5Z2155ARp36toiUQR0TKo_Q";
 
-const BCS_ORDER = ["BT", "CD", "TD", "SG", "VC", "BN", "CN", "TN", "SN", "VN"];
+function doPost(e) {
+  try {
+    const data = JSON.parse(e.postData.contents);
+    const action = data.action;
 
-document.addEventListener("DOMContentLoaded", () => {
-  const sessionStr = localStorage.getItem("cmis_user_session");
-  if (!sessionStr) { window.location.href = "login.html"; return; }
-  currentUser = JSON.parse(sessionStr);
-  document.getElementById("userDisplay").innerText = `👷 ${currentUser.ten_nvien || currentUser.ten_ndung}`;
-  
-  loadChiSoData();
-});
+    if (action === "LOGIN") return loginUser(data);
+    if (action === "CHECK_EXISTS") return checkExistsDinhVi(data);
+    if (action === "GET_INIT_DATA") return getInitData();
+    if (action === "ADD") return addDinhVi(data.location);
+    if (action === "EDIT") return editDinhVi(data);
+    if (action === "DELETE") return deleteDinhVi(data);
+    if (action === "CHANGE_PASSWORD") return changePassword(data);
 
-function toggleMenu(e) {
-  e.stopPropagation();
-  document.getElementById("menuDropdown").classList.toggle("show");
+    if (action === "GET_CHISO_DATA") return getChiSoData(data);
+    if (action === "SAVE_CHISO") return saveChiSo(data);
+    if (action === "CANCEL_CHISO") return cancelChiSo(data);
+
+  } catch (error) {
+    return ContentService.createTextOutput(JSON.stringify({
+      status: "error",
+      message: error.toString()
+    })).setMimeType(ContentService.MimeType.JSON);
+  }
 }
 
-document.addEventListener("click", () => {
-  const menu = document.getElementById("menuDropdown");
-  if (menu && menu.classList.contains("show")) menu.classList.remove("show");
-});
-
-function goToHome() { window.location.href = "home.html"; }
-
-let toastTimer = null;
-function showToast(msg) {
-  const t = document.getElementById("toast");
-  t.innerText = msg;
-  t.style.display = "block";
-  
-  if (toastTimer) clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => {
-    t.style.display = "none";
-  }, 3500);
+function responseJSON(data) {
+  return ContentService.createTextOutput(JSON.stringify(data)).setMimeType(ContentService.MimeType.JSON);
 }
 
-function showCustomConfirm(title, message, isDanger = false) {
-  return new Promise((resolve) => {
-    const modal = document.getElementById("customConfirmModal");
-    const titleEl = document.getElementById("confirmModalTitle");
-    const msgEl = document.getElementById("confirmModalMessage");
-    const btnConfirm = document.getElementById("btnModalConfirm");
-    const btnCancel = document.getElementById("btnModalCancel");
+function checkExistsDinhVi(data) {
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const searchType = data.search_type || "MKH";
+  const searchValue = String(data.search_value || "").trim().toUpperCase();
 
-    titleEl.innerText = title;
-    titleEl.style.color = isDanger ? "#dc3545" : "#007bff";
-    msgEl.innerText = message;
-    btnConfirm.style.background = isDanger ? "#dc3545" : "#28a745";
+  const sheetDV = ss.getSheetByName("dinh_vi");
+  if (sheetDV && sheetDV.getLastRow() >= 2) {
+    const valuesDV = sheetDV.getRange(2, 1, sheetDV.getLastRow() - 1, 15).getValues();
+    
+    for (let i = 0; i < valuesDV.length; i++) {
+      const maKh = String(valuesDV[i][1] || "").trim().toUpperCase();
+      const soCto = String(valuesDV[i][3] || "").trim().toUpperCase();
+      const trangThai = Number(valuesDV[i][14]);
 
-    modal.style.display = "flex";
+      let isMatch = false;
+      if (searchType === "MKH" && maKh === searchValue) {
+        isMatch = true;
+      } else if (searchType === "NO") {
+        const soCto8 = soCto.length >= 8 ? soCto.slice(-8) : soCto;
+        if (soCto8 === searchValue) isMatch = true;
+      }
 
-    btnConfirm.onclick = () => {
-      modal.style.display = "none";
-      resolve(true);
-    };
-
-    btnCancel.onclick = () => {
-      modal.style.display = "none";
-      resolve(false);
-    };
-  });
-}
-
-function loadChiSoData() {
-  document.getElementById("listContainer").innerHTML = "<p style='text-align:center; padding-top:20px;'>⏳ Đang tải dữ liệu...</p>";
-  fetch(API_URL, {
-    method: "POST",
-    headers: { "Content-Type": "text/plain;charset=utf-8" },
-    body: JSON.stringify({ action: "GET_CHISO_DATA", ten_ndung: currentUser.ten_ndung })
-  })
-  .then(res => res.json())
-  .then(res => {
-    if (res.status === "success") {
-      groupAndRender(res.list);
-    } else {
-      document.getElementById("listContainer").innerHTML = "<p style='color:red; text-align:center;'>Lỗi: " + res.message + "</p>";
+      if (isMatch && trangThai === 1) {
+        return responseJSON({ 
+          status: "exists", 
+          message: `Mã/Số CTơ đã tồn tại trong bảng định vị!`,
+          ma_khang: maKh
+        });
+      }
     }
-  })
-  .catch(() => {
-    document.getElementById("listContainer").innerHTML = "<p style='color:red; text-align:center;'>Lỗi kết nối máy chủ!</p>";
-  });
+  }
+
+  const customerInfo = getCustomerInfoFast(ss, searchValue, searchType);
+  if (!customerInfo) {
+    return responseJSON({ 
+      status: "not_found", 
+      message: `Không tìm thấy khách hàng với ${searchType === "MKH" ? "Mã KH" : "Số công tơ"}: ${searchValue}` 
+    });
+  }
+
+  return responseJSON({ status: "success", customerInfo: customerInfo });
 }
 
-function groupAndRender(flatList) {
-  groupedData = {};
-  flatList.forEach(item => {
-    const makh = item.ma_khang;
-    if (!groupedData[makh]) {
-      groupedData[makh] = {
-        ma_khang: item.ma_khang,
-        ten_khang: item.ten_khang,
-        dia_chi: item.dia_chi,
-        ma_sogcs: item.ma_sogcs,
-        danh_so: item.danh_so,
-        so_cot: item.so_cot,
-        ten_tram: item.ten_tram,
-        so_cto: item.so_cto,
-        so_dthoai: item.so_dthoai || "",
-        ghi_chu: item.ghi_chu || "",
-        items: []
+function getCustomerInfoFast(ss, searchValue, searchType) {
+  if (!searchValue) return null;
+  const sheet = ss.getSheetByName("khach_hang");
+  if (!sheet || sheet.getLastRow() < 2) return null;
+
+  const searchStr = String(searchValue).trim().toUpperCase();
+  const colIndex = searchType === "MKH" ? 1 : 3;
+  const range = sheet.getRange(2, colIndex, sheet.getLastRow() - 1, 1);
+
+  const finder = range.createTextFinder(searchStr);
+  if (searchType === "MKH") {
+    finder.matchEntireCell(true);
+  } else {
+    finder.matchEntireCell(false);
+  }
+
+  const results = finder.findAll();
+  if (!results || results.length === 0) return null;
+
+  for (let cell of results) {
+    const row = cell.getRow();
+    const rowData = sheet.getRange(row, 1, 1, 6).getValues()[0];
+    const maKh = String(rowData[0] || "").trim().toUpperCase();
+    const soCtoFull = String(rowData[2] || "").trim();
+
+    let isMatch = false;
+    if (searchType === "MKH" && maKh === searchStr) {
+      isMatch = true;
+    } else if (searchType === "NO") {
+      const soCto8 = soCtoFull.length >= 8 ? soCtoFull.slice(-8).toUpperCase() : soCtoFull.toUpperCase();
+      if (soCto8 === searchStr) isMatch = true;
+    }
+
+    if (isMatch) {
+      return {
+        ma_khang: maKh,
+        ten_khang: String(rowData[1] || "").trim(),
+        so_cto: soCtoFull,
+        ma_tram: String(rowData[3] || "").trim(),
+        ten_tram: String(rowData[4] || "").trim(),
+        so_cot: String(rowData[5] || "").trim()
       };
     }
-    groupedData[makh].items.push(item);
-  });
-
-  Object.keys(groupedData).forEach(makh => {
-    groupedData[makh].items.sort((a, b) => {
-      let idxA = BCS_ORDER.indexOf(String(a.bcs).toUpperCase().trim());
-      let idxB = BCS_ORDER.indexOf(String(b.bcs).toUpperCase().trim());
-      return (idxA === -1 ? 99 : idxA) - (idxB === -1 ? 99 : idxB);
-    });
-  });
-
-  updateSummaryBar();
-  renderGroupedList(groupedData);
+  }
+  return null;
 }
 
-function updateSummaryBar() {
-  const keys = Object.keys(groupedData);
-  const tongKh = keys.length;
-  let daCoCS = 0;
+function loginUser(data) {
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const sheetNV = ss.getSheetByName("nhan_vien");
+  if (!sheetNV || sheetNV.getLastRow() < 2) return responseJSON({ status: "error", message: "Không tìm thấy dữ liệu" });
 
-  keys.forEach(makh => {
-    const hasCS = groupedData[makh].items.some(i => i.chiso_moi !== "" && i.chiso_moi !== undefined && i.chiso_moi !== null);
-    if (hasCS) daCoCS++;
-  });
+  const targetUser = String(data.ten_ndung || "").trim().toLowerCase();
+  const targetPass = String(data.mat_khau || "").trim();
 
-  const chuaGhi = tongKh - daCoCS;
+  const range = sheetNV.getRange(2, 1, sheetNV.getLastRow() - 1, 1);
+  const finder = range.createTextFinder(targetUser).matchEntireCell(true);
+  const result = finder.findNext();
 
-  document.getElementById("sumTongKh").innerText = tongKh;
-  document.getElementById("sumDaCS").innerText = daCoCS;
-  document.getElementById("sumChuaGhi").innerText = chuaGhi;
+  if (!result) {
+    return responseJSON({ status: "error", message: "Tên người dùng không tồn tại!" });
+  }
+
+  const row = result.getRow();
+  const rowData = sheetNV.getRange(row, 1, 1, 3).getValues()[0];
+  const actualUser = String(rowData[0]).trim();
+  const nameInSheet = String(rowData[1]).trim();
+  const passInSheet = String(rowData[2]).trim();
+
+  if (passInSheet !== targetPass) {
+    return responseJSON({ status: "error", message: "Mật khẩu không chính xác!" });
+  }
+
+  const sheetLog = ss.getSheetByName("log_dangnhap");
+  if (sheetLog) {
+    const timeLog = data.time_log || Utilities.formatDate(new Date(), "GMT+7", "dd/MM/yyyy HH:mm:ss");
+    sheetLog.appendRow([actualUser, timeLog]);
+  }
+
+  return responseJSON({ status: "success", ten_ndung: actualUser, ten_nvien: nameInSheet });
 }
 
-function filterChuaGhi() {
-  document.getElementById("searchInput").value = "";
-  const filteredGroups = {};
+function changePassword(data) {
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const sheetNV = ss.getSheetByName("nhan_vien");
+  if (!sheetNV) return responseJSON({ status: "error", message: "Không tìm thấy sheet nhan_vien" });
 
-  Object.keys(groupedData).forEach(makh => {
-    const cust = groupedData[makh];
-    const hasCS = cust.items.some(i => i.chiso_moi !== "" && i.chiso_moi !== undefined && i.chiso_moi !== null);
-    if (!hasCS) {
-      filteredGroups[makh] = cust;
+  const values = sheetNV.getDataRange().getValues();
+  const targetUser = String(data.ten_ndung || "").trim().toLowerCase();
+  const oldPass = String(data.mat_khau_cu || "").trim();
+  const newPass = String(data.mat_khau_moi || "").trim();
+
+  for (let i = 1; i < values.length; i++) {
+    const userInSheet = String(values[i][0] || "").trim().toLowerCase();
+    const passInSheet = String(values[i][2] || "").trim();
+
+    if (userInSheet === targetUser) {
+      if (passInSheet !== oldPass) return responseJSON({ status: "error", message: "Mật khẩu cũ không đúng!" });
+      sheetNV.getRange(i + 1, 3).setValue(newPass);
+      return responseJSON({ status: "success", message: "Đổi mật khẩu thành công!" });
     }
-  });
-
-  renderGroupedList(filteredGroups);
-}
-
-function selectCustomer(maKhang) {
-  activeMaKhang = maKhang;
-  document.querySelectorAll('.customer-card.active').forEach(card => card.classList.remove('active'));
-  const targetCard = document.getElementById(`card_${maKhang}`);
-  if (targetCard) targetCard.classList.add('active');
-}
-
-function updateRowDetail(maKhang, bcs, sanLuong, sluongThao, sluongKt) {
-  selectCustomer(maKhang);
-  const detailEl = document.getElementById(`detail_info_${maKhang}`);
-  if (detailEl) {
-    const mapSpan = document.getElementById(`map_link_${maKhang}`);
-    const mapHtml = mapSpan ? mapSpan.outerHTML : '';
-    detailEl.innerHTML = `
-      <span>${mapHtml}</span>
-      <span>SL Tháo(<b>${bcs}</b>): <b>${sluongThao}</b></span>
-      <span>SL KT: <b>${sluongKt}</b></span>
-    `;
   }
+  return responseJSON({ status: "error", message: "Không tìm thấy thông tin tài khoản!" });
 }
 
-// TỐI ƯU HÀM RENDER DÙNG CHUNK RENDERING
-function renderGroupedList(groups) {
-  const container = document.getElementById("listContainer");
-  const keys = Object.keys(groups);
-
-  if (keys.length === 0) {
-    container.innerHTML = "<p style='text-align:center; padding-top:20px;'>Không có dữ liệu khách hàng.</p>";
-    return;
-  }
-
-  container.innerHTML = "";
+function getInitData() {
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const sheetDinhVi = ss.getSheetByName("dinh_vi");
+  let locations = [];
   
-  const CHUNK_SIZE = 30; // Render trước 30 khách hàng để hiện ngay màn hình
-  let currentIndex = 0;
-
-  function renderChunk() {
-    const nextKeys = keys.slice(currentIndex, currentIndex + CHUNK_SIZE);
-    if (nextKeys.length === 0) return;
-
-    let html = "";
-    nextKeys.forEach(makh => {
-      const cust = groups[makh];
-      const isActive = (makh === activeMaKhang) ? "active" : "";
-      const firstItem = cust.items[0] || {};
-      const cotTramText = [cust.so_cot, cust.ten_tram].filter(Boolean).join(" - ");
-      const hasLocation = Boolean(firstItem.lat && firstItem.lng);
-      
-      let mapLinkHtml = `<span id="map_link_${cust.ma_khang}" style="color:#dc3545; font-weight:bold;">🌏 Chưa có tọa độ</span>`;
-      if (hasLocation) {
-        mapLinkHtml = `<span id="map_link_${cust.ma_khang}"><a href="https://www.google.com/maps?q=${firstItem.lat},${firstItem.lng}" target="_blank" style="color:#007bff; font-weight:bold; text-decoration:none;">🌏 Xem Google Maps</a></span>`;
-      }
-
-      const alreadyHasCS = cust.items.some(i => i.chiso_moi !== "" && i.chiso_moi !== undefined && i.chiso_moi !== null);
-
-      html += `
-        <div class="customer-card ${isActive}" id="card_${cust.ma_khang}" onclick="selectCustomer('${cust.ma_khang}')">
-          <div class="cust-header">
-            <div class="cust-title">${cust.ma_khang} - ${cust.ten_khang}</div>
-            <div class="cust-address">Địa chỉ: ${cust.dia_chi || ''}</div>
-            
-            <div class="cust-row-group">
-              <span style="width: 100%; font-size: 11.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
-                Sổ:<b>${cust.ma_sogcs || ''}</b>  DS:<b>${cust.danh_so || ''}</b>  NO:<b>${cust.so_cto || ''}</b>  ĐT:<b>${cust.so_dthoai || ''}</b>
-              </span>
-            </div>
-
-            <div class="cust-row-group">
-              <span class="flex-1">Cột-Trạm: <b>${cotTramText || ''}</b></span>
-            </div>
-
-            <div class="cust-row-group" style="margin-top: 3px;">
-              <span style="padding-left:0; color:#000; min-width:55px;">Ghi chú:</span>
-              <input type="text" 
-                     class="input-ghichu" 
-                     id="ghi_chu_${cust.ma_khang}" 
-                     value="${cust.ghi_chu || ''}" 
-                     placeholder="Nhập, sửa ghi chú nếu có..." 
-                     style="font-style: italic; font-weight: normal;"
-                     onclick="event.stopPropagation(); selectCustomer('${cust.ma_khang}');"
-                     onchange="groupedData['${cust.ma_khang}'].ghi_chu = this.value;">
-            </div>
-
-            <div class="cust-dynamic-info-v2" id="detail_info_${cust.ma_khang}">
-              <span>${mapLinkHtml}</span>
-              <span>SL Tháo(<b>${firstItem.bcs}</b>): <b>${firstItem.sluong_thao || 0}</b></span>
-              <span>SL KT: <b>${firstItem.sluong_kt || 0}</b></span>
-            </div>
-          </div>
-
-          <div class="table-responsive">
-            <table class="chiso-table">
-              <thead>
-                <tr>
-                  <th style="width: 12%;">BCS</th>
-                  <th style="width: 18%;">CS cũ</th>
-                  <th style="width: 26%;">CS mới</th>
-                  <th style="width: 18%;">Tổng SL</th>
-                  <th style="width: 13%;">C.Lệch</th>
-                  <th style="width: 13%;">Tỷ lệ</th>
-                </tr>
-              </thead>
-              <tbody>
-      `;
-
-      cust.items.forEach(item => {
-        const csMoiVal = (item.chiso_moi !== "" && item.chiso_moi !== undefined && item.chiso_moi !== null) ? item.chiso_moi : "";
-        const isDisabled = !hasLocation ? "disabled" : "";
-
-        html += `
-          <tr id="row_${item.rowIndex}" onclick="event.stopPropagation(); updateRowDetail('${cust.ma_khang}', '${item.bcs}', document.getElementById('sl_val_${item.rowIndex}').value, ${item.sluong_thao}, ${item.sluong_kt});">
-            <td class="text-center" style="padding: 4px 2px;"><span class="bcs-badge">${item.bcs}</span></td>
-            <td class="val-calc-large text-right">${item.chiso_cu}</td>
-            <td class="td-input-container">
-              <input type="number" 
-                     class="input-cs-moi" 
-                     id="cs_moi_${item.rowIndex}" 
-                     value="${csMoiVal}" ${isDisabled}
-                     onclick="event.stopPropagation(); updateRowDetail('${cust.ma_khang}', '${item.bcs}', document.getElementById('sl_val_${item.rowIndex}').value, ${item.sluong_thao}, ${item.sluong_kt});"
-                     oninput="calculateRow('${cust.ma_khang}', '${item.bcs}', ${item.rowIndex}, ${item.chiso_cu}, ${item.hsn}, ${item.sluong_thao}, ${item.sluong_kt})">
-              <input type="hidden" id="sl_val_${item.rowIndex}" value="${item.san_luong !== "" && item.san_luong !== undefined ? item.san_luong : '-'}">
-            </td>
-            <td id="tong_sl_${item.rowIndex}" class="val-calc-large text-right">${item.tong_sluong !== "" && item.tong_sluong !== undefined ? item.tong_sluong : '-'}</td>
-            <td id="clech_${item.rowIndex}" class="val-highlight text-right">${item.chenh_lech !== "" && item.chenh_lech !== undefined ? item.chenh_lech : '-'}</td>
-            <td id="tyle_${item.rowIndex}" class="val-highlight text-right">${item.tyle_clech !== "" && item.tyle_clech !== undefined ? item.tyle_clech : '-'}</td>
-          </tr>
-        `;
-      });
-
-      const saveDisabledAttr = !hasLocation ? "disabled" : "";
-      const cancelDisabledAttr = !alreadyHasCS ? "disabled" : "";
-
-      html += `
-              </tbody>
-            </table>
-          </div>
-
-          <div class="card-btn-group">
-            <button class="btn-card btn-card-location" onclick="event.stopPropagation(); getLocation('${cust.ma_khang}')">ĐỊNH VỊ</button>
-            <button class="btn-card btn-card-save" id="btn_save_${cust.ma_khang}" ${saveDisabledAttr} onclick="event.stopPropagation(); saveCustomerData('${cust.ma_khang}')">LƯU</button>
-            <button class="btn-card btn-card-cancel" id="btn_cancel_${cust.ma_khang}" ${cancelDisabledAttr} onclick="event.stopPropagation(); cancelCustomerData('${cust.ma_khang}')">HỦY</button>
-          </div>
-        </div>
-      `;
-    });
-
-    const tempDiv = document.createElement("div");
-    tempDiv.innerHTML = html;
-    while (tempDiv.firstChild) {
-      container.appendChild(tempDiv.firstChild);
-    }
-
-    currentIndex += CHUNK_SIZE;
-    if (currentIndex < keys.length) {
-      setTimeout(renderChunk, 0); // Đưa công việc tiếp theo vào Event Loop để không khóa UI
-    }
+  if (sheetDinhVi && sheetDinhVi.getLastRow() >= 2) {
+    const values = sheetDinhVi.getRange(2, 1, sheetDinhVi.getLastRow() - 1, 15).getValues();
+    locations = values
+      .filter(row => String(row[14]) === "1")
+      .reverse()
+      .map(row => ({
+        id: String(row[0]).trim(),
+        ma_khang: row[1],
+        ten_khang: row[2],
+        so_cto: row[3],
+        ma_tram: row[4],
+        ten_tram: row[5],
+        so_cot: row[6],
+        ten_ndung: String(row[7] || "").trim(),
+        ten_nvien: row[8],
+        ten_cviec: row[9],
+        note: row[10],
+        lat: row[11],
+        lng: row[12],
+        time: row[13],
+        trang_thai: Number(row[14])
+      }));
   }
 
-  renderChunk();
+  const sheetCV = ss.getSheetByName("cong_viec");
+  let cong_viec = [];
+  if (sheetCV && sheetCV.getLastRow() >= 2) {
+    cong_viec = sheetCV.getRange(2, 1, sheetCV.getLastRow() - 1, 1).getValues()
+      .map(r => String(r[0]).trim()).filter(v => v !== "");
+  }
+
+  return responseJSON({ status: "success", locations: locations, cong_viec: cong_viec });
 }
 
-async function getLocation(maKhang) {
-  selectCustomer(maKhang);
-  const cust = groupedData[maKhang];
-  const firstItem = cust ? cust.items[0] : {};
-
-  const hasCoords = (firstItem && firstItem.lat && firstItem.lng) || currentLocations[maKhang];
-
-  if (hasCoords) {
-    const confirmAgain = await showCustomConfirm("LẤY TỌA ĐỘ GPS", `Bạn có muốn lấy lại tọa độ mới cho mã khách hàng ${maKhang} này không?`);
-    if (!confirmAgain) return;
+function addDinhVi(loc) {
+  const lock = LockService.getScriptLock();
+  try {
+    lock.waitLock(30000); // Chờ tối đa 30s nếu có máy khác đang lưu
+  } catch (e) {
+    return responseJSON({ status: "error", message: "Hệ thống đang quá tải, vui lòng thử lại sau vài giây!" });
   }
 
-  if (navigator.geolocation) {
-    showToast(`⏳ Đang lấy vị trí GPS...`);
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        const lat = position.coords.latitude;
-        const lng = position.coords.longitude;
-        currentLocations[maKhang] = { lat, lng };
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const sheet = ss.getSheetByName("dinh_vi");
+    if (!sheet) return responseJSON({ status: "error", message: "Không tìm thấy sheet dinh_vi" });
 
-        const currentGhiChu = document.getElementById(`ghi_chu_${maKhang}`) ? document.getElementById(`ghi_chu_${maKhang}`).value : cust.ghi_chu;
+    const customerInfo = getCustomerInfoFast(ss, loc.search_value || loc.ma_khang, loc.search_type || "MKH");
+    if (!customerInfo) return responseJSON({ status: "error", message: "Không tìm thấy thông tin khách hàng" });
 
-        const payload = cust.items.map(item => ({
-          rowIndex: item.rowIndex,
-          chiso_cu: item.chiso_cu,
-          chiso_moi: "",
-          ghi_chu: currentGhiChu,
-          lat: lat,
-          lng: lng,
-          nhap_cmis: 0
-        }));
+    const lastRow = sheet.getLastRow();
+    let rowIndexToUpdate = -1;
 
-        showToast(`⏳ Đang lưu tọa độ GPS...`);
-        fetch(API_URL, {
-          method: "POST",
-          headers: { "Content-Type": "text/plain;charset=utf-8" },
-          body: JSON.stringify({
-            action: "SAVE_CHISO",
-            ten_ndung: currentUser.ten_ndung,
-            ten_nvien: currentUser.ten_nvien,
-            items: payload
-          })
-        })
-        .then(res => res.json())
-        .then(res => {
-          if (res.status === "success") {
-            showToast("📍 Đã lấy & lưu tọa độ thành công!");
-            
-            cust.items.forEach(it => { it.lat = lat; it.lng = lng; });
-            enableInputsAndSaveBtn(maKhang);
-            
-            const mapSpan = document.getElementById(`map_link_${maKhang}`);
-            if (mapSpan) {
-              mapSpan.innerHTML = `<a href="https://www.google.com/maps?q=${lat},${lng}" target="_blank" style="color:#007bff; font-weight:bold; text-decoration:none;">🌏 Xem Google Maps</a>`;
-            }
-          } else {
-            showToast("❌ Lỗi lưu định vị: " + res.message);
+    if (lastRow >= 2) {
+      const values = sheet.getRange(2, 2, lastRow - 1, 14).getValues();
+      for (let i = 0; i < values.length; i++) {
+        if (String(values[i][0]).trim().toUpperCase() === customerInfo.ma_khang) {
+          if (Number(values[i][13]) === 1) {
+            return responseJSON({ status: "error", message: `Khách hàng ${customerInfo.ma_khang} đã tồn tại!` });
+          } else if (Number(values[i][13]) === 0) {
+            rowIndexToUpdate = i + 2;
+            break;
           }
-        })
-        .catch(() => showToast("❌ Lỗi kết nối máy chủ!"));
-      },
-      (error) => { showToast("❌ Không thể lấy GPS! Bật vị trí thiết bị."); },
-      { enableHighAccuracy: true, timeout: 10000 }
-    );
-  } else {
-    showToast("❌ Thiết bị không hỗ trợ GPS!");
-  }
-}
-
-function enableInputsAndSaveBtn(maKhang) {
-  const card = document.getElementById(`card_${maKhang}`);
-  if (!card) return;
-
-  card.querySelectorAll('.input-cs-moi').forEach(input => input.disabled = false);
-  
-  const btnSave = document.getElementById(`btn_save_${maKhang}`);
-  if (btnSave) btnSave.disabled = false;
-}
-
-function checkCancelButtonStatus(maKhang) {
-  const cust = groupedData[maKhang];
-  if (!cust) return;
-
-  let hasNewCS = false;
-  cust.items.forEach(item => {
-    const inputEl = document.getElementById(`cs_moi_${item.rowIndex}`);
-    if (inputEl && inputEl.value !== "") {
-      hasNewCS = true;
-    }
-  });
-
-  const btnCancel = document.getElementById(`btn_cancel_${maKhang}`);
-  if (btnCancel) {
-    btnCancel.disabled = !hasNewCS;
-  }
-}
-
-function calculateRow(maKhang, bcs, rowIndex, csCu, hsn, sluongThao, sluongKt) {
-  const inputEl = document.getElementById(`cs_moi_${rowIndex}`);
-  const val = inputEl.value;
-
-  const slHiddenEl = document.getElementById(`sl_val_${rowIndex}`);
-  const tongSlCell = document.getElementById(`tong_sl_${rowIndex}`);
-  const clechCell = document.getElementById(`clech_${rowIndex}`);
-  const tyleCell = document.getElementById(`tyle_${rowIndex}`);
-
-  if (val === "" || isNaN(val)) {
-    slHiddenEl.value = "-";
-    tongSlCell.innerText = "-";
-    clechCell.innerText = "-";
-    tyleCell.innerText = "-";
-    updateRowDetail(maKhang, bcs, "-", sluongThao, sluongKt);
-    checkCancelButtonStatus(maKhang);
-    return;
-  }
-
-  const csMoi = Number(val);
-  const hsnVal = Number(hsn) || 1;
-  const slThao = Number(sluongThao) || 0;
-  const slKt = Number(sluongKt) || 0;
-
-  const sanLuong = Math.round((csMoi - csCu) * hsnVal);
-  const tongSluong = sanLuong + slThao;
-  const chenhLech = tongSluong - slKt;
-
-  let tyleClech = "0%";
-  if (slKt !== 0) {
-    const rawTyle = ((tongSluong - slKt) / slKt) * 100;
-    const prefix = rawTyle > 0 ? "+" : "";
-    tyleClech = prefix + rawTyle.toFixed(2) + "%";
-  }
-
-  slHiddenEl.value = sanLuong;
-  tongSlCell.innerText = tongSluong;
-  clechCell.innerText = chenhLech;
-  tyleCell.innerText = tyleClech;
-
-  updateRowDetail(maKhang, bcs, sanLuong, sluongThao, sluongKt);
-  checkCancelButtonStatus(maKhang);
-}
-
-function filterData() {
-  const q = document.getElementById("searchInput").value.toLowerCase().trim();
-  
-  if (!q) {
-    document.querySelectorAll('.customer-card.active').forEach(card => card.classList.remove('active'));
-    activeMaKhang = null;
-    return;
-  }
-
-  let foundMaKhang = null;
-
-  Object.keys(groupedData).forEach(makh => {
-    if (foundMaKhang) return;
-
-    const cust = groupedData[makh];
-    const ghiChuInput = document.getElementById(`ghi_chu_${makh}`);
-    const currentGhiChu = ghiChuInput ? ghiChuInput.value : (cust.ghi_chu || "");
-
-    const match = 
-      String(cust.ma_khang || "").toLowerCase().includes(q) ||
-      String(cust.ten_khang || "").toLowerCase().includes(q) ||
-      String(cust.dia_chi || "").toLowerCase().includes(q) ||
-      String(cust.so_cot || "").toLowerCase().includes(q) ||
-      String(cust.ten_tram || "").toLowerCase().includes(q) ||
-      String(cust.so_cto || "").toLowerCase().includes(q) ||
-      String(cust.ma_sogcs || "").toLowerCase().includes(q) ||
-      String(cust.danh_so || "").toLowerCase().includes(q) ||
-      String(cust.so_dthoai || "").toLowerCase().includes(q) ||
-      String(currentGhiChu).toLowerCase().includes(q);
-
-    if (match) {
-      foundMaKhang = makh;
-    }
-  });
-
-  if (foundMaKhang) {
-    selectCustomer(foundMaKhang);
-    const targetCard = document.getElementById(`card_${foundMaKhang}`);
-    if (targetCard) {
-      targetCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    }
-  }
-}
-
-async function saveCustomerData(maKhang) {
-  const cust = groupedData[maKhang];
-  if (!cust) return;
-
-  const ghiChuInput = document.getElementById(`ghi_chu_${maKhang}`);
-  const newGhiChu = ghiChuInput ? ghiChuInput.value.trim() : (cust.ghi_chu || "");
-
-  let warningMsgs = [];
-  cust.items.forEach(item => {
-    const inputEl = document.getElementById(`cs_moi_${item.rowIndex}`);
-    if (inputEl && inputEl.value !== "") {
-      const csMoi = Number(inputEl.value);
-      const hsnVal = Number(item.hsn) || 1;
-      const slThao = Number(item.sluong_thao) || 0;
-      const slKt = Number(item.sluong_kt) || 0;
-
-      const sanLuong = Math.round((csMoi - item.chiso_cu) * hsnVal);
-      const tongSluong = sanLuong + slThao;
-
-      if (slKt !== 0) {
-        const percentChange = ((tongSluong - slKt) / slKt) * 100;
-        if (percentChange > 50) {
-          warningMsgs.push(`* ${item.bcs}: Slượng tăng ${percentChange.toFixed(1)}% so với kỳ trước.`);
-        } else if (percentChange < -50) {
-          warningMsgs.push(`* ${item.bcs}: Slượng giảm ${Math.abs(percentChange).toFixed(1)}% so với kỳ trước.`);
         }
       }
     }
-  });
 
-  let isWarning = warningMsgs.length > 0;
-  let confirmMessage = isWarning 
-    ? warningMsgs.join("\n") + "\n⚡Kiểm tra chỉ số trên công tơ kỹ lại.\n📂 Bạn vẫn muốn xác nhận ghi dữ liệu?" 
-    : "Xác nhận ghi dữ liệu chỉ số và ghi chú?";
+    const id = String(loc.id || Date.now()).trim();
+    const rowData = [
+      id, customerInfo.ma_khang, customerInfo.ten_khang, customerInfo.so_cto,
+      customerInfo.ma_tram, customerInfo.ten_tram, customerInfo.so_cot,
+      loc.ten_ndung || "", loc.ten_nvien || "", loc.ten_cviec || "",
+      loc.note || "", loc.lat || "", loc.lng || "", loc.time || "", 1
+    ];
 
-  const confirmSave = await showCustomConfirm(
-    isWarning ? "CẢNH BÁO SẢN LƯỢNG" : "XÁC NHẬN GHI DỮ LIỆU",
-    confirmMessage,
-    isWarning
-  );
+    if (rowIndexToUpdate !== -1) {
+      sheet.getRange(rowIndexToUpdate, 1, 1, 15).setValues([rowData]);
+    } else {
+      sheet.appendRow(rowData);
+    }
 
-  if (!confirmSave) return;
+    return responseJSON({ 
+      status: "success", ten_khang: customerInfo.ten_khang, ma_khang: customerInfo.ma_khang, 
+      so_cto: customerInfo.so_cto, ma_tram: customerInfo.ma_tram, ten_tram: customerInfo.ten_tram, 
+      so_cot: customerInfo.so_cot, id: id 
+    });
+  } finally {
+    lock.releaseLock();
+  }
+}
 
-  const loc = currentLocations[maKhang] || {};
-  const payload = [];
+function editDinhVi(data) {
+  const lock = LockService.getScriptLock();
+  try {
+    lock.waitLock(30000);
+  } catch (e) {
+    return responseJSON({ status: "error", message: "Hệ thống đang bận, vui lòng thử lại sau!" });
+  }
 
-  cust.items.forEach(item => {
-    const inputEl = document.getElementById(`cs_moi_${item.rowIndex}`);
-    if (inputEl) {
-      payload.push({
-        rowIndex: item.rowIndex,
-        chiso_cu: item.chiso_cu,
-        chiso_moi: inputEl.value !== "" ? Number(inputEl.value) : "",
-        ghi_chu: newGhiChu,
-        hsn: item.hsn,
-        sluong_thao: item.sluong_thao,
-        sluong_kt: item.sluong_kt,
-        lat: loc.lat || item.lat || "",
-        lng: loc.lng || item.lng || "",
-        nhap_cmis: 0
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const sheet = ss.getSheetByName("dinh_vi");
+    if (!sheet) return responseJSON({ status: "error", message: "Không tìm thấy sheet dinh_vi" });
+
+    const targetId = String(data.id || "").trim();
+    const ids = sheet.getRange(2, 1, sheet.getLastRow() - 1, 1).getValues();
+    let rowIndex = -1;
+    for (let i = 0; i < ids.length; i++) {
+      if (String(ids[i][0]).trim() === targetId) {
+        rowIndex = i + 2;
+        break;
+      }
+    }
+
+    if (rowIndex === -1) return responseJSON({ status: "error", message: "Không tìm thấy dữ liệu" });
+
+    const customerInfo = getCustomerInfoFast(ss, data.search_value || data.ma_khang, data.search_type || "MKH");
+    if (!customerInfo) return responseJSON({ status: "error", message: "Không tìm thấy khách hàng" });
+
+    const rowValues = [
+      customerInfo.ma_khang, customerInfo.ten_khang, customerInfo.so_cto,
+      customerInfo.ma_tram, customerInfo.ten_tram, customerInfo.so_cot,
+      data.ten_ndung, data.ten_nvien || "", data.ten_cviec || "", data.note || ""
+    ];
+    sheet.getRange(rowIndex, 2, 1, 10).setValues([rowValues]);
+
+    if (data.lat && data.lng) {
+      sheet.getRange(rowIndex, 12, 1, 3).setValues([[data.lat, data.lng, data.time || ""]]);
+    }
+
+    return responseJSON({ 
+      status: "success", ten_khang: customerInfo.ten_khang, ma_khang: customerInfo.ma_khang, 
+      so_cto: customerInfo.so_cto, ma_tram: customerInfo.ma_tram, ten_tram: customerInfo.ten_tram, so_cot: customerInfo.so_cot
+    });
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+function deleteDinhVi(data) {
+  const lock = LockService.getScriptLock();
+  try {
+    lock.waitLock(30000);
+  } catch (e) {
+    return responseJSON({ status: "error", message: "Hệ thống đang bận, vui lòng thử lại sau!" });
+  }
+
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const sheet = ss.getSheetByName("dinh_vi");
+    if (!sheet) return responseJSON({ status: "error", message: "Không tìm thấy sheet dinh_vi" });
+
+    const targetId = String(data.id).trim();
+    const ids = sheet.getRange(2, 1, sheet.getLastRow() - 1, 1).getValues();
+
+    for (let i = 0; i < ids.length; i++) {
+      if (String(ids[i][0]).trim() === targetId) {
+        sheet.getRange(i + 2, 15).setValue(0);
+        return responseJSON({ status: "success" });
+      }
+    }
+    return responseJSON({ status: "error", message: "Không tìm thấy id cần xóa" });
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+function getChiSoData(data) {
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const sheet = ss.getSheetByName("chi_so");
+  if (!sheet || sheet.getLastRow() < 2) return responseJSON({ status: "success", list: [] });
+
+  const currentUser = String(data.ten_ndung || "").trim().toLowerCase();
+  const values = sheet.getRange(2, 1, sheet.getLastRow() - 1, 30).getValues();
+
+  const list = [];
+  for (let i = 0; i < values.length; i++) {
+    const row = values[i];
+    const tenNdungInRow = String(row[8] || "").trim().toLowerCase();
+
+    if (tenNdungInRow === currentUser) {
+      list.push({
+        rowIndex: i + 2,
+        ma_khang: row[0],
+        ten_khang: row[1],
+        dia_chi: row[2],
+        ma_sogcs: row[3],
+        danh_so: row[4],
+        so_cot: row[5],
+        ten_tram: row[6],
+        so_cto: row[7],
+        ten_ndung: row[8],
+        ten_nvien: row[9],
+        hsn: Number(row[10]) || 1,
+        bcs: row[11],
+        chiso_cu: Number(row[12]) || 0,
+        chiso_moi: row[13] !== "" ? Number(row[13]) : "",
+        san_luong: row[14],
+        sluong_thao: Number(row[15]) || 0,
+        tong_sluong: row[16],
+        sluong_kt: Number(row[17]) || 0,
+        chenh_lech: row[18],
+        tyle_clech: row[19],
+        ngay_nhap: row[23] ? Utilities.formatDate(new Date(row[23]), "GMT+7", "dd/MM/yyyy HH:mm:ss") : "",
+        nguoi_nhap: row[24],
+        lat: row[25],
+        lng: row[26],
+        so_dthoai: row[27] || "",
+        ghi_chu: row[28] || "",
+        nhap_cmis: row[29] !== undefined ? row[29] : 0
       });
     }
+  }
+
+  list.sort((a, b) => {
+    const sogcsA = String(a.ma_sogcs || "").toUpperCase();
+    const sogcsB = String(b.ma_sogcs || "").toUpperCase();
+
+    if (sogcsA < sogcsB) return -1;
+    if (sogcsA > sogcsB) return 1;
+
+    const dsA = isNaN(a.danh_so) ? String(a.danh_so || "") : Number(a.danh_so);
+    const dsB = isNaN(b.danh_so) ? String(b.danh_so || "") : Number(b.danh_so);
+
+    if (dsA < dsB) return -1;
+    if (dsA > dsB) return 1;
+    return 0;
   });
 
-  showToast(`⏳ Đang lưu dữ liệu KH ${maKhang}...`);
-  fetch(API_URL, {
-    method: "POST",
-    headers: { "Content-Type": "text/plain;charset=utf-8" },
-    body: JSON.stringify({
-      action: "SAVE_CHISO",
-      ten_ndung: currentUser.ten_ndung,
-      ten_nvien: currentUser.ten_nvien,
-      items: payload
-    })
-  })
-  .then(res => res.json())
-  .then(res => {
-    if (res.status === "success") {
-      showToast("✅ " + res.message);
+  return responseJSON({ status: "success", list: list });
+}
 
-      cust.ghi_chu = newGhiChu;
-      cust.items.forEach(item => {
-        const inputEl = document.getElementById(`cs_moi_${item.rowIndex}`);
-        if (inputEl && inputEl.value !== "") {
-          item.chiso_moi = Number(inputEl.value);
-          item.san_luong = document.getElementById(`sl_val_${item.rowIndex}`).value;
-          item.tong_sluong = document.getElementById(`tong_sl_${item.rowIndex}`).innerText;
-          item.chenh_lech = document.getElementById(`clech_${item.rowIndex}`).innerText;
-          item.tyle_clech = document.getElementById(`tyle_${item.rowIndex}`).innerText;
+// HÀM SAVE_CHISO ĐÃ ĐƯỢC BỔ SUNG LOCKSERVICE & TỐI ƯU CỰC ĐẠI
+function saveChiSo(data) {
+  const lock = LockService.getScriptLock();
+  try {
+    // Chờ tối đa 30 giây để lấy quyền ghi, tránh 25 máy cùng ghi gây đè ô
+    lock.waitLock(30000);
+  } catch (e) {
+    return responseJSON({ status: "error", message: "Hệ thống đang quá tải ghi dữ liệu, vui lòng bấm lưu lại!" });
+  }
+
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const sheet = ss.getSheetByName("chi_so");
+    if (!sheet) return responseJSON({ status: "error", message: "Không tìm thấy sheet chi_so" });
+
+    const items = data.items || [];
+    if (items.length === 0) return responseJSON({ status: "success", message: "Không có dữ liệu cần cập nhật!" });
+
+    const nowStr = Utilities.formatDate(new Date(), "GMT+7", "dd/MM/yyyy HH:mm:ss");
+    const nguoiNhap = data.ten_nvien || data.ten_ndung;
+
+    items.forEach(item => {
+      const r = item.rowIndex;
+
+      // 1. Cập nhật Ghi chú vào cột AC (cột 29)
+      if (item.ghi_chu !== undefined) {
+        sheet.getRange(r, 29).setValue(item.ghi_chu);
+      }
+
+      // 2. Cập nhật chỉ số mới và tính toán các cột N, O, Q, S, T, X, Y, AD
+      if (item.chiso_moi !== "" && item.chiso_moi !== null && !isNaN(item.chiso_moi)) {
+        const csMoi = Number(item.chiso_moi);
+        const csCu = Number(item.chiso_cu) || 0;
+        const hsn = Number(item.hsn) || 1;
+        const sluongThao = Number(item.sluong_thao) || 0;
+        const sluongKt = Number(item.sluong_kt) || 0;
+
+        const sanLuong = Math.round((csMoi - csCu) * hsn);
+        const tongSluong = sanLuong + sluongThao;
+        const chenhLech = tongSluong - sluongKt;
+        const tyleClech = sluongKt !== 0 ? ((tongSluong / sluongKt) * 100).toFixed(2) + "%" : "0%";
+
+        // Ghi đồng thời dải cột N (14) đến T (20)
+        sheet.getRange(r, 14, 1, 7).setValues([[
+          csMoi,      // N (14): CS mới
+          sanLuong,   // O (15): Sản lượng
+          sluongThao, // P (16): Giữ nguyên
+          tongSluong, // Q (17): Tổng SL
+          sluongKt,   // R (18): Giữ nguyên
+          chenhLech,  // S (19): Chênh lệch
+          tyleClech   // T (20): Tỷ lệ chênh lệch
+        ]]);
+
+        // Cập nhật Ngày nhập (X), Người nhập (Y)
+        sheet.getRange(r, 24, 1, 2).setValues([[nowStr, nguoiNhap]]);
+
+        // Đặt giá trị 0 vào cột AD (cột 30) khi thực hiện LƯU
+        sheet.getRange(r, 30).setValue(0);
+      }
+
+      // 3. Cập nhật Tọa độ Lat (Z/26), Lng (AA/27)
+      if (item.lat !== undefined && item.lat !== "" && item.lng !== undefined && item.lng !== "") {
+        sheet.getRange(r, 26, 1, 2).setValues([[item.lat, item.lng]]);
+        if (!sheet.getRange(r, 24).getValue()) {
+          sheet.getRange(r, 24, 1, 2).setValues([[nowStr, nguoiNhap]]);
         }
-      });
+      }
+    });
 
-      updateSummaryBar();
-      checkCancelButtonStatus(maKhang);
-    } else {
-      showToast("❌ " + res.message);
-    }
-  })
-  .catch(() => showToast("❌ Lỗi hệ thống khi lưu!"));
+    return responseJSON({ status: "success", message: "Cập nhật dữ liệu thành công!" });
+  } finally {
+    lock.releaseLock(); // Luôn giải phóng khóa sau khi thực hiện xong
+  }
 }
 
-async function cancelCustomerData(maKhang) {
-  const cust = groupedData[maKhang];
-  if (!cust) return;
+function cancelChiSo(data) {
+  const lock = LockService.getScriptLock();
+  try {
+    lock.waitLock(30000);
+  } catch (e) {
+    return responseJSON({ status: "error", message: "Hệ thống đang quá tải, vui lòng thử lại!" });
+  }
 
-  const confirmCancel = await showCustomConfirm(
-    "XÁC NHẬN HỦY", 
-    `Bạn có chắc chắn muốn HỦY chỉ số đã nhập của khách hàng ${maKhang}? (Ghi chú sẽ giữ nguyên)`,
-    true
-  );
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const sheet = ss.getSheetByName("chi_so");
+    if (!sheet) return responseJSON({ status: "error", message: "Không tìm thấy sheet chi_so" });
 
-  if (!confirmCancel) return;
+    const rowIndices = data.rowIndices || [];
 
-  const rowIndices = cust.items.map(item => item.rowIndex);
+    rowIndices.forEach(r => {
+      sheet.getRange(r, 14, 1, 2).clearContent();
+      sheet.getRange(r, 17).clearContent();
+      sheet.getRange(r, 19, 1, 2).clearContent();
+      sheet.getRange(r, 24, 1, 2).clearContent();
+    });
 
-  showToast(`⏳ Đang hủy chỉ số KH ${maKhang}...`);
-  fetch(API_URL, {
-    method: "POST",
-    headers: { "Content-Type": "text/plain;charset=utf-8" },
-    body: JSON.stringify({
-      action: "CANCEL_CHISO",
-      ten_ndung: currentUser.ten_ndung,
-      rowIndices: rowIndices
-    })
-  })
-  .then(res => res.json())
-  .then(res => {
-    if (res.status === "success") {
-      showToast("✅ " + res.message);
-
-      cust.items.forEach(item => {
-        item.chiso_moi = "";
-        item.san_luong = "-";
-        item.tong_sluong = "-";
-        item.chenh_lech = "-";
-        item.tyle_clech = "-";
-
-        const csMoiInput = document.getElementById(`cs_moi_${item.rowIndex}`);
-        if (csMoiInput) csMoiInput.value = "";
-
-        const slHiddenEl = document.getElementById(`sl_val_${item.rowIndex}`);
-        if (slHiddenEl) slHiddenEl.value = "-";
-
-        const tongSlCell = document.getElementById(`tong_sl_${item.rowIndex}`);
-        if (tongSlCell) tongSlCell.innerText = "-";
-
-        const clechCell = document.getElementById(`clech_${item.rowIndex}`);
-        if (clechCell) clechCell.innerText = "-";
-
-        const tyleCell = document.getElementById(`tyle_${item.rowIndex}`);
-        if (tyleCell) tyleCell.innerText = "-";
-      });
-
-      const btnCancel = document.getElementById(`btn_cancel_${maKhang}`);
-      if (btnCancel) btnCancel.disabled = true;
-
-      updateSummaryBar();
-    } else {
-      showToast("❌ " + res.message);
-    }
-  })
-  .catch(() => showToast("❌ Lỗi hệ thống!"));
-}
-
-function handleLogout() {
-  const logoutModal = document.getElementById('logoutModal');
-  if (logoutModal) logoutModal.style.display = 'flex';
-}
-
-function closeLogoutModal() {
-  const logoutModal = document.getElementById('logoutModal');
-  if (logoutModal) logoutModal.style.display = 'none';
-}
-
-function confirmLogout() {
-  localStorage.removeItem("cmis_user_session");
-  window.location.href = "login.html";
+    return responseJSON({ status: "success", message: "Đã hủy chỉ số của khách hàng!" });
+  } finally {
+    lock.releaseLock();
+  }
 }
