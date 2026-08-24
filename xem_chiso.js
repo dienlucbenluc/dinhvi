@@ -260,7 +260,7 @@ function renderGroupedList(groups) {
   renderChunk();
 }
 
-// Yêu cầu 5: Lưu trạng thái nhap_cmis = 1 cho các khách hàng đã check
+// Yêu cầu 5: Lưu trạng thái nhap_cmis = 0 cho các khách hàng đã check
 async function saveCheckedCMIS() {
   const checkedMaKhangs = [];
 
@@ -306,7 +306,7 @@ async function saveCheckedCMIS() {
       action: "UPDATE_NHAP_CMIS",
       ten_ndung: currentUser.ten_ndung,
       rowIndices: payloadRowIndices,
-      nhap_cmis: 1
+      val: 0 // <--- CHÚ Ý: Đổi tên thành 'val' và đặt giá trị = 0
     })
   })
   .then(res => res.json())
@@ -314,14 +314,16 @@ async function saveCheckedCMIS() {
     if (res.status === "success") {
       showToast("✅ Đã cập nhật trạng thái thành công!");
       
-      // Cập nhật lại dữ liệu cục bộ
+      // Cập nhật lại dữ liệu cục bộ về 0
       checkedMaKhangs.forEach(makh => {
         if (groupedData[makh]) {
-          groupedData[makh].nhap_cmis = 1;
-          groupedData[makh].items.forEach(i => i.nhap_cmis = 1);
+          groupedData[makh].nhap_cmis = 0; // <--- Cập nhật bộ nhớ local về 0
+          groupedData[makh].items.forEach(i => i.nhap_cmis = 0);
         }
       });
 
+      // Tải lại/vẽ lại danh sách & cập nhật thanh thống kê
+      if (typeof renderList === 'function') renderList();
       updateSummaryBar();
     } else {
       showToast("❌ Lỗi: " + res.message);
