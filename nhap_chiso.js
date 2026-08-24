@@ -55,7 +55,7 @@ function loadData() {
 
 function updateSummary() {
   const tong = allCustomers.length;
-  const daGhi = allCustomers.filter(c => c.chiso_moi !== "" && c.chiso_moi !== null).length;
+  const daGhi = allCustomers.filter(c => c.chiso_moi !== "" && c.chiso_moi !== null && c.chiso_moi !== undefined).length;
   const chuaGhi = tong - daGhi;
 
   document.getElementById("sumTongKh").innerText = tong;
@@ -99,8 +99,8 @@ function renderCustomerList(list) {
                 <td class="text-right val-calc-large">${item.chiso_cu}</td>
                 <td class="td-input-container">
                   <input type="number" class="input-cs-moi" id="cs-input-${item.rowIndex}" 
-                    value="${item.chiso_moi}" placeholder="Nhập..." 
-                    onchange="calculateCard(${item.rowIndex})" />
+                    value="${item.chiso_moi !== undefined ? item.chiso_moi : ''}" placeholder="Nhập..." 
+                    oninput="calculateCard(${item.rowIndex})" />
                 </td>
                 <td class="text-right val-highlight" id="sl-${item.rowIndex}">${item.san_luong || 0}</td>
               </tr>
@@ -139,6 +139,8 @@ function calculateCard(rowIndex) {
     const hsn = Number(item.hsn) || 1;
     const sanLuong = Math.round((csMoi - csCu) * hsn);
     document.getElementById(`sl-${rowIndex}`).innerText = sanLuong;
+  } else {
+    document.getElementById(`sl-${rowIndex}`).innerText = 0;
   }
 }
 
@@ -169,7 +171,7 @@ function saveCustomer(rowIndex) {
         showToast("Lỗi GPS, đang lưu không tọa độ...");
         sendSaveRequest(rowIndex, item, csMoi, ghiChu, "", "", btnSave);
       },
-      { enableHighAccuracy: true, timeout: 10000 }
+      { enableHighAccuracy: true, timeout: 8000 }
     );
   } else {
     sendSaveRequest(rowIndex, item, csMoi, ghiChu, "", "", btnSave);
@@ -199,18 +201,23 @@ function sendSaveRequest(rowIndex, item, csMoi, ghiChu, lat, lng, btnSave) {
     .then(res => res.json())
     .then(data => {
       if (data.status === "success") {
-        showToast("Đã lưu chỉ số & vị trí thành công! 📍");
-        loadData();
+        // Cập nhật bộ nhớ tại chỗ mà không gọi lại Server (Ghi 25 máy siêu mượt)
+        item.chiso_moi = csMoi;
+        item.ghi_chu = ghiChu;
+        const csCu = Number(item.chiso_cu) || 0;
+        const hsn = Number(item.hsn) || 1;
+        item.san_luong = Math.round((Number(csMoi) - csCu) * hsn);
+        
+        updateSummary();
+        showToast(lat ? "Đã lưu chỉ số & GPS 📍" : "Đã lưu chỉ số!");
       } else {
         showToast("Lỗi: " + data.message);
-        if (btnSave) {
-          btnSave.disabled = false;
-          btnSave.innerText = "Lưu & Định vị";
-        }
       }
     })
     .catch(err => {
       showToast("Lỗi kết nối máy chủ!");
+    })
+    .finally(() => {
       if (btnSave) {
         btnSave.disabled = false;
         btnSave.innerText = "Lưu & Định vị";
@@ -232,8 +239,15 @@ function cancelCustomer(rowIndex) {
     .then(res => res.json())
     .then(data => {
       if (data.status === "success") {
+        const item = allCustomers.find(c => c.rowIndex === rowIndex);
+        if (item) {
+          item.chiso_moi = "";
+          item.san_luong = 0;
+          document.getElementById(`cs-input-${rowIndex}`).value = "";
+          document.getElementById(`sl-${rowIndex}`).innerText = 0;
+          updateSummary();
+        }
         showToast("Đã hủy chỉ số!");
-        loadData();
       }
     });
 }
@@ -252,7 +266,7 @@ function filterData() {
 }
 
 function filterChuaGhi() {
-  const filtered = allCustomers.filter(c => c.chiso_moi === "" || c.chiso_moi === null);
+  const filtered = allCustomers.filter(c => c.chiso_moi === "" || c.chiso_moi === null || c.chiso_moi === undefined);
   renderCustomerList(filtered);
 }
 
