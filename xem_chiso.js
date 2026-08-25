@@ -1,5 +1,6 @@
 const API_URL = "https://script.google.com/macros/s/AKfycbxJZHenN4zoxZR7wOk4SiBnUx071LKLdAWOdJLToJPScSdBIj8Qn_pOeTDAABlN_UAF/exec";
 let currentUser = null;
+let rawData = []; // Lưu trữ dữ liệu thô trả về từ API
 let groupedData = {};
 let activeMaKhang = null;
 
@@ -10,7 +11,6 @@ document.addEventListener("DOMContentLoaded", () => {
   if (!sessionStr) { window.location.href = "login.html"; return; }
   currentUser = JSON.parse(sessionStr);
   
-  // KIỂM TRA AN TOÀN THẺ userDisplay
   const userDisplayEl = document.getElementById("userDisplay");
   if (userDisplayEl) {
     userDisplayEl.innerText = `👷 ${currentUser.ten_nvien || currentUser.ten_ndung}`;
@@ -72,26 +72,15 @@ function showCustomConfirm(title, message, isDanger = false) {
   });
 }
 
+// Tải dữ liệu toàn bộ từ API và nạp danh sách Nhân viên vào Combobox
 function loadChiSoData() {
-  const container = document.getElementById("listContainer");
-  if (!container) {
-    console.error("LỖI DOM: Không tìm thấy thẻ id='listContainer'");
-    return;
-  }
-
-  container.innerHTML = "<p style='text-align:center; padding-top:20px;'>⏳ Đang tải dữ liệu...</p>";
-  
   fetch(API_URL, {
     method: "POST",
-    // Bỏ mode: "cors" để dùng mặc định, tránh kích hoạt CORS khắt khe
-    headers: { 
-      "Content-Type": "text/plain" // CHÚ Ý: Bỏ "charset=utf-8" để đảm bảo là Simple Request
-    },
+    headers: { "Content-Type": "text/plain" },
     body: JSON.stringify({ action: "GET_CHISO_DATA", ten_ndung: currentUser.ten_ndung }),
     redirect: "follow"
   })
   .then(async res => {
-    // Đọc dưới dạng text trước để bắt lỗi nếu GAS trả về trang HTML (thường do sai quyền)
     const text = await res.text();
     try {
       return JSON.parse(text);
@@ -101,15 +90,63 @@ function loadChiSoData() {
   })
   .then(res => {
     if (res.status === "success" && Array.isArray(res.list)) {
-      groupAndRender(res.list);
+      rawData = res.list;
+      populateEmployeeDropdown(rawData);
     } else {
-      container.innerHTML = "<p style='color:red; text-align:center;'>Lỗi Backend: " + (res.message || "Dữ liệu trả về không đúng định dạng") + "</p>";
+      const container = document.getElementById("listContainer");
+      if (container) {
+        container.innerHTML = "<p style='color:red; text-align:center;'>Lỗi Backend: " + (res.message || "Dữ liệu trả về không đúng định dạng") + "</p>";
+      }
     }
   })
   .catch(err => {
     console.error("Fetch Error:", err);
-    container.innerHTML = `<p style='color:red; text-align:center;'>Lỗi kết nối: ${err.message}</p>`;
+    const container = document.getElementById("listContainer");
+    if (container) {
+      container.innerHTML = `<p style='color:red; text-align:center;'>Lỗi kết nối: ${err.message}</p>`;
+    }
   });
+}
+
+// Lấy danh sách ten_nvien duy nhất để tạo các option cho combobox
+function populateEmployeeDropdown(list) {
+  const selectEl = document.getElementById("employeeSelect");
+  if (!selectEl) return;
+
+  const employees = Array.from(new Set(
+    list.map(item => item.ten_nvien).filter(name => name && name.toString().trim() !== "")
+  )).sort();
+
+  selectEl.innerHTML = '<option value="">-- Chọn nhân viên --</option>';
+  employees.forEach(emp => {
+    const opt = document.createElement("option");
+    opt.value = emp;
+    opt.textContent = emp;
+    selectEl.appendChild(opt);
+  });
+}
+
+// Xử lý sự kiện khi chọn nhân viên từ Combobox
+function onEmployeeChange() {
+  const selectedEmp = document.getElementById("employeeSelect").value;
+  const container = document.getElementById("listContainer");
+  document.getElementById("searchInput").value = ""; // Reset ô tìm kiếm
+
+  if (!selectedEmp) {
+    groupedData = {};
+    container.innerHTML = "<p style='text-align:center; padding-top:20px; color:#666;'>👆 Vui lòng chọn nhân viên để hiển thị danh sách.</p>";
+    updateSummaryBar();
+    return;
+  }
+
+  // Lọc theo ten_nvien được chọn VÀ điều kiện ĐÃ CÓ chiso_moi
+  const filteredList = rawData.filter(item => {
+    const isEmpMatch = item.ten_nvien === selectedEmp;
+    const hasChiSoMoi = item.chiso_moi !== null && item.chiso_moi !== undefined && item.chiso_moi !== "";
+    return isEmpMatch && hasChiSoMoi;
+  });
+
+  groupAndRender(filteredList);
 }
 
 function groupAndRender(flatList) {
@@ -143,7 +180,6 @@ function groupAndRender(flatList) {
   renderGroupedList(groupedData);
 }
 
-// Cập nhật Yêu cầu 4: Thống kê nhap_cmis
 function updateSummaryBar() {
   const keys = Object.keys(groupedData);
   const tongKh = keys.length;
@@ -157,7 +193,6 @@ function updateSummaryBar() {
 
   const chuaNhap = tongKh - daNhap;
 
-  // Sử dụng toán tử ?. (Optional Chaining) để không bị crash nếu thiếu thẻ HTML
   const elTong = document.getElementById("sumTongKh");
   const elDaNhap = document.getElementById("sumDaNhap");
   const elChuaNhap = document.getElementById("sumChuaNhap");
@@ -167,7 +202,6 @@ function updateSummaryBar() {
   if (elChuaNhap) elChuaNhap.innerText = chuaNhap;
 }
 
-// Xem danh sách nhap_cmis = 0 (Yêu cầu 4)
 function filterChuaNhap() {
   document.getElementById("searchInput").value = "";
   const filteredGroups = {};
@@ -190,20 +224,18 @@ function selectCustomer(maKhang) {
 
 function toggleCheckCMIS(maKhang, isChecked) {
   if (groupedData[maKhang]) {
-    // Lưu trực tiếp trạng thái check mới vào nhap_cmis cục bộ (1: checked, 0: unchecked)
     groupedData[maKhang].nhap_cmis = isChecked ? 1 : 0;
     groupedData[maKhang].is_checked = isChecked;
-    updateSummaryBar(); // Cập nhật lại thanh thống kê ngay trên màn hình
+    updateSummaryBar();
   }
 }
 
-// Render lại danh sách theo Yêu cầu 1, 2, 3
 function renderGroupedList(groups) {
   const container = document.getElementById("listContainer");
   const keys = Object.keys(groups);
 
   if (keys.length === 0) {
-    container.innerHTML = "<p style='text-align:center; padding-top:20px;'>Không có dữ liệu khách hàng.</p>";
+    container.innerHTML = "<p style='text-align:center; padding-top:20px; color:#666;'>Không có dữ liệu chỉ số cho nhân viên đã chọn.</p>";
     return;
   }
 
@@ -217,31 +249,28 @@ function renderGroupedList(groups) {
     if (nextKeys.length === 0) return;
 
     let html = "";
-   nextKeys.forEach(makh => {
-  const cust = groups[makh];
-  const isActive = (makh === activeMaKhang) ? "active" : "";
-  const isCMIS = cust.nhap_cmis === 1;
-  
-  // BỎ COMMENT DÒNG NÀY ĐỂ ĐỊNH NGHĨA BIẾN isChecked
- const isChecked = cust.is_checked || isCMIS;
+    nextKeys.forEach(makh => {
+      const cust = groups[makh];
+      const isActive = (makh === activeMaKhang) ? "active" : "";
+      const isCMIS = cust.nhap_cmis === 1;
+      const isChecked = cust.is_checked || isCMIS;
 
-  html += `
-    <div class="customer-card ${isActive}" id="card_${cust.ma_khang}" onclick="selectCustomer('${cust.ma_khang}')">
-      <div class="cust-header">
-        <div class="cust-title">${cust.ma_khang} - ${cust.ten_khang}</div>
-        <div class="cust-row-group">
-          <label class="chk-cmis-label" onclick="event.stopPropagation();">
-            <input type="checkbox" 
-                   id="chk_cmis_${cust.ma_khang}" 
-                   ${isChecked ? 'checked' : ''} 
-                   onchange="toggleCheckCMIS('${cust.ma_khang}', this.checked)">
-            CMIS
-          </label>
-          <span>Sổ: <b>${cust.ma_sogcs || ''}</b> - DS:${cust.danh_so || ''}</span>
-        </div>
-      </div>
+      html += `
+        <div class="customer-card ${isActive}" id="card_${cust.ma_khang}" onclick="selectCustomer('${cust.ma_khang}')">
+          <div class="cust-header">
+            <div class="cust-title">${cust.ma_khang} - ${cust.ten_khang}</div>
+            <div class="cust-row-group">
+              <label class="chk-cmis-label" onclick="event.stopPropagation();">
+                <input type="checkbox" 
+                       id="chk_cmis_${cust.ma_khang}" 
+                       ${isChecked ? 'checked' : ''} 
+                       onchange="toggleCheckCMIS('${cust.ma_khang}', this.checked)">
+                CMIS
+              </label>
+              <span>Sổ: <b>${cust.ma_sogcs || ''}</b> - DS:${cust.danh_so || ''}</span>
+            </div>
+          </div>
 
-          <!-- Yêu cầu 2: Table chỉ số chừa 4 cột: bcs, chiso_cu, chiso_moi, san_luong -->
           <div class="table-responsive">
             <table class="chiso-table">
               <thead>
@@ -273,7 +302,6 @@ function renderGroupedList(groups) {
               </tbody>
             </table>
           </div>
-          <!-- Yêu cầu 3: Bỏ 3 nút LẤY ĐỊNH VỊ, GHI và HỦY -->
         </div>
       `;
     });
@@ -293,10 +321,8 @@ function renderGroupedList(groups) {
   renderChunk();
 }
 
-// Yêu cầu 5: Lưu trạng thái nhap_cmis = 0 cho các khách hàng đã check
-// Cập nhật trạng thái nhap_cmis theo đúng tick/bỏ tick của từng khách hàng
 async function saveCheckedCMIS() {
-  const updates = []; // Chứa danh sách { rowIndices: [...], val: 0/1 }
+  const updates = [];
 
   Object.keys(groupedData).forEach(makh => {
     const cust = groupedData[makh];
@@ -308,7 +334,7 @@ async function saveCheckedCMIS() {
       updates.push({
         ma_khang: makh,
         rowIndices: rowIndices,
-        val: cust.nhap_cmis // Lấy giá trị thực tế 0 hoặc 1
+        val: cust.nhap_cmis
       });
     }
   });
@@ -333,7 +359,7 @@ async function saveCheckedCMIS() {
     body: JSON.stringify({
       action: "UPDATE_NHAP_CMIS",
       ten_ndung: currentUser.ten_ndung,
-      updates: updates // Gửi mảng chứa danh sách các dòng kèm giá trị val (0 hoặc 1)
+      updates: updates
     })
   })
   .then(res => res.json())
