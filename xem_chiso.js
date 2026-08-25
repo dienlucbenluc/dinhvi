@@ -197,7 +197,7 @@ function renderGroupedList(groups) {
   const isCMIS = cust.nhap_cmis === 1;
   
   // BỎ COMMENT DÒNG NÀY ĐỂ ĐỊNH NGHĨA BIẾN isChecked
-  const isChecked = (cust.is_checked !== undefined) ? cust.is_checked : isCMIS;
+ const isChecked = cust.is_checked || isCMIS;
 
   html += `
     <div class="customer-card ${isActive}" id="card_${cust.ma_khang}" onclick="selectCustomer('${cust.ma_khang}')">
