@@ -77,8 +77,16 @@ function loadChiSoData() {
   const selectEl = document.getElementById("selectNhanVien");
   const selectedNv = selectEl ? selectEl.value : "";
 
+  const selectTT = document.getElementById("selectTinhTrang");
+  const selectedTT = selectTT ? selectTT.value : "";
+
   if (!selectedNv) {
-    showToast("⚠️ Vui lòng chọn nhân viên trước!");
+    showToast("⚠️ Vui lòng chọn nhân viên!");
+    return;
+  }
+
+  if (!selectedTT) {
+    showToast("⚠️ Vui lòng chọn tình trạng (Có CS / Chưa CS)!");
     return;
   }
 
@@ -95,8 +103,11 @@ function loadChiSoData() {
     headers: { 
       "Content-Type": "text/plain"
     },
-    // Truyền ten_nvien chọn trên combobox thay vì ten_ndung đã lưu
-    body: JSON.stringify({ action: "GET_CHISO_DATA", ten_nvien: selectedNv }),
+    body: JSON.stringify({ 
+      action: "GET_CHISO_DATA", 
+      ten_nvien: selectedNv,
+      tinh_trang: selectedTT // Thêm tham số gửi về Google Apps Script
+    }),
     redirect: "follow"
   })
   .then(async res => {
