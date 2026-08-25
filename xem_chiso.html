@@ -67,10 +67,19 @@
     .menu-item:last-child { border-bottom: none; }
     .menu-item:active { background: #f0f4f8; }
 
-    .search-box input { width: 100%; padding: 7px 10px; border-radius: 5px; border: 1px solid #ccc; font-size: 13px; outline: none; }
-    .search-box input:focus { border-color: #0056b3; }
+    /* CSS Combobox Nhân Viên & Ô Tìm Kiếm */
+    .filter-box { display: flex; flex-direction: column; gap: 6px; }
+    .filter-box select, .filter-box input {
+      width: 100%;
+      padding: 7px 10px;
+      border-radius: 5px;
+      border: 1px solid #ccc;
+      font-size: 13px;
+      outline: none;
+      background-color: #fff;
+    }
+    .filter-box select:focus, .filter-box input:focus { border-color: #0056b3; }
 
-    /* CSS Hàng thống kê chỉ số */
     .summary-bar {
       display: flex;
       justify-content: space-between;
@@ -100,7 +109,7 @@
 
     #listContainer {
       position: absolute;
-      top: 105px;
+      top: 140px; /* Điều chỉnh lại chiều cao do thêm combobox */
       bottom: 0;
       left: 0;
       right: 0;
@@ -173,7 +182,6 @@
       cursor: pointer;
     }
 
-    /* === CẢI TIẾN FONT CHỮ BẢNG TO & RÕ HƠN === */
     .table-responsive { overflow-x: auto; -webkit-overflow-scrolling: touch; margin-top: 6px; }
     table.chiso-table { width: 100%; border-collapse: collapse; font-size: 14px; }
     table.chiso-table th { background: #e9ecef; color: #111; padding: 6px 4px; border: 1px solid #bbb; white-space: nowrap; font-size: 15px; font-weight: bold; text-align: center; }
@@ -236,11 +244,15 @@
       </div>
     </div>
     
-    <div class="search-box">
+    <!-- Bộ lọc bao gồm Combobox Nhân viên và SearchInput -->
+    <div class="filter-box">
+      <select id="employeeSelect" onchange="onEmployeeChange()">
+        <option value="">-- Chọn nhân viên --</option>
+      </select>
       <input type="text" id="searchInput" placeholder="🔍 Tìm Mã KH, Tên KH, Mã Sổ, Số Cột, Số CTO..." oninput="filterData()">
     </div>
     
-    <!-- Thanh Thống kê theo yêu cầu 4 -->
+    <!-- Thanh Thống kê -->
     <div class="summary-bar">
       <span>Đã nhập: <b id="sumDaNhap" style="color:#28a745;">0</b></span>
       <span>Chưa nhập: <b id="sumChuaNhap" style="color:#d9534f;">0</b></span>
@@ -250,7 +262,7 @@
   </div>
 
   <div id="listContainer">
-    <p style='text-align:center; padding-top:20px;'>⏳ Đang tải dữ liệu...</p>
+    <p style='text-align:center; padding-top:20px; color:#666;'>👆 Vui lòng chọn nhân viên để hiển thị danh sách.</p>
   </div>
 
   <div id="toast"></div>
