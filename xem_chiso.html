@@ -237,12 +237,19 @@
     </div>
     
     <!-- THÊM: Combobox nằm trên searchInput và nút lấy danh sách bên phải -->
-    <div style="display: flex; gap: 6px; margin-bottom: 6px;">
-      <select id="selectNhanVien" style="flex: 1; padding: 7px 10px; border-radius: 5px; border: 1px solid #ccc; font-size: 13px; outline: none;">
-        <option value="">-- Chọn nhân viên --</option>
+<div style="display: flex; gap: 6px; margin-bottom: 6px;">
+      <select id="selectNhanVien" style="flex: 1.2; padding: 7px 6px; border-radius: 5px; border: 1px solid #ccc; font-size: 13px; outline: none;">
+        <option value="">-- Nhân viên --</option>
       </select>
-      <button onclick="loadChiSoData()" style="padding: 7px 12px; background: #007bff; color: white; border: none; border-radius: 5px; font-weight: bold; font-size: 13px; cursor: pointer;">
-        Lấy danh sách
+      
+      <select id="selectTinhTrang" style="flex: 1; padding: 7px 6px; border-radius: 5px; border: 1px solid #ccc; font-size: 13px; outline: none;">
+        <option value="">-- Tình trạng --</option>
+        <option value="CO_CS">Có CS</option>
+        <option value="CHUA_CS">Chưa CS</option>
+      </select>
+
+      <button onclick="loadChiSoData()" style="padding: 7px 10px; background: #007bff; color: white; border: none; border-radius: 5px; font-weight: bold; font-size: 13px; cursor: pointer; white-space: nowrap;">
+        Lấy DS
       </button>
     </div>
 
