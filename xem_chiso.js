@@ -9,22 +9,29 @@ const BCS_ORDER = ["BT", "CD", "TD", "SG", "VC", "BN", "CN", "TN", "SN", "VN"];
 // Khai báo hàm đổ dữ liệu vào Combobox ở trên cùng để tránh lỗi undefined
 function populateEmployeeDropdown(list) {
   const selectEl = document.getElementById("employeeSelect");
-  if (!selectEl) {
-    console.error("Không tìm thấy element id='employeeSelect' trong HTML");
-    return;
+  if (!selectEl) return;
+
+  // In mẫu 1 dòng dữ liệu ra Console (F12) để xem chính xác tên thuộc tính
+  if (list && list.length > 0) {
+    console.log("👉 Dữ liệu dòng 1 nhận từ Server:", list[0]);
+  } else {
+    console.warn("⚠️ Mảng dữ liệu nhận từ Server bị RỖNG!");
   }
 
-  // Lọc chỉ lấy bản ghi có ten_nvien VÀ có chiso_moi (khác null/undefined/rỗng)
+  // Lọc an toàn: Chấp nhận mọi giá trị chiso_moi miễn là KHÔNG phải null, undefined, hoặc chuỗi rỗng
   const validItems = list.filter(item => {
-    const hasName = item.ten_nvien && String(item.ten_nvien).trim() !== "";
-    const csMoi = item.chiso_moi;
+    const name = item.ten_nvien || item.ten_nv || item.TEN_NVIEN; // Thử các kiểu tên cột
+    const csMoi = item.chiso_moi !== undefined ? item.chiso_moi : item.cs_moi;
+    
+    const hasName = name && String(name).trim() !== "";
     const hasCSMoi = csMoi !== null && csMoi !== undefined && String(csMoi).trim() !== "";
+
     return hasName && hasCSMoi;
   });
 
-  // Trích xuất danh sách tên nhân viên không trùng
+  // Lấy danh sách tên không trùng lặp
   const employees = Array.from(new Set(
-    validItems.map(item => String(item.ten_nvien).trim())
+    validItems.map(item => String(item.ten_nvien || item.ten_nv || item.TEN_NVIEN).trim())
   )).sort();
 
   selectEl.innerHTML = '<option value="">-- Chọn nhân viên --</option>';
