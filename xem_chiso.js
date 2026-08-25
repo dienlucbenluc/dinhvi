@@ -24,6 +24,25 @@ document.addEventListener("DOMContentLoaded", () => {
   // YÊU CẦU 3: Bỏ tự động gọi loadChiSoData() khi vào trang
 });
 
+function getDsNhanVien() {
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const sheetNV = ss.getSheetByName("nhan_vien");
+  
+  if (!sheetNV || sheetNV.getLastRow() < 2) {
+    return responseJSON({ status: "success", list: [] });
+  }
+
+  // Lấy dữ liệu từ hàng 2, cột 2 (ten_nvien)
+  const values = sheetNV.getRange(2, 2, sheetNV.getLastRow() - 1, 1).getValues();
+  
+  // Lọc lấy các tên không rỗng và loại bỏ tên trùng lặp
+  const listName = values
+    .map(row => String(row[0] || "").trim())
+    .filter((name, index, self) => name !== "" && self.indexOf(name) === index);
+
+  return responseJSON({ status: "success", list: listName });
+}
+
 // YÊU CẦU 2: Lấy tất cả ten_nvien trong bảng nhan_vien (không theo ten_ndung đã lưu)
 function loadNhanVienList() {
   const selectEl = document.getElementById("selectNhanVien");
