@@ -22,6 +22,18 @@
     .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; position: relative; }
     .header-left { display: flex; align-items: center; gap: 8px; }
     .header-right { display: flex; align-items: center; gap: 8px; position: relative; }
+.btn-back {
+      background: #e9ecef;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      padding: 5px 10px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      color: #333;
+      text-decoration: none;
+    }
+    .btn-back:active { background: #dae0e5; }
 
     .btn-menu { 
       background: #f0f2f5; 
@@ -341,6 +353,7 @@
     <div class="header">
       <div class="header-left">
         <div class="title">⚡ NHẬP CHỈ SỐ</div>
+     <button class="btn-back" onclick="window.location.href='home.html'">⬅ Quay lại</button>
       </div>
       <div class="header-right">
         <div class="user-info" id="userDisplay">👷 ...</div>
