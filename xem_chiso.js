@@ -185,31 +185,29 @@ function renderGroupedList(groups) {
     if (nextKeys.length === 0) return;
 
     let html = "";
-    nextKeys.forEach(makh => {
-      const cust = groups[makh];
-      const isActive = (makh === activeMaKhang) ? "active" : "";
-      const isCMIS = cust.nhap_cmis === 1;
-      const isChecked = cust.is_checked || isCMIS;
+   nextKeys.forEach(makh => {
+  const cust = groups[makh];
+  const isActive = (makh === activeMaKhang) ? "active" : "";
+  const isCMIS = cust.nhap_cmis === 1;
+  
+  // BỎ COMMENT DÒNG NÀY ĐỂ ĐỊNH NGHĨA BIẾN isChecked
+  const isChecked = (cust.is_checked !== undefined) ? cust.is_checked : isCMIS;
 
-      html += `
-        <div class="customer-card ${isActive}" id="card_${cust.ma_khang}" onclick="selectCustomer('${cust.ma_khang}')">
-          <div class="cust-header">
-            <!-- Yêu cầu 1: dòng 1 ma_khang - ten_khang -->
-            <div class="cust-title">${cust.ma_khang} - ${cust.ten_khang}</div>
-            
-            <!-- Yêu cầu 1: dòng 2 ma_sogcs - danh_so - so_cto - check (đã nhập CMIS) -->
-            <div class="cust-row-group">
-                          <label class="chk-cmis-label" onclick="event.stopPropagation();">
-                <input type="checkbox" 
-                       id="chk_cmis_${cust.ma_khang}" 
-                       ${isChecked ? 'checked' : ''} 
-                       onchange="toggleCheckCMIS('${cust.ma_khang}', this.checked)">
-                CMIS
-              </label>
-              <span>Sổ: <b>${cust.ma_sogcs || ''}</b> - DS:${cust.danh_so || ''}</span>
-
-            </div>
-          </div>
+  html += `
+    <div class="customer-card ${isActive}" id="card_${cust.ma_khang}" onclick="selectCustomer('${cust.ma_khang}')">
+      <div class="cust-header">
+        <div class="cust-title">${cust.ma_khang} - ${cust.ten_khang}</div>
+        <div class="cust-row-group">
+          <label class="chk-cmis-label" onclick="event.stopPropagation();">
+            <input type="checkbox" 
+                   id="chk_cmis_${cust.ma_khang}" 
+                   ${isChecked ? 'checked' : ''} 
+                   onchange="toggleCheckCMIS('${cust.ma_khang}', this.checked)">
+            CMIS
+          </label>
+          <span>Sổ: <b>${cust.ma_sogcs || ''}</b> - DS:${cust.danh_so || ''}</span>
+        </div>
+      </div>
 
           <!-- Yêu cầu 2: Table chỉ số chừa 4 cột: bcs, chiso_cu, chiso_moi, san_luong -->
           <div class="table-responsive">
