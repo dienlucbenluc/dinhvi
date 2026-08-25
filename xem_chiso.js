@@ -172,9 +172,12 @@ function onEmployeeChange() {
   }
 
   const filteredList = rawData.filter(item => {
-    const isEmpMatch = String(item.ten_nvien || "").trim() === String(selectedEmp).trim();
-    const csMoi = item.chiso_moi;
+    const empName = String(item.ten_nvien || item.ten_nv || item.TEN_NVIEN || "").trim();
+    const isEmpMatch = empName === String(selectedEmp).trim();
+    
+    const csMoi = item.chiso_moi !== undefined ? item.chiso_moi : item.cs_moi;
     const hasChiSoMoi = csMoi !== null && csMoi !== undefined && String(csMoi).trim() !== "";
+
     return isEmpMatch && hasChiSoMoi;
   });
 
