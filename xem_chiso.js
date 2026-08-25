@@ -70,9 +70,10 @@ function loadChiSoData() {
   
   fetch(API_URL, {
     method: "POST",
+    mode: "cors", // BỔ SUNG: Cho phép truy cập Cross-Origin
     headers: { "Content-Type": "text/plain;charset=utf-8" },
     body: JSON.stringify({ action: "GET_CHISO_DATA", ten_ndung: currentUser.ten_ndung }),
-    redirect: "follow" // Tự động đi theo chuyển hướng của Google Apps Script
+    redirect: "follow"
   })
   .then(res => {
     if (!res.ok) throw new Error("HTTP error " + res.status);
