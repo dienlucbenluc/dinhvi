@@ -67,21 +67,27 @@ function showCustomConfirm(title, message, isDanger = false) {
 
 function loadChiSoData() {
   document.getElementById("listContainer").innerHTML = "<p style='text-align:center; padding-top:20px;'>⏳ Đang tải dữ liệu...</p>";
+  
   fetch(API_URL, {
     method: "POST",
     headers: { "Content-Type": "text/plain;charset=utf-8" },
-    body: JSON.stringify({ action: "GET_CHISO_DATA", ten_ndung: currentUser.ten_ndung })
+    body: JSON.stringify({ action: "GET_CHISO_DATA", ten_ndung: currentUser.ten_ndung }),
+    redirect: "follow" // Tự động đi theo chuyển hướng của Google Apps Script
   })
-  .then(res => res.json())
+  .then(res => {
+    if (!res.ok) throw new Error("HTTP error " + res.status);
+    return res.json();
+  })
   .then(res => {
     if (res.status === "success") {
       groupAndRender(res.list);
     } else {
-      document.getElementById("listContainer").innerHTML = "<p style='color:red; text-align:center;'>Lỗi: " + res.message + "</p>";
+      document.getElementById("listContainer").innerHTML = "<p style='color:red; text-align:center;'>Lỗi: " + (res.message || "Không xác định") + "</p>";
     }
   })
-  .catch(() => {
-    document.getElementById("listContainer").innerHTML = "<p style='color:red; text-align:center;'>Lỗi kết nối máy chủ!</p>";
+  .catch(err => {
+    console.error("Fetch Error:", err);
+    document.getElementById("listContainer").innerHTML = "<p style='color:red; text-align:center;'>Lỗi kết nối máy chủ hoặc lỗi xử lý dữ liệu!</p>";
   });
 }
 
