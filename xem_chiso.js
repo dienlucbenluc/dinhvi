@@ -66,29 +66,42 @@ function showCustomConfirm(title, message, isDanger = false) {
 }
 
 function loadChiSoData() {
-  document.getElementById("listContainer").innerHTML = "<p style='text-align:center; padding-top:20px;'>⏳ Đang tải dữ liệu...</p>";
+  const container = document.getElementById("listContainer");
+  if (!container) {
+    console.error("LỖI DOM: Không tìm thấy thẻ id='listContainer'");
+    return;
+  }
+
+  container.innerHTML = "<p style='text-align:center; padding-top:20px;'>⏳ Đang tải dữ liệu...</p>";
   
   fetch(API_URL, {
     method: "POST",
-    mode: "cors", // BỔ SUNG: Cho phép truy cập Cross-Origin
-    headers: { "Content-Type": "text/plain;charset=utf-8" },
+    // Bỏ mode: "cors" để dùng mặc định, tránh kích hoạt CORS khắt khe
+    headers: { 
+      "Content-Type": "text/plain" // CHÚ Ý: Bỏ "charset=utf-8" để đảm bảo là Simple Request
+    },
     body: JSON.stringify({ action: "GET_CHISO_DATA", ten_ndung: currentUser.ten_ndung }),
     redirect: "follow"
   })
-  .then(res => {
-    if (!res.ok) throw new Error("HTTP error " + res.status);
-    return res.json();
+  .then(async res => {
+    // Đọc dưới dạng text trước để bắt lỗi nếu GAS trả về trang HTML (thường do sai quyền)
+    const text = await res.text();
+    try {
+      return JSON.parse(text);
+    } catch (e) {
+      throw new Error("Phản hồi từ server không phải JSON. Nội dung: " + text.substring(0, 80));
+    }
   })
   .then(res => {
-    if (res.status === "success") {
+    if (res.status === "success" && Array.isArray(res.list)) {
       groupAndRender(res.list);
     } else {
-      document.getElementById("listContainer").innerHTML = "<p style='color:red; text-align:center;'>Lỗi: " + (res.message || "Không xác định") + "</p>";
+      container.innerHTML = "<p style='color:red; text-align:center;'>Lỗi Backend: " + (res.message || "Dữ liệu trả về không đúng định dạng") + "</p>";
     }
   })
   .catch(err => {
     console.error("Fetch Error:", err);
-    document.getElementById("listContainer").innerHTML = "<p style='color:red; text-align:center;'>Lỗi kết nối máy chủ hoặc lỗi xử lý dữ liệu!</p>";
+    container.innerHTML = `<p style='color:red; text-align:center;'>Lỗi kết nối: ${err.message}</p>`;
   });
 }
 
