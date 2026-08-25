@@ -294,64 +294,62 @@ function renderGroupedList(groups) {
 }
 
 // Yêu cầu 5: Lưu trạng thái nhap_cmis = 0 cho các khách hàng đã check
+// Cập nhật trạng thái nhap_cmis theo đúng tick/bỏ tick của từng khách hàng
 async function saveCheckedCMIS() {
-  const checkedMaKhangs = [];
+  const updates = []; // Chứa danh sách { rowIndices: [...], val: 0/1 }
 
   Object.keys(groupedData).forEach(makh => {
-    // Lấy tất cả khách hàng đang có trạng thái nhap_cmis = 1
-    if (groupedData[makh].nhap_cmis === 1) {
-      checkedMaKhangs.push(makh);
-    }
-  });
+    const cust = groupedData[makh];
+    const rowIndices = (cust.items || [])
+      .map(item => item.rowIndex)
+      .filter(idx => idx !== undefined);
 
-  if (checkedMaKhangs.length === 0) {
-    showToast("⚠️ Vui lòng tick chọn ít nhất một khách hàng!");
-    return;
-  }
-
-  const confirmSave = await showCustomConfirm(
-    "XÁC NHẬN LƯU ĐÃ NHẬP CMIS",
-    "Bạn có muốn ghi nhận các khách hàng đã check về trạng thái ĐÃ NHẬP CMIS không?"
-  );
-
-  if (!confirmSave) return;
-
-  let payloadRowIndices = [];
-  checkedMaKhangs.forEach(makh => {
-    if (groupedData[makh] && groupedData[makh].items) {
-      groupedData[makh].items.forEach(item => {
-        if (item.rowIndex !== undefined) {
-          payloadRowIndices.push(item.rowIndex);
-        }
+    if (rowIndices.length > 0) {
+      updates.push({
+        ma_khang: makh,
+        rowIndices: rowIndices,
+        val: cust.nhap_cmis // Lấy giá trị thực tế 0 hoặc 1
       });
     }
   });
 
-  showToast(`⏳ Đang cập nhật trạng thái đã nhập CMIS...`);
-  
+  if (updates.length === 0) {
+    showToast("⚠️ Không có dữ liệu để cập nhật!");
+    return;
+  }
+
+  const confirmSave = await showCustomConfirm(
+    "XÁC NHẬN LƯU TRẠNG THÁI CMIS",
+    "Bạn có chắc chắn muốn lưu lại trạng thái nhập CMIS cho tất cả danh sách hiện tại?"
+  );
+
+  if (!confirmSave) return;
+
+  showToast(`⏳ Đang cập nhật trạng thái CMIS...`);
+
   fetch(API_URL, {
     method: "POST",
     headers: { "Content-Type": "text/plain;charset=utf-8" },
     body: JSON.stringify({
       action: "UPDATE_NHAP_CMIS",
       ten_ndung: currentUser.ten_ndung,
-      rowIndices: payloadRowIndices,
-      val: 1 // <--- SỬA LẠI: Gửi val = 1 (Đã nhập CMIS)
+      updates: updates // Gửi mảng chứa danh sách các dòng kèm giá trị val (0 hoặc 1)
     })
   })
   .then(res => res.json())
   .then(res => {
     if (res.status === "success") {
       showToast("✅ Đã cập nhật trạng thái thành công!");
-      
-      // SỬA LỖI TẠI ĐÂY: Thay renderList() bằng renderGroupedList()
       renderGroupedList(groupedData);
       updateSummaryBar();
     } else {
-      showToast("❌ Lỗi: " + res.message);
+      showToast("❌ Lỗi: " + (res.message || "Cập nhật thất bại"));
     }
   })
-  .catch(() => showToast("❌ Lỗi kết nối máy chủ!"));
+  .catch((err) => {
+    console.error(err);
+    showToast("❌ Lỗi kết nối máy chủ!");
+  });
 }
 
 function filterData() {
