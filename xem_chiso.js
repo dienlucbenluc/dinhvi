@@ -189,7 +189,7 @@ function renderGroupedList(groups) {
       const cust = groups[makh];
       const isActive = (makh === activeMaKhang) ? "active" : "";
       const isCMIS = cust.nhap_cmis === 1;
-      const isChecked = cust.is_checked || isCMIS;
+      // const isChecked = cust.is_checked || isCMIS;
 
       html += `
         <div class="customer-card ${isActive}" id="card_${cust.ma_khang}" onclick="selectCustomer('${cust.ma_khang}')">
