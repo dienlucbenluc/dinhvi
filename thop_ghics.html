@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Tổng hợp ghi chỉ số</title>
+  <style>
+    * { box-sizing: border-box; }
+    html, body { height: 100%; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background: #f0f2f5; color: #333; }
+    
+    .sticky-top-container {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      background: #fff;
+      z-index: 1000;
+      padding: 10px 12px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    }
+
+    .header { display: flex; justify-content: space-between; align-items: center; }
+    .title { font-size: 16px; font-weight: bold; color: #0056b3; }
+    
+    .btn-back {
+      background: #e9ecef;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      padding: 5px 10px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      color: #333;
+      text-decoration: none;
+    }
+    .btn-back:active { background: #dae0e5; }
+
+    .main-container {
+      position: absolute;
+      top: 55px;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      overflow-y: auto;
+      padding: 10px;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .card {
+      background: #fff;
+      border-radius: 8px;
+      padding: 10px;
+      border: 1px solid #ddd;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    }
+
+    .table-responsive { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    
+    table.report-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13.5px;
+    }
+
+    table.report-table th {
+      background: #0056b3;
+      color: #fff;
+      padding: 8px 6px;
+      border: 1px solid #004085;
+      white-space: nowrap;
+      font-size: 13.5px;
+      font-weight: bold;
+      text-align: center;
+    }
+
+    table.report-table td {
+      border: 1px solid #ccc;
+      padding: 8px 6px;
+      vertical-align: middle;
+      white-space: nowrap;
+    }
+
+    table.report-table tr:nth-child(even) { background: #f8f9fa; }
+    table.report-table tr.row-total { background: #e2e3e5; font-weight: bold; }
+
+    .text-center { text-align: center !important; }
+    .text-right { text-align: right !important; }
+    .text-left { text-align: left !important; }
+
+    .val-tong { color: #0056b3; font-weight: bold; }
+    .val-da-ghi { color: #28a745; font-weight: bold; }
+    .val-chua-ghi { color: #dc3545; font-weight: bold; }
+
+    #loadingText { text-align: center; padding: 20px; color: #666; font-size: 14px; }
+  </style>
+</head>
+<body>
+
+  <div class="sticky-top-container">
+    <div class="header">
+      <div class="title">📊 TỔNG HỢP GHI CHỈ SỐ</div>
+      <button class="btn-back" onclick="window.location.href='xem_chiso.html'">⬅ Quay lại</button>
+    </div>
+  </div>
+
+  <div class="main-container">
+    <div class="card">
+      <div id="loadingText">⏳ Đang tải dữ liệu tổng hợp...</div>
+      
+      <div class="table-responsive" id="tableWrapper" style="display: none;">
+        <table class="report-table">
+          <thead>
+            <tr>
+              <th style="width: 8%;">STT</th>
+              <th style="width: 38%;">Tên nhân viên</th>
+              <th style="width: 18%;">Tổng giao</th>
+              <th style="width: 18%;">Ghi được</th>
+              <th style="width: 18%;">Chưa ghi</th>
+            </tr>
+          </thead>
+          <tbody id="reportTbody">
+            <!-- Dữ liệu render tại đây -->
+          </tbody>
+          <tfoot id="reportTfoot">
+            <!-- Hàng tổng cộng render tại đây -->
+          </tfoot>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const API_URL = "https://script.google.com/macros/s/AKfycbxJZHenN4zoxZR7wOk4SiBnUx071LKLdAWOdJLToJPScSdBIj8Qn_pOeTDAABlN_UAF/exec";
+
+    document.addEventListener("DOMContentLoaded", () => {
+      loadTongHopData();
+    });
+
+    function loadTongHopData() {
+      const loadingEl = document.getElementById("loadingText");
+      const tableWrapper = document.getElementById("tableWrapper");
+
+      fetch(API_URL, {
+        method: "POST",
+        headers: { "Content-Type": "text/plain" },
+        // Truyền ten_nvien = "" để lấy toàn bộ dữ liệu từ chi_so
+        body: JSON.stringify({ action: "GET_CHISO_DATA", ten_nvien: "" }),
+        redirect: "follow"
+      })
+      .then(async res => {
+        const text = await res.text();
+        try {
+          return JSON.parse(text);
+        } catch (e) {
+          throw new Error("Phản hồi từ server không phải JSON: " + text.substring(0, 80));
+        }
+      })
+      .then(res => {
+        if (res.status === "success" && Array.isArray(res.list)) {
+          processAndRenderReport(res.list);
+          loadingEl.style.display = "none";
+          tableWrapper.style.display = "block";
+        } else {
+          loadingEl.innerHTML = "<p style='color:red;'>Lỗi: " + (res.message || "Dữ liệu không hợp lệ") + "</p>";
+        }
+      })
+      .catch(err => {
+        console.error("Fetch Error:", err);
+        loadingEl.innerHTML = `<p style='color:red;'>Lỗi kết nối: ${err.message}</p>`;
+      });
+    }
+
+    function processAndRenderReport(flatList) {
+      // Cấu trúc map: { ten_nvien: { khGiao: Set(), khGhiDuoc: Set() } }
+      const nvMap = {};
+
+      flatList.forEach(item => {
+        const tenNv = (item.ten_nvien || item.ten_ndung || "Chưa phân công").trim();
+        const maKh = String(item.ma_khang || "").trim();
+
+        if (!maKh) return;
+
+        if (!nvMap[tenNv]) {
+          nvMap[tenNv] = {
+            khGiao: new Set(),
+            khGhiDuoc: new Set()
+          };
+        }
+
+        // TỔNG GIAO = count(distinct ma_khang)
+        nvMap[tenNv].khGiao.add(maKh);
+
+        // ĐIỀU KIỆN GHI ĐƯỢC: Có chỉ số mới VÀ Có tọa độ
+        const csMoi = item.chiso_moi;
+        const lat = item.lat;
+        const lng = item.lng;
+
+        const hasCS = (csMoi !== "" && csMoi !== null && csMoi !== undefined);
+        const hasToaDo = (lat !== "" && lat !== null && lat !== undefined) && 
+                         (lng !== "" && lng !== null && lng !== undefined);
+
+        if (hasCS && hasToaDo) {
+          nvMap[tenNv].khGhiDuoc.add(maKh);
+        }
+      });
+
+      const tbody = document.getElementById("reportTbody");
+      const tfoot = document.getElementById("reportTfoot");
+
+      tbody.innerHTML = "";
+      tfoot.innerHTML = "";
+
+      let stt = 1;
+      let sumTongGiao = 0;
+      let sumGhiDuoc = 0;
+      let sumChuaGhi = 0;
+
+      const sortedNhanVien = Object.keys(nvMap).sort((a, b) => a.localeCompare(b, 'vi'));
+
+      sortedNhanVien.forEach(tenNv => {
+        const tongGiao = nvMap[tenNv].khGiao.size;
+        const ghiDuoc = nvMap[tenNv].khGhiDuoc.size;
+        // CHƯA GHI = Tổng giao - Ghi được
+        const chuaGhi = tongGiao - ghiDuoc;
+
+        sumTongGiao += tongGiao;
+        sumGhiDuoc += ghiDuoc;
+        sumChuaGhi += chuaGhi;
+
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td class="text-center">${stt++}</td>
+          <td class="text-left" style="font-weight: 600;">${tenNv}</td>
+          <td class="text-right val-tong">${tongGiao.toLocaleString('vi-VN')}</td>
+          <td class="text-right val-da-ghi">${ghiDuoc.toLocaleString('vi-VN')}</td>
+          <td class="text-right val-chua-ghi">${chuaGhi.toLocaleString('vi-VN')}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+
+      // Hàng Tổng Cộng
+      tfoot.innerHTML = `
+        <tr class="row-total">
+          <td colspan="2" class="text-center">TỔNG CỘNG</td>
+          <td class="text-right val-tong">${sumTongGiao.toLocaleString('vi-VN')}</td>
+          <td class="text-right val-da-ghi">${sumGhiDuoc.toLocaleString('vi-VN')}</td>
+          <td class="text-right val-chua-ghi">${sumChuaGhi.toLocaleString('vi-VN')}</td>
+        </tr>
+      `;
+    }
+  </script>
+</body>
+</html>
