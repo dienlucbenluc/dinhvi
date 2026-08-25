@@ -1,12 +1,13 @@
 const API_URL = "https://script.google.com/macros/s/AKfycbxJZHenN4zoxZR7wOk4SiBnUx071LKLdAWOdJLToJPScSdBIj8Qn_pOeTDAABlN_UAF/exec";
 let currentUser = null;
-let rawData = []; // Lưu trữ dữ liệu thô toàn bộ từ API
+let rawData = []; // Lưu trữ toàn bộ dữ liệu từ API
 let groupedData = {};
 let activeMaKhang = null;
 
 const BCS_ORDER = ["BT", "CD", "TD", "SG", "VC", "BN", "CN", "TN", "SN", "VN"];
 
 document.addEventListener("DOMContentLoaded", () => {
+  // Vẫn kiểm tra session để bảo mật trang, nhưng không dùng ten_ndung để gọi API lọc dữ liệu
   const sessionStr = localStorage.getItem("cmis_user_session");
   if (!sessionStr) { window.location.href = "login.html"; return; }
   currentUser = JSON.parse(sessionStr);
@@ -14,8 +15,6 @@ document.addEventListener("DOMContentLoaded", () => {
   const userDisplayEl = document.getElementById("userDisplay");
   if (userDisplayEl) {
     userDisplayEl.innerText = `👷 ${currentUser.ten_nvien || currentUser.ten_ndung}`;
-  } else {
-    console.warn("Cảnh báo: Không tìm thấy thẻ id='userDisplay' trong HTML");
   }
   
   loadChiSoData();
@@ -72,17 +71,17 @@ function showCustomConfirm(title, message, isDanger = false) {
   });
 }
 
-// Tải TẤT CẢ dữ liệu chỉ số từ backend (không truyền ten_ndung để không lọc theo user đăng nhập)
+// 1. Tải TẤT CẢ dữ liệu chỉ số từ bảng (chạy độc lập, không truyền ten_ndung)
 function loadChiSoData() {
   const container = document.getElementById("listContainer");
   if (container) {
-    container.innerHTML = "<p style='text-align:center; padding-top:20px; color:#666;'>⏳ Đang tải danh sách nhân viên...</p>";
+    container.innerHTML = "<p style='text-align:center; padding-top:20px; color:#666;'>⏳ Đang tải dữ liệu chỉ số...</p>";
   }
 
   fetch(API_URL, {
     method: "POST",
     headers: { "Content-Type": "text/plain" },
-    // Gửi action GET_CHISO_DATA mà không kèm ten_ndung để lấy toàn bộ dữ liệu bảng chi_so
+    // Gửi yêu cầu lấy toàn bộ bảng chi_so độc lập
     body: JSON.stringify({ action: "GET_CHISO_DATA", getAll: true }),
     redirect: "follow"
   })
@@ -91,19 +90,20 @@ function loadChiSoData() {
     try {
       return JSON.parse(text);
     } catch (e) {
-      throw new Error("Phản hồi từ server không phải JSON. Nội dung: " + text.substring(0, 80));
+      throw new Error("Phản hồi không hợp lệ: " + text.substring(0, 80));
     }
   })
   .then(res => {
     if (res.status === "success" && Array.isArray(res.list)) {
       rawData = res.list;
+      // Đổ danh sách nhân viên vào combobox (Chỉ lấy những người có chiso_moi)
       populateEmployeeDropdown(rawData);
       if (container) {
         container.innerHTML = "<p style='text-align:center; padding-top:20px; color:#666;'>👆 Vui lòng chọn nhân viên để hiển thị danh sách.</p>";
       }
     } else {
       if (container) {
-        container.innerHTML = "<p style='color:red; text-align:center;'>Lỗi Backend: " + (res.message || "Dữ liệu trả về không đúng định dạng") + "</p>";
+        container.innerHTML = "<p style='color:red; text-align:center;'>Lỗi Backend: " + (res.message || "Không thể lấy dữ liệu") + "</p>";
       }
     }
   })
@@ -115,14 +115,21 @@ function loadChiSoData() {
   });
 }
 
-// Trích xuất TẤT CẢ ten_nvien có trong danh sách đổ vào Combobox
+// 2. Tạo Combobox danh sách ten_nvien CÓ chiso_moi
 function populateEmployeeDropdown(list) {
   const selectEl = document.getElementById("employeeSelect");
   if (!selectEl) return;
 
-  // Lấy danh sách tất cả ten_nvien không trùng lặp
+  // Lọc chỉ lấy những bản ghi có chiso_moi hợp lệ
+  const validItems = list.filter(item => 
+    item.chiso_moi !== null && 
+    item.chiso_moi !== undefined && 
+    String(item.chiso_moi).trim() !== ""
+  );
+
+  // Trích xuất danh sách ten_nvien duy nhất
   const employees = Array.from(new Set(
-    list.map(item => item.ten_nvien).filter(name => name && name.toString().trim() !== "")
+    validItems.map(item => String(item.ten_nvien || "").trim()).filter(name => name !== "")
   )).sort();
 
   selectEl.innerHTML = '<option value="">-- Chọn nhân viên --</option>';
@@ -134,11 +141,12 @@ function populateEmployeeDropdown(list) {
   });
 }
 
-// Xử lý sự kiện khi chọn Nhân viên từ Combobox
+// 3. Xử lý khi chọn nhân viên từ Combobox
 function onEmployeeChange() {
   const selectedEmp = document.getElementById("employeeSelect").value;
   const container = document.getElementById("listContainer");
-  document.getElementById("searchInput").value = ""; // Reset ô tìm kiếm
+  const searchInput = document.getElementById("searchInput");
+  if (searchInput) searchInput.value = ""; 
 
   if (!selectedEmp) {
     groupedData = {};
@@ -147,10 +155,10 @@ function onEmployeeChange() {
     return;
   }
 
-  // Lọc dữ liệu theo tên nhân viên được chọn VÀ đã có chỉ số mới
+  // Lọc dữ liệu theo tên nhân viên được chọn VÀ phải có chỉ số mới
   const filteredList = rawData.filter(item => {
     const isEmpMatch = String(item.ten_nvien || "").trim() === String(selectedEmp).trim();
-    const hasChiSoMoi = item.chiso_moi !== null && item.chiso_moi !== undefined && item.chiso_moi !== "";
+    const hasChiSoMoi = item.chiso_moi !== null && item.chiso_moi !== undefined && String(item.chiso_moi).trim() !== "";
     return isEmpMatch && hasChiSoMoi;
   });
 
@@ -211,9 +219,10 @@ function updateSummaryBar() {
 }
 
 function filterChuaNhap() {
-  document.getElementById("searchInput").value = "";
+  const searchInput = document.getElementById("searchInput");
+  if (searchInput) searchInput.value = "";
+  
   const filteredGroups = {};
-
   Object.keys(groupedData).forEach(makh => {
     if (groupedData[makh].nhap_cmis === 0) {
       filteredGroups[makh] = groupedData[makh];
@@ -243,7 +252,7 @@ function renderGroupedList(groups) {
   const keys = Object.keys(groups);
 
   if (keys.length === 0) {
-    container.innerHTML = "<p style='text-align:center; padding-top:20px; color:#666;'>Không có dữ liệu chỉ số cho nhân viên đã chọn.</p>";
+    container.innerHTML = "<p style='text-align:center; padding-top:20px; color:#666;'>Không tìm thấy dữ liệu chỉ số hợp lệ cho nhân viên này.</p>";
     return;
   }
 
@@ -366,7 +375,7 @@ async function saveCheckedCMIS() {
     headers: { "Content-Type": "text/plain;charset=utf-8" },
     body: JSON.stringify({
       action: "UPDATE_NHAP_CMIS",
-      ten_ndung: currentUser.ten_ndung,
+      ten_ndung: currentUser ? currentUser.ten_ndung : "",
       updates: updates
     })
   })
