@@ -81,7 +81,6 @@ function loadChiSoData() {
   fetch(API_URL, {
     method: "POST",
     headers: { "Content-Type": "text/plain" },
-    // Gửi yêu cầu lấy toàn bộ bảng chi_so độc lập
     body: JSON.stringify({ action: "GET_CHISO_DATA", getAll: true }),
     redirect: "follow"
   })
@@ -90,20 +89,28 @@ function loadChiSoData() {
     try {
       return JSON.parse(text);
     } catch (e) {
-      throw new Error("Phản hồi không hợp lệ: " + text.substring(0, 80));
+      throw new Error("Phản hồi không phải JSON: " + text.substring(0, 80));
     }
   })
   .then(res => {
     if (res.status === "success" && Array.isArray(res.list)) {
       rawData = res.list;
-      // Đổ danh sách nhân viên vào combobox (Chỉ lấy những người có chiso_moi)
+      
+      // IN DỮ LIỆU KIỂM TRA TRONG CONSOLE BROWSER (F12)
+      console.log("=== DỮ LIỆU NHẬN TỪ API ===", rawData);
+      if (rawData.length > 0) {
+        console.log("Cấu trúc 1 dòng mẫu:", rawData[0]);
+      }
+
+      // Đổ danh sách nhân viên vào combobox
       populateEmployeeDropdown(rawData);
+      
       if (container) {
         container.innerHTML = "<p style='text-align:center; padding-top:20px; color:#666;'>👆 Vui lòng chọn nhân viên để hiển thị danh sách.</p>";
       }
     } else {
       if (container) {
-        container.innerHTML = "<p style='color:red; text-align:center;'>Lỗi Backend: " + (res.message || "Không thể lấy dữ liệu") + "</p>";
+        container.innerHTML = "<p style='color:red; text-align:center;'>Lỗi Backend: " + (res.message || "Không có dữ liệu trả về") + "</p>";
       }
     }
   })
@@ -116,32 +123,58 @@ function loadChiSoData() {
 }
 
 // 2. Tạo Combobox danh sách ten_nvien CÓ chiso_moi
-function populateEmployeeDropdown(list) {
-  const selectEl = document.getElementById("employeeSelect");
-  if (!selectEl) return;
+function loadChiSoData() {
+  const container = document.getElementById("listContainer");
+  if (container) {
+    container.innerHTML = "<p style='text-align:center; padding-top:20px; color:#666;'>⏳ Đang tải dữ liệu chỉ số...</p>";
+  }
 
-  // Lọc chỉ lấy những bản ghi có chiso_moi hợp lệ
-  const validItems = list.filter(item => 
-    item.chiso_moi !== null && 
-    item.chiso_moi !== undefined && 
-    String(item.chiso_moi).trim() !== ""
-  );
+  fetch(API_URL, {
+    method: "POST",
+    headers: { "Content-Type": "text/plain" },
+    body: JSON.stringify({ action: "GET_CHISO_DATA", getAll: true }),
+    redirect: "follow"
+  })
+  .then(async res => {
+    const text = await res.text();
+    try {
+      return JSON.parse(text);
+    } catch (e) {
+      throw new Error("Phản hồi không phải JSON: " + text.substring(0, 80));
+    }
+  })
+  .then(res => {
+    if (res.status === "success" && Array.isArray(res.list)) {
+      rawData = res.list;
+      
+      // IN DỮ LIỆU KIỂM TRA TRONG CONSOLE BROWSER (F12)
+      console.log("=== DỮ LIỆU NHẬN TỪ API ===", rawData);
+      if (rawData.length > 0) {
+        console.log("Cấu trúc 1 dòng mẫu:", rawData[0]);
+      }
 
-  // Trích xuất danh sách ten_nvien duy nhất
-  const employees = Array.from(new Set(
-    validItems.map(item => String(item.ten_nvien || "").trim()).filter(name => name !== "")
-  )).sort();
-
-  selectEl.innerHTML = '<option value="">-- Chọn nhân viên --</option>';
-  employees.forEach(emp => {
-    const opt = document.createElement("option");
-    opt.value = emp;
-    opt.textContent = emp;
-    selectEl.appendChild(opt);
+      // Đổ danh sách nhân viên vào combobox
+      populateEmployeeDropdown(rawData);
+      
+      if (container) {
+        container.innerHTML = "<p style='text-align:center; padding-top:20px; color:#666;'>👆 Vui lòng chọn nhân viên để hiển thị danh sách.</p>";
+      }
+    } else {
+      if (container) {
+        container.innerHTML = "<p style='color:red; text-align:center;'>Lỗi Backend: " + (res.message || "Không có dữ liệu trả về") + "</p>";
+      }
+    }
+  })
+  .catch(err => {
+    console.error("Fetch Error:", err);
+    if (container) {
+      container.innerHTML = `<p style='color:red; text-align:center;'>Lỗi kết nối: ${err.message}</p>`;
+    }
   });
 }
 
 // 3. Xử lý khi chọn nhân viên từ Combobox
+// 3. Lọc dữ liệu khi chọn combobox
 function onEmployeeChange() {
   const selectedEmp = document.getElementById("employeeSelect").value;
   const container = document.getElementById("listContainer");
@@ -155,10 +188,10 @@ function onEmployeeChange() {
     return;
   }
 
-  // Lọc dữ liệu theo tên nhân viên được chọn VÀ phải có chỉ số mới
   const filteredList = rawData.filter(item => {
     const isEmpMatch = String(item.ten_nvien || "").trim() === String(selectedEmp).trim();
-    const hasChiSoMoi = item.chiso_moi !== null && item.chiso_moi !== undefined && String(item.chiso_moi).trim() !== "";
+    const csMoi = item.chiso_moi;
+    const hasChiSoMoi = csMoi !== null && csMoi !== undefined && String(csMoi).trim() !== "";
     return isEmpMatch && hasChiSoMoi;
   });
 
