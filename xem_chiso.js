@@ -158,7 +158,10 @@ function selectCustomer(maKhang) {
 
 function toggleCheckCMIS(maKhang, isChecked) {
   if (groupedData[maKhang]) {
+    // Lưu trực tiếp trạng thái check mới vào nhap_cmis cục bộ (1: checked, 0: unchecked)
+    groupedData[maKhang].nhap_cmis = isChecked ? 1 : 0;
     groupedData[maKhang].is_checked = isChecked;
+    updateSummaryBar(); // Cập nhật lại thanh thống kê ngay trên màn hình
   }
 }
 
@@ -265,10 +268,8 @@ async function saveCheckedCMIS() {
   const checkedMaKhangs = [];
 
   Object.keys(groupedData).forEach(makh => {
-    const chk = document.getElementById(`chk_cmis_${makh}`);
-    if (chk && chk.checked) {
-      checkedMaKhangs.push(makh);
-    } else if (groupedData[makh].is_checked) {
+    // Lấy tất cả khách hàng đang có trạng thái nhap_cmis = 1
+    if (groupedData[makh].nhap_cmis === 1) {
       checkedMaKhangs.push(makh);
     }
   });
@@ -280,12 +281,11 @@ async function saveCheckedCMIS() {
 
   const confirmSave = await showCustomConfirm(
     "XÁC NHẬN LƯU ĐÃ NHẬP CMIS",
-    "Bạn có muốn ghi nhận các khách hàng đã check về trạng thái đã nhập CMIS không?"
+    "Bạn có muốn ghi nhận các khách hàng đã check về trạng thái ĐÃ NHẬP CMIS không?"
   );
 
   if (!confirmSave) return;
 
-  // Lấy danh sách tất cả rowIndices của các khách hàng được check
   let payloadRowIndices = [];
   checkedMaKhangs.forEach(makh => {
     if (groupedData[makh] && groupedData[makh].items) {
@@ -306,7 +306,7 @@ async function saveCheckedCMIS() {
       action: "UPDATE_NHAP_CMIS",
       ten_ndung: currentUser.ten_ndung,
       rowIndices: payloadRowIndices,
-      val: 0 // <--- CHÚ Ý: Đổi tên thành 'val' và đặt giá trị = 0
+      val: 1 // <--- SỬA LẠI: Gửi val = 1 (Đã nhập CMIS)
     })
   })
   .then(res => res.json())
@@ -314,16 +314,8 @@ async function saveCheckedCMIS() {
     if (res.status === "success") {
       showToast("✅ Đã cập nhật trạng thái thành công!");
       
-      // Cập nhật lại dữ liệu cục bộ về 0
-      checkedMaKhangs.forEach(makh => {
-        if (groupedData[makh]) {
-          groupedData[makh].nhap_cmis = 0; // <--- Cập nhật bộ nhớ local về 0
-          groupedData[makh].items.forEach(i => i.nhap_cmis = 0);
-        }
-      });
-
-      // Tải lại/vẽ lại danh sách & cập nhật thanh thống kê
-      if (typeof renderList === 'function') renderList();
+      // SỬA LỖI TẠI ĐÂY: Thay renderList() bằng renderGroupedList()
+      renderGroupedList(groupedData);
       updateSummaryBar();
     } else {
       showToast("❌ Lỗi: " + res.message);
