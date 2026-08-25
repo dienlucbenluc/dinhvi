@@ -1,296 +1,433 @@
-<!DOCTYPE html>
-<html lang="vi">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Xem chỉ số khách hàng</title>
-  <style>
-    * { box-sizing: border-box; }
-    html, body { height: 100%; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background: #f0f2f5; color: #333; overflow: hidden; }
-    
-    .sticky-top-container {
-      position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      background: #fff;
-      z-index: 1000;
-      padding: 8px 10px;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+const API_URL = "https://script.google.com/macros/s/AKfycbxJZHenN4zoxZR7wOk4SiBnUx071LKLdAWOdJLToJPScSdBIj8Qn_pOeTDAABlN_UAF/exec";
+let currentUser = null;
+let groupedData = {};
+let activeMaKhang = null;
+
+const BCS_ORDER = ["BT", "CD", "TD", "SG", "VC", "BN", "CN", "TN", "SN", "VN"];
+
+document.addEventListener("DOMContentLoaded", () => {
+  const sessionStr = localStorage.getItem("cmis_user_session");
+  if (!sessionStr) { window.location.href = "login.html"; return; }
+  currentUser = JSON.parse(sessionStr);
+  
+  // KIỂM TRA AN TOÀN THẺ userDisplay
+  const userDisplayEl = document.getElementById("userDisplay");
+  if (userDisplayEl) {
+    userDisplayEl.innerText = `👷 ${currentUser.ten_nvien || currentUser.ten_ndung}`;
+  } else {
+    console.warn("Cảnh báo: Không tìm thấy thẻ id='userDisplay' trong HTML");
+  }
+
+  // YÊU CẦU 2: Nạp danh sách tất cả ten_nvien từ bảng nhan_vien vào combobox
+  loadNhanVienList();
+
+  // YÊU CẦU 3: Bỏ tự động gọi loadChiSoData() khi vào trang
+});
+
+// YÊU CẦU 2: Lấy tất cả ten_nvien trong bảng nhan_vien (không theo ten_ndung đã lưu)
+function loadNhanVienList() {
+  const selectEl = document.getElementById("selectNhanVien");
+  if (!selectEl) return;
+  
+  fetch(API_URL, {
+    method: "POST",
+    headers: { "Content-Type": "text/plain" },
+    body: JSON.stringify({ action: "GET_DS_NHANVIEN" }),
+    redirect: "follow"
+  })
+  .then(res => res.json())
+  .then(res => {
+    if (res.status === "success" && Array.isArray(res.list)) {
+      selectEl.innerHTML = '<option value="">-- Chọn nhân viên --</option>';
+      res.list.forEach(nv => {
+        const name = typeof nv === 'object' ? (nv.ten_nvien || nv.ten_ndung) : nv;
+        if (name) {
+          const opt = document.createElement("option");
+          opt.value = name;
+          opt.textContent = name;
+          selectEl.appendChild(opt);
+        }
+      });
     }
+  })
+  .catch(err => console.error("Lỗi lấy DS nhân viên:", err));
+}
 
-    .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; position: relative; }
-    .header-left { display: flex; align-items: center; gap: 8px; }
-    .header-right { display: flex; align-items: center; gap: 8px; position: relative; }
+// YÊU CẦU 4: Khi bấm nút lấy danh sách -> Load tất cả danh sách khách hàng theo ten_nvien đã chọn trên combobox từ bảng chi_so
+function loadChiSoData() {
+  const selectEl = document.getElementById("selectNhanVien");
+  const selectedNv = selectEl ? selectEl.value : "";
 
-    .btn-menu { 
-      background: #f0f2f5; 
-      border: 1px solid #ccc; 
-      border-radius: 4px; 
-      padding: 4px 8px; 
-      font-size: 16px; 
-      cursor: pointer; 
-      line-height: 1;
+  if (!selectedNv) {
+    showToast("⚠️ Vui lòng chọn nhân viên trước!");
+    return;
+  }
+
+  const container = document.getElementById("listContainer");
+  if (!container) {
+    console.error("LỖI DOM: Không tìm thấy thẻ id='listContainer'");
+    return;
+  }
+
+  container.innerHTML = "<p style='text-align:center; padding-top:20px;'>⏳ Đang tải dữ liệu...</p>";
+  
+  fetch(API_URL, {
+    method: "POST",
+    headers: { 
+      "Content-Type": "text/plain"
+    },
+    // Truyền ten_nvien chọn trên combobox thay vì ten_ndung đã lưu
+    body: JSON.stringify({ action: "GET_CHISO_DATA", ten_nvien: selectedNv }),
+    redirect: "follow"
+  })
+  .then(async res => {
+    const text = await res.text();
+    try {
+      return JSON.parse(text);
+    } catch (e) {
+      throw new Error("Phản hồi từ server không phải JSON. Nội dung: " + text.substring(0, 80));
     }
-    .btn-menu:active { background: #e2e6ea; }
-
-    .title { font-size: 15px; font-weight: bold; color: #0056b3; }
-    .user-info { font-weight: 600; font-size: 12px; color: #28a745; }
-
-    .menu-dropdown {
-      display: none;
-      position: absolute;
-      top: 32px;
-      right: 0;
-      left: auto;
-      background: #ffffff;
-      border: 1px solid #ccc;
-      border-radius: 6px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-      z-index: 1001;
-      min-width: 180px;
-      overflow: hidden;
+  })
+  .then(res => {
+    if (res.status === "success" && Array.isArray(res.list)) {
+      groupAndRender(res.list);
+    } else {
+      container.innerHTML = "<p style='color:red; text-align:center;'>Lỗi Backend: " + (res.message || "Dữ liệu trả về không đúng định dạng") + "</p>";
     }
-    .menu-dropdown.show { display: block; }
-    .menu-item {
-      padding: 10px 12px;
-      font-size: 13px;
-      font-weight: 600;
-      color: #333;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      cursor: pointer;
-      border-bottom: 1px solid #eee;
-      transition: background 0.15s;
-    }
-    .menu-item:last-child { border-bottom: none; }
-    .menu-item:active { background: #f0f4f8; }
+  })
+  .catch(err => {
+    console.error("Fetch Error:", err);
+    container.innerHTML = `<p style='color:red; text-align:center;'>Lỗi kết nối: ${err.message}</p>`;
+  });
+}
 
-    .search-box input { width: 100%; padding: 7px 10px; border-radius: 5px; border: 1px solid #ccc; font-size: 13px; outline: none; }
-    .search-box input:focus { border-color: #0056b3; }
+function toggleMenu(e) {
+  if (e) e.stopPropagation();
+  const dropdown = document.getElementById("menuDropdown");
+  if (dropdown) dropdown.classList.toggle("show");
+}
 
-    /* CSS Hàng thống kê chỉ số */
-    .summary-bar {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-top: 6px;
-      padding: 4px 6px;
-      background: #eef5fc;
-      border-radius: 5px;
-      font-size: 11.5px;
-      color: #004085;
-      font-weight: 600;
-      line-height: 1.2;
-    }
-    .summary-bar span { white-space: nowrap; }
-    
-    .link-action {
-      color: #007bff;
-      text-decoration: underline;
-      cursor: pointer;
-      font-weight: bold;
-    }
-    .link-action:hover { color: #0056b3; }
-    .link-danger { color: #d9534f; }
-    .link-danger:hover { color: #c9302c; }
-    .link-success { color: #28a745; }
-    .link-success:hover { color: #1e7e34; }
+document.addEventListener("click", () => {
+  const menu = document.getElementById("menuDropdown");
+  if (menu && menu.classList.contains("show")) menu.classList.remove("show");
+});
 
-    #listContainer {
-      position: absolute;
-      top: 135px; /* Điều chỉnh lại khoảng cách top do thêm combobox */
-      bottom: 0;
-      left: 0;
-      right: 0;
-      overflow-y: auto;
-      padding: 8px;
-      -webkit-overflow-scrolling: touch;
-      scroll-behavior: smooth;
-    }
+let toastTimer = null;
+function showToast(msg) {
+  const t = document.getElementById("toast");
+  if (!t) return;
+  t.innerText = msg;
+  t.style.display = "block";
+  
+  if (toastTimer) clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => {
+    t.style.display = "none";
+  }, 3500);
+}
 
-    .customer-card { 
-      background: #fff; 
-      border-radius: 6px; 
-      padding: 8px; 
-      margin-bottom: 10px; 
-      border: 1px solid #ddd; 
-      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-      cursor: pointer;
-      transition: all 0.2s ease;
-    }
+function showCustomConfirm(title, message, isDanger = false) {
+  return new Promise((resolve) => {
+    const modal = document.getElementById("customConfirmModal");
+    const titleEl = document.getElementById("confirmModalTitle");
+    const msgEl = document.getElementById("confirmModalMessage");
+    const btnConfirm = document.getElementById("btnModalConfirm");
+    const btnCancel = document.getElementById("btnModalCancel");
 
-    .customer-card.active {
-      border: 2px solid #28a745;
-      box-shadow: 0 3px 8px rgba(40, 167, 69, 0.2);
-      background: #fafefb;
-    }
+    titleEl.innerText = title;
+    titleEl.style.color = isDanger ? "#dc3545" : "#007bff";
+    msgEl.innerText = message;
+    btnConfirm.style.background = isDanger ? "#dc3545" : "#28a745";
 
-    .cust-header { 
-      border-bottom: none; 
-      padding-bottom: 2px; 
-      margin-bottom: 4px; 
-      line-height: 1.25; 
-    }
-    
-    .cust-title { 
-      font-weight: bold; 
-      color: #0056b3; 
-      font-size: 14px; 
-      margin-bottom: 4px; 
-      line-height: 1.2;
-    }
+    modal.style.display = "flex";
 
-    .cust-row-group { 
-      display: flex; 
-      flex-wrap: nowrap; 
-      gap: 6px; 
-      margin-top: 2px; 
-      align-items: center;
+    btnConfirm.onclick = () => {
+      modal.style.display = "none";
+      resolve(true);
+    };
+
+    btnCancel.onclick = () => {
+      modal.style.display = "none";
+      resolve(false);
+    };
+  });
+}
+
+function groupAndRender(flatList) {
+  groupedData = {};
+  flatList.forEach(item => {
+    const makh = item.ma_khang;
+    if (!groupedData[makh]) {
+      groupedData[makh] = {
+        ma_khang: item.ma_khang,
+        ten_khang: item.ten_khang,
+        dia_chi: item.dia_chi,
+        ma_sogcs: item.ma_sogcs,
+        danh_so: item.danh_so,
+        so_cto: item.so_cto,
+        nhap_cmis: Number(item.nhap_cmis || 0),
+        items: []
+      };
     }
-    
-    .cust-row-group span { 
-      font-size: 12px; 
-      color: #333;
-      line-height: 1.2;
+    groupedData[makh].items.push(item);
+  });
+
+  Object.keys(groupedData).forEach(makh => {
+    groupedData[makh].items.sort((a, b) => {
+      let idxA = BCS_ORDER.indexOf(String(a.bcs).toUpperCase().trim());
+      let idxB = BCS_ORDER.indexOf(String(b.bcs).toUpperCase().trim());
+      return (idxA === -1 ? 99 : idxA) - (idxB === -1 ? 99 : idxB);
+    });
+  });
+
+  updateSummaryBar();
+  renderGroupedList(groupedData);
+}
+
+function updateSummaryBar() {
+  const keys = Object.keys(groupedData);
+  const tongKh = keys.length;
+  let daNhap = 0;
+
+  keys.forEach(makh => {
+    if (groupedData[makh].nhap_cmis === 1) {
+      daNhap++;
     }
+  });
 
-    .chk-cmis-label {
-      display: inline-flex;
-      align-items: center;
-      margin-right: 7px; 
-      gap: 4px;
-      font-size: 13px;
-      font-weight: bold;
-      color: #28a745;
-      cursor: pointer;
-      user-select: none;
+  const chuaNhap = tongKh - daNhap;
+
+  const elTong = document.getElementById("sumTongKh");
+  const elDaNhap = document.getElementById("sumDaNhap");
+  const elChuaNhap = document.getElementById("sumChuaNhap");
+
+  if (elTong) elTong.innerText = tongKh;
+  if (elDaNhap) elDaNhap.innerText = daNhap;
+  if (elChuaNhap) elChuaNhap.innerText = chuaNhap;
+}
+
+function filterChuaNhap() {
+  document.getElementById("searchInput").value = "";
+  const filteredGroups = {};
+
+  Object.keys(groupedData).forEach(makh => {
+    if (groupedData[makh].nhap_cmis === 0) {
+      filteredGroups[makh] = groupedData[makh];
     }
-    .chk-cmis-label input[type="checkbox"] {
-      width: 18px;
-      height: 18px;
-      cursor: pointer;
-    }
+  });
 
-    /* === CẢI TIẾN FONT CHỮ BẢNG TO & RÕ HƠN === */
-    .table-responsive { overflow-x: auto; -webkit-overflow-scrolling: touch; margin-top: 6px; }
-    table.chiso-table { width: 100%; border-collapse: collapse; font-size: 14px; }
-    table.chiso-table th { background: #e9ecef; color: #111; padding: 6px 4px; border: 1px solid #bbb; white-space: nowrap; font-size: 15px; font-weight: bold; text-align: center; }
-    table.chiso-table td { border: 1px solid #ccc; padding: 6px 8px; vertical-align: middle; white-space: nowrap; font-size: 17px; }
-    
-    .text-right { text-align: right !important; }
-    .text-center { text-align: center !important; }
+  renderGroupedList(filteredGroups);
+}
 
-    .val-calc-large { 
-      font-size: 15px !important; 
-      font-weight: bold !important; 
-      color: #000;
-    }
+function selectCustomer(maKhang) {
+  activeMaKhang = maKhang;
+  document.querySelectorAll('.customer-card.active').forEach(card => card.classList.remove('active'));
+  const targetCard = document.getElementById(`card_${maKhang}`);
+  if (targetCard) targetCard.classList.add('active');
+}
 
-    .bcs-badge { font-weight: bold; padding: 3px 6px; border-radius: 4px; background: #e2e3e5; color: #111; font-size: 12.5px; }
+function toggleCheckCMIS(maKhang, isChecked) {
+  if (groupedData[maKhang]) {
+    groupedData[maKhang].nhap_cmis = isChecked ? 1 : 0;
+    groupedData[maKhang].is_checked = isChecked;
+    updateSummaryBar();
+  }
+}
 
-    #toast { 
-      position: fixed; 
-      top: 15px; 
-      right: 15px; 
-      left: auto;
-      max-width: 320px;
-      text-align: left; 
-      background: rgba(33, 37, 41, 0.92); 
-      color: #fff; 
-      padding: 10px 15px; 
-      border-radius: 8px; 
-      font-size: 13px; 
-      font-weight: 500;
-      line-height: 1.4;
-      display: none; 
-      z-index: 10001; 
-      box-shadow: 0 4px 12px rgba(0,0,0,0.25);
-    }
+function renderGroupedList(groups) {
+  const container = document.getElementById("listContainer");
+  const keys = Object.keys(groups);
 
-    .modal-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0, 0, 0, 0.4); display: none; align-items: center; justify-content: center; z-index: 10000; }
-    .modal-box { background: #ffffff; width: 88%; max-width: 360px; border-radius: 12px; padding: 18px 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); text-align: center; }
-    .modal-title { font-size: 16px; font-weight: bold; color: #007bff; margin-bottom: 10px; }
-    .modal-message { font-size: 13.5px; color: #333; line-height: 1.5; white-space: pre-line; text-align: left; }
-    .modal-buttons { display: flex; gap: 10px; margin-top: 15px; }
-    .modal-buttons button { flex: 1; padding: 9px; font-size: 13px; font-weight: bold; border-radius: 6px; margin: 0; border: none; cursor: pointer; }
-    .btn-modal-cancel { background: #e0e0e0; color: #333; }
-    .btn-modal-confirm { background: #28a745; color: white; }
-  </style>
-</head>
-<body>
+  if (keys.length === 0) {
+    container.innerHTML = "<p style='text-align:center; padding-top:20px;'>Không có dữ liệu khách hàng.</p>";
+    return;
+  }
 
-  <div class="sticky-top-container">
-    <div class="header">
-      <div class="header-left">
-        <div class="title">⚡ XEM CHỈ SỐ</div>
-      </div>
-      <div class="header-right">
-        <div class="user-info" id="userDisplay">👷 ...</div>
-        <button class="btn-menu" onclick="toggleMenu(event)">☰</button>
-        <div class="menu-dropdown" id="menuDropdown">
-          <div class="menu-item" onclick="window.location.href='home.html'">🏛 Về trang chủ</div>
-          <div class="menu-item" onclick="handleLogout()" style="color: red;">🛑 Thoát</div>
+  container.innerHTML = "";
+  
+  const CHUNK_SIZE = 30;
+  let currentIndex = 0;
+
+  function renderChunk() {
+    const nextKeys = keys.slice(currentIndex, currentIndex + CHUNK_SIZE);
+    if (nextKeys.length === 0) return;
+
+    let html = "";
+    nextKeys.forEach(makh => {
+      const cust = groups[makh];
+      const isActive = (makh === activeMaKhang) ? "active" : "";
+      const isCMIS = cust.nhap_cmis === 1;
+      const isChecked = cust.is_checked !== undefined ? cust.is_checked : isCMIS;
+
+      html += `
+        <div class="customer-card ${isActive}" id="card_${cust.ma_khang}" onclick="selectCustomer('${cust.ma_khang}')">
+          <div class="cust-header">
+            <div class="cust-title">${cust.ma_khang} - ${cust.ten_khang}</div>
+            <div class="cust-row-group">
+              <label class="chk-cmis-label" onclick="event.stopPropagation();">
+                <input type="checkbox" 
+                       id="chk_cmis_${cust.ma_khang}" 
+                       ${isChecked ? 'checked' : ''} 
+                       onchange="toggleCheckCMIS('${cust.ma_khang}', this.checked)">
+                CMIS
+              </label>
+              <span>Sổ: <b>${cust.ma_sogcs || ''}</b> - DS:${cust.danh_so || ''}</span>
+            </div>
+          </div>
+
+          <div class="table-responsive">
+            <table class="chiso-table">
+              <thead>
+                <tr>
+                  <th style="width: 20%;">BCS</th>
+                  <th style="width: 26%;">CS cũ</th>
+                  <th style="width: 27%;">CS mới</th>
+                  <th style="width: 27%;">Sản lượng</th>
+                </tr>
+              </thead>
+              <tbody>
+      `;
+
+      cust.items.forEach(item => {
+        const csMoiVal = (item.chiso_moi !== "" && item.chiso_moi !== undefined && item.chiso_moi !== null) ? item.chiso_moi : "-";
+        const sanLuongVal = (item.san_luong !== "" && item.san_luong !== undefined && item.san_luong !== null) ? item.san_luong : "-";
+
+        html += `
+          <tr>
+            <td class="text-center"><span class="bcs-badge">${item.bcs}</span></td>
+            <td class="val-calc-large text-right">${item.chiso_cu !== undefined ? item.chiso_cu : '-'}</td>
+            <td class="val-calc-large text-right" style="color: #0056b3;">${csMoiVal}</td>
+            <td class="val-calc-large text-right" style="color: #28a745;">${sanLuongVal}</td>
+          </tr>
+        `;
+      });
+
+      html += `
+              </tbody>
+            </table>
+          </div>
         </div>
-      </div>
-    </div>
-    
-    <!-- YÊU CẦU 1: THÊM COMBOBOX VÀ NÚT LẤY DANH SÁCH BÊN PHẢI NẰM TRÊN SEARCHINPUT -->
-    <div style="display: flex; gap: 6px; margin-bottom: 6px;">
-      <select id="selectNhanVien" style="flex: 1; padding: 7px 10px; border-radius: 5px; border: 1px solid #ccc; font-size: 13px; outline: none;">
-        <option value="">-- Chọn nhân viên --</option>
-      </select>
-      <button onclick="loadChiSoData()" style="padding: 7px 12px; background: #007bff; color: white; border: none; border-radius: 5px; font-weight: bold; font-size: 13px; cursor: pointer;">
-        Lấy danh sách
-      </button>
-    </div>
+      `;
+    });
 
-    <div class="search-box">
-      <input type="text" id="searchInput" placeholder="🔍 Tìm Mã KH, Tên KH, Mã Sổ, Số Cột, Số CTO..." oninput="filterData()">
-    </div>
-    
-    <!-- Thanh Thống kê theo yêu cầu 4 -->
-    <div class="summary-bar">
-      <span>Đã nhập: <b id="sumDaNhap" style="color:#28a745;">0</b></span>
-      <span>Chưa nhập: <b id="sumChuaNhap" style="color:#d9534f;">0</b></span>
-      <span class="link-action link-danger" onclick="filterChuaNhap()">Xem chưa nhập</span>
-      <span class="link-action link-success" onclick="saveCheckedCMIS()">Lưu đã nhập</span>
-    </div>
-  </div>
+    const tempDiv = document.createElement("div");
+    tempDiv.innerHTML = html;
+    while (tempDiv.firstChild) {
+      container.appendChild(tempDiv.firstChild);
+    }
 
-  <!-- YÊU CẦU 3: KHI VÀO TRANG KHÔNG LOAD DANH SÁCH KHÁCH HÀNG -->
-  <div id="listContainer">
-    <p style='text-align:center; padding-top:20px; color: #666;'>Vui lòng chọn nhân viên và bấm "Lấy danh sách".</p>
-  </div>
+    currentIndex += CHUNK_SIZE;
+    if (currentIndex < keys.length) {
+      setTimeout(renderChunk, 0);
+    }
+  }
 
-  <div id="toast"></div>
+  renderChunk();
+}
 
-  <!-- Modal Confirm -->
-  <div id="customConfirmModal" class="modal-overlay">
-    <div class="modal-box">
-      <div class="modal-title" id="confirmModalTitle">XÁC NHẬN</div>
-      <div class="modal-message" id="confirmModalMessage">Nội dung thông báo...</div>
-      <div class="modal-buttons">
-        <button class="btn-modal-cancel" id="btnModalCancel">Hủy</button>
-        <button class="btn-modal-confirm" id="btnModalConfirm">Xác nhận</button>
-      </div>
-    </div>
-  </div>
+async function saveCheckedCMIS() {
+  const updates = [];
 
-  <!-- Modal Logout -->
-  <div id="logoutModal" class="modal-overlay">
-    <div class="modal-box">
-      <div class="modal-title" style="color: #dc3545;">XÁC NHẬN THOÁT</div>
-      <div class="modal-message">Bạn có chắc chắn muốn đăng xuất khỏi hệ thống?</div>
-      <div class="modal-buttons">
-        <button class="btn-modal-cancel" onclick="closeLogoutModal()">Hủy</button>
-        <button class="btn-modal-confirm" style="background: #dc3545;" onclick="confirmLogout()">Thoát</button>
-      </div>
-    </div>
-  </div>
+  Object.keys(groupedData).forEach(makh => {
+    const cust = groupedData[makh];
+    const rowIndices = (cust.items || [])
+      .map(item => item.rowIndex)
+      .filter(idx => idx !== undefined);
 
-  <!-- Nhúng JS -->
-  <script charset="UTF-8" src="xem_chiso.js?v=1.0.0"></script>
-</body>
-</html>
+    if (rowIndices.length > 0) {
+      updates.push({
+        ma_khang: makh,
+        rowIndices: rowIndices,
+        val: cust.nhap_cmis
+      });
+    }
+  });
+
+  if (updates.length === 0) {
+    showToast("⚠️ Không có dữ liệu để cập nhật!");
+    return;
+  }
+
+  const confirmSave = await showCustomConfirm(
+    "XÁC NHẬN LƯU TRẠNG THÁI CMIS",
+    "Bạn có chắc chắn muốn lưu lại trạng thái nhập CMIS cho tất cả danh sách hiện tại?"
+  );
+
+  if (!confirmSave) return;
+
+  showToast(`⏳ Đang cập nhật trạng thái CMIS...`);
+
+  fetch(API_URL, {
+    method: "POST",
+    headers: { "Content-Type": "text/plain;charset=utf-8" },
+    body: JSON.stringify({
+      action: "UPDATE_NHAP_CMIS",
+      ten_ndung: currentUser.ten_ndung,
+      updates: updates
+    })
+  })
+  .then(res => res.json())
+  .then(res => {
+    if (res.status === "success") {
+      showToast("✅ Đã cập nhật trạng thái thành công!");
+      renderGroupedList(groupedData);
+      updateSummaryBar();
+    } else {
+      showToast("❌ Lỗi: " + (res.message || "Cập nhật thất bại"));
+    }
+  })
+  .catch((err) => {
+    console.error(err);
+    showToast("❌ Lỗi kết nối máy chủ!");
+  });
+}
+
+function filterData() {
+  const q = document.getElementById("searchInput").value.toLowerCase().trim();
+  
+  if (!q) {
+    document.querySelectorAll('.customer-card.active').forEach(card => card.classList.remove('active'));
+    activeMaKhang = null;
+    return;
+  }
+
+  let foundMaKhang = null;
+
+  Object.keys(groupedData).forEach(makh => {
+    if (foundMaKhang) return;
+
+    const cust = groupedData[makh];
+    const match = 
+      String(cust.ma_khang || "").toLowerCase().includes(q) ||
+      String(cust.ten_khang || "").toLowerCase().includes(q) ||
+      String(cust.so_cto || "").toLowerCase().includes(q) ||
+      String(cust.ma_sogcs || "").toLowerCase().includes(q) ||
+      String(cust.danh_so || "").toLowerCase().includes(q);
+
+    if (match) {
+      foundMaKhang = makh;
+    }
+  });
+
+  if (foundMaKhang) {
+    selectCustomer(foundMaKhang);
+    const targetCard = document.getElementById(`card_${foundMaKhang}`);
+    if (targetCard) {
+      targetCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  }
+}
+
+function handleLogout() {
+  const logoutModal = document.getElementById('logoutModal');
+  if (logoutModal) logoutModal.style.display = 'flex';
+}
+
+function closeLogoutModal() {
+  const logoutModal = document.getElementById('logoutModal');
+  if (logoutModal) logoutModal.style.display = 'none';
+}
+
+function confirmLogout() {
+  localStorage.removeItem("cmis_user_session");
+  window.location.href = "login.html";
+}
