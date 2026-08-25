@@ -157,9 +157,14 @@ function updateSummaryBar() {
 
   const chuaNhap = tongKh - daNhap;
 
-  document.getElementById("sumTongKh").innerText = tongKh;
-  document.getElementById("sumDaNhap").innerText = daNhap;
-  document.getElementById("sumChuaNhap").innerText = chuaNhap;
+  // Sử dụng toán tử ?. (Optional Chaining) để không bị crash nếu thiếu thẻ HTML
+  const elTong = document.getElementById("sumTongKh");
+  const elDaNhap = document.getElementById("sumDaNhap");
+  const elChuaNhap = document.getElementById("sumChuaNhap");
+
+  if (elTong) elTong.innerText = tongKh;
+  if (elDaNhap) elDaNhap.innerText = daNhap;
+  if (elChuaNhap) elChuaNhap.innerText = chuaNhap;
 }
 
 // Xem danh sách nhap_cmis = 0 (Yêu cầu 4)
