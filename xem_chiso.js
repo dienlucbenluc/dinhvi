@@ -1,6 +1,6 @@
 const API_URL = "https://script.google.com/macros/s/AKfycbxJZHenN4zoxZR7wOk4SiBnUx071LKLdAWOdJLToJPScSdBIj8Qn_pOeTDAABlN_UAF/exec";
 let currentUser = null;
-let rawData = []; // Lưu trữ dữ liệu thô trả về từ API
+let rawData = []; // Lưu trữ dữ liệu thô toàn bộ từ API
 let groupedData = {};
 let activeMaKhang = null;
 
@@ -72,12 +72,18 @@ function showCustomConfirm(title, message, isDanger = false) {
   });
 }
 
-// Tải dữ liệu toàn bộ từ API và nạp danh sách Nhân viên vào Combobox
+// Tải TẤT CẢ dữ liệu chỉ số từ backend (không truyền ten_ndung để không lọc theo user đăng nhập)
 function loadChiSoData() {
+  const container = document.getElementById("listContainer");
+  if (container) {
+    container.innerHTML = "<p style='text-align:center; padding-top:20px; color:#666;'>⏳ Đang tải danh sách nhân viên...</p>";
+  }
+
   fetch(API_URL, {
     method: "POST",
     headers: { "Content-Type": "text/plain" },
-    body: JSON.stringify({ action: "GET_CHISO_DATA", ten_ndung: currentUser.ten_ndung }),
+    // Gửi action GET_CHISO_DATA mà không kèm ten_ndung để lấy toàn bộ dữ liệu bảng chi_so
+    body: JSON.stringify({ action: "GET_CHISO_DATA", getAll: true }),
     redirect: "follow"
   })
   .then(async res => {
@@ -92,8 +98,10 @@ function loadChiSoData() {
     if (res.status === "success" && Array.isArray(res.list)) {
       rawData = res.list;
       populateEmployeeDropdown(rawData);
+      if (container) {
+        container.innerHTML = "<p style='text-align:center; padding-top:20px; color:#666;'>👆 Vui lòng chọn nhân viên để hiển thị danh sách.</p>";
+      }
     } else {
-      const container = document.getElementById("listContainer");
       if (container) {
         container.innerHTML = "<p style='color:red; text-align:center;'>Lỗi Backend: " + (res.message || "Dữ liệu trả về không đúng định dạng") + "</p>";
       }
@@ -101,18 +109,18 @@ function loadChiSoData() {
   })
   .catch(err => {
     console.error("Fetch Error:", err);
-    const container = document.getElementById("listContainer");
     if (container) {
       container.innerHTML = `<p style='color:red; text-align:center;'>Lỗi kết nối: ${err.message}</p>`;
     }
   });
 }
 
-// Lấy danh sách ten_nvien duy nhất để tạo các option cho combobox
+// Trích xuất TẤT CẢ ten_nvien có trong danh sách đổ vào Combobox
 function populateEmployeeDropdown(list) {
   const selectEl = document.getElementById("employeeSelect");
   if (!selectEl) return;
 
+  // Lấy danh sách tất cả ten_nvien không trùng lặp
   const employees = Array.from(new Set(
     list.map(item => item.ten_nvien).filter(name => name && name.toString().trim() !== "")
   )).sort();
@@ -126,7 +134,7 @@ function populateEmployeeDropdown(list) {
   });
 }
 
-// Xử lý sự kiện khi chọn nhân viên từ Combobox
+// Xử lý sự kiện khi chọn Nhân viên từ Combobox
 function onEmployeeChange() {
   const selectedEmp = document.getElementById("employeeSelect").value;
   const container = document.getElementById("listContainer");
@@ -139,9 +147,9 @@ function onEmployeeChange() {
     return;
   }
 
-  // Lọc theo ten_nvien được chọn VÀ điều kiện ĐÃ CÓ chiso_moi
+  // Lọc dữ liệu theo tên nhân viên được chọn VÀ đã có chỉ số mới
   const filteredList = rawData.filter(item => {
-    const isEmpMatch = item.ten_nvien === selectedEmp;
+    const isEmpMatch = String(item.ten_nvien || "").trim() === String(selectedEmp).trim();
     const hasChiSoMoi = item.chiso_moi !== null && item.chiso_moi !== undefined && item.chiso_moi !== "";
     return isEmpMatch && hasChiSoMoi;
   });
