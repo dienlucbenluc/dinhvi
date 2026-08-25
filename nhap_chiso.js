@@ -530,7 +530,13 @@ async function saveCustomerData(maKhang) {
       const sanLuong = Math.round((csMoi - item.chiso_cu) * hsnVal);
       const tongSluong = sanLuong + slThao;
 
-      if (slKt !== 0) {
+  // KHI KỲ TRƯỚC BẰNG 0 HOẶC NULL
+      if (slKt === 0) {
+        if (tongSluong > 0) {
+          warningMsgs.push(`* ${item.bcs}: Sản lượng kỳ trước bằng 0, kỳ này phát sinh +100% (${tongSluong} kWh).`);
+        }
+      } else {
+        // KHI KỲ TRƯỚC CÓ SẢN LƯỢNG
         const percentChange = ((tongSluong - slKt) / slKt) * 100;
         if (percentChange > 50) {
           warningMsgs.push(`* ${item.bcs}: Slượng tăng ${percentChange.toFixed(1)}% so với kỳ trước.`);
