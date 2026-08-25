@@ -414,45 +414,56 @@ function checkCancelButtonStatus(maKhang) {
 
 function calculateRow(maKhang, bcs, rowIndex, csCu, hsn, sluongThao, sluongKt) {
   const inputEl = document.getElementById(`cs_moi_${rowIndex}`);
-  const val = inputEl.value;
+  const val = inputEl ? inputEl.value.trim() : "";
 
   const slHiddenEl = document.getElementById(`sl_val_${rowIndex}`);
   const tongSlCell = document.getElementById(`tong_sl_${rowIndex}`);
   const clechCell = document.getElementById(`clech_${rowIndex}`);
   const tyleCell = document.getElementById(`tyle_${rowIndex}`);
 
-  if (val === "" || isNaN(val)) {
-    slHiddenEl.value = "-";
-    tongSlCell.innerText = "-";
-    clechCell.innerText = "-";
-    tyleCell.innerText = "-";
+  // 1. Kiểm tra nếu rỗng hoặc không phải số hợp lệ
+  if (val === "" || isNaN(Number(val))) {
+    if (slHiddenEl) slHiddenEl.value = "-";
+    if (tongSlCell) tongSlCell.innerText = "-";
+    if (clechCell) clechCell.innerText = "-";
+    if (tyleCell) tyleCell.innerText = "-";
     updateRowDetail(maKhang, bcs, "-", sluongThao, sluongKt);
     checkCancelButtonStatus(maKhang);
     return;
   }
 
+  // 2. Ép kiểu an toàn
   const csMoi = Number(val);
+  const csCuVal = Number(csCu) || 0;
   const hsnVal = Number(hsn) || 1;
   const slThao = Number(sluongThao) || 0;
   const slKt = Number(sluongKt) || 0;
 
-  const sanLuong = Math.round((csMoi - csCu) * hsnVal);
+  // 3. Tính toán sản lượng
+  const sanLuong = Math.round((csMoi - csCuVal) * hsnVal);
   const tongSluong = sanLuong + slThao;
   const chenhLech = tongSluong - slKt;
 
-  let tyleClech = "0%";
+  // 4. Tính tỷ lệ chênh lệch
+  let tyleClech = "-";
   if (slKt !== 0) {
     const rawTyle = ((tongSluong - slKt) / slKt) * 100;
     const prefix = rawTyle > 0 ? "+" : "";
     tyleClech = prefix + rawTyle.toFixed(2) + "%";
+  } else if (tongSluong > 0) {
+    // Trường hợp kỳ trước bằng 0 nhưng kỳ này có sản lượng
+    tyleClech = "+100%";
+  } else {
+    tyleClech = "0%";
   }
 
-  slHiddenEl.value = sanLuong;
-  tongSlCell.innerText = tongSluong;
-  clechCell.innerText = chenhLech;
-  tyleCell.innerText = tyleClech;
+  // 5. Cập nhật lên UI
+  if (slHiddenEl) slHiddenEl.value = sanLuong;
+  if (tongSlCell) tongSlCell.innerText = tongSluong;
+  if (clechCell) clechCell.innerText = chenhLech;
+  if (tyleCell) tyleCell.innerText = tyleClech;
 
-  updateRowDetail(maKhang, bcs, sanLuong, sluongThao, sluongKt);
+  updateRowDetail(maKhang, bcs, sanLuong, slThao, slKt);
   checkCancelButtonStatus(maKhang);
 }
 
