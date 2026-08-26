@@ -328,13 +328,13 @@
                     </div>
                 </div>
 
-                <div class="feature-card" onclick="openAdminAuthModal()">
-                    <div class="feature-icon icon-cyan">📊</div>
-                    <div>
-                        <div class="feature-title">Nhập CMIS</div>
-                        <div class="feature-desc">Nhập chỉ số vào CMIS</div>
-                    </div>
-                </div>
+<div class="feature-card" onclick="openAdminAuthModal()">
+    <div class="feature-icon icon-cyan">⚙️</div>
+    <div>
+        <div class="feature-title">Quản trị</div>
+        <div class="feature-desc">Truy cập bảng quản trị hệ thống</div>
+    </div>
+</div>
 
                 <div class="feature-card" onclick="openPassModal()">
                     <div class="feature-icon icon-orange">🔑</div>
@@ -492,15 +492,15 @@
             document.getElementById('adminAuthModal').style.display = 'none';
         }
 
-        function verifyAdminPassword() {
-            const passInput = document.getElementById('adminPasswordInput').value.trim();
-            if (passInput === ADMIN_PASSWORD) {
-                closeAdminAuthModal();
-                window.location.href = "xem_chiso.html";
-            } else {
-                showAlert("Mật khẩu Admin không đúng. Vui lòng kiểm tra lại!", "Truy Cập Bị Từ Chối", false);
-            }
-        }
+function verifyAdminPassword() {
+    const passInput = document.getElementById('adminPasswordInput').value.trim();
+    if (passInput === ADMIN_PASSWORD) {
+        closeAdminAuthModal();
+        window.location.href = "quan_tri.html";
+    } else {
+        showAlert("Mật khẩu Admin không đúng. Vui lòng kiểm tra lại!", "Truy Cập Bị Từ Chối", false);
+    }
+}
 
         function openDevModal() {
             closeAllMenus();
