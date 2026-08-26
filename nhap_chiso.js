@@ -68,6 +68,7 @@ function showCustomConfirm(title, message, isDanger = false) {
 
 function loadChiSoData() {
   document.getElementById("listContainer").innerHTML = "<p style='text-align:center; padding-top:20px;'>⏳ Đang tải dữ liệu...</p>";
+  
   fetch(API_URL, {
     method: "POST",
     headers: { "Content-Type": "text/plain;charset=utf-8" },
@@ -76,19 +77,14 @@ function loadChiSoData() {
   .then(res => res.json())
   .then(res => {
     if (res.status === "success") {
-      // Thực hiện sắp xếp dữ liệu mảng ở Frontend
       const list = res.list || [];
+      
+      // Sắp xếp dữ liệu siêu tốc trên trình duyệt điện thoại
       list.sort((a, b) => {
         const sogcsA = String(a.ma_sogcs || "").toUpperCase();
         const sogcsB = String(b.ma_sogcs || "").toUpperCase();
-        if (sogcsA < sogcsB) return -1;
-        if (sogcsA > sogcsB) return 1;
-
-        const dsA = isNaN(a.danh_so) ? String(a.danh_so || "") : Number(a.danh_so);
-        const dsB = isNaN(b.danh_so) ? String(b.danh_so || "") : Number(b.danh_so);
-        if (dsA < dsB) return -1;
-        if (dsA > dsB) return 1;
-        return 0;
+        if (sogcsA !== sogcsB) return sogcsA.localeCompare(sogcsB);
+        return (Number(a.danh_so) || 0) - (Number(b.danh_so) || 0);
       });
 
       groupAndRender(list);
@@ -99,6 +95,33 @@ function loadChiSoData() {
   .catch(() => {
     document.getElementById("listContainer").innerHTML = "<p style='color:red; text-align:center;'>Lỗi kết nối máy chủ!</p>";
   });
+}
+
+function groupAndRender(flatList) {
+  groupedData = {};
+  flatList.forEach(item => {
+    const makh = item.ma_khang;
+    if (!groupedData[makh]) {
+      groupedData[makh] = {
+        ma_khang: item.ma_khang,
+        ten_khang: item.ten_khang,
+        dia_chi: item.dia_chi,
+        ma_sogcs: item.ma_sogcs,
+        danh_so: item.danh_so,
+        so_cot: item.so_cot,
+        ten_tram: item.ten_tram,
+        so_cto: item.so_cto,
+        so_dthoai: item.so_dthoai || "",
+        ghi_chu: item.ghi_chu || "",
+        items: []
+      };
+    }
+    groupedData[makh].items.push(item);
+  });
+
+  updateSummaryBar();
+  // Gọi hàm render phân mảnh đã tối ưu ở HTML
+  renderGroupedList(groupedData);
 }
 
 function groupAndRender(flatList) {
