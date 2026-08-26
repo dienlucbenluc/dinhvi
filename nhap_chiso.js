@@ -194,9 +194,7 @@ let _renderFilterMode = false;
 let _renderTimer = null;
 let _renderCardHeight = 0;
 let _renderLastRange = "";
-
-const VIRTUAL_BUFFER = 12;
-const VIRTUAL_MIN_ROWS = 24;
+const VIRTUAL_BUFFER = 8;
 const VIRTUAL_EST_HEIGHT = 270;
 
 function renderGroupedList(groups) {
@@ -206,6 +204,7 @@ function renderGroupedList(groups) {
   _renderGroups = groups;
   _renderKeys = keys;
   _renderFilterMode = groups !== groupedData;
+  _renderLastRange = "";
 
   if (!keys.length) {
     container.innerHTML = "<p style='text-align:center; padding-top:20px;'>Không có dữ liệu khách hàng.</p>";
@@ -213,14 +212,13 @@ function renderGroupedList(groups) {
     return;
   }
 
-  // The spacer is the scroll canvas. Cards are positioned INSIDE it;
-  // otherwise the spacer would push all cards far below the viewport.
+  // One scroll canvas. Visible cards are absolutely positioned inside it.
+  // Each card gets its real measured height; this prevents the 3 buttons
+  // from being clipped when an input receives focus/touch.
   container.innerHTML = '<div id="virtualSpacer" style="position:relative; width:100%;"></div>';
   const spacer = document.getElementById("virtualSpacer");
-
   spacer.style.height = Math.max(1, keys.length * VIRTUAL_EST_HEIGHT) + "px";
   container.scrollTop = 0;
-
   container.onscroll = scheduleVirtualRender;
   scheduleVirtualRender();
 }
@@ -238,9 +236,9 @@ function renderVisibleCustomers() {
   const spacer = document.getElementById("virtualSpacer");
   if (!container || !spacer || !_renderKeys.length) return;
 
+  const est = _renderCardHeight || VIRTUAL_EST_HEIGHT;
   const scrollTop = container.scrollTop;
   const viewport = container.clientHeight || 700;
-  const est = _renderCardHeight || VIRTUAL_EST_HEIGHT;
 
   const startIndex = Math.max(0, Math.floor(scrollTop / est) - VIRTUAL_BUFFER);
   const endIndex = Math.min(
@@ -252,7 +250,6 @@ function renderVisibleCustomers() {
   if (rangeKey === _renderLastRange) return;
   _renderLastRange = rangeKey;
 
-  // Only remove/rebuild visible cards, not the scroll canvas.
   spacer.querySelectorAll(".customer-card").forEach(el => el.remove());
 
   const fragment = document.createDocumentFragment();
@@ -264,35 +261,39 @@ function renderVisibleCustomers() {
     const card = wrapper.firstElementChild;
     if (!card) continue;
 
-    // Critical: cards are inside the spacer and absolutely positioned.
     card.style.position = "absolute";
     card.style.left = "0";
     card.style.right = "0";
     card.style.top = (i * est) + "px";
     card.style.width = "100%";
     card.style.boxSizing = "border-box";
+    card.style.overflow = "visible";
+    card.style.zIndex = "2";
 
     fragment.appendChild(card);
   }
 
   spacer.appendChild(fragment);
 
-  const firstCard = spacer.querySelector(".customer-card");
-  if (firstCard) {
-    const measured = firstCard.offsetHeight + 10;
-    if (measured > 120 && Math.abs(measured - est) > 20) {
-      _renderCardHeight = measured;
-      spacer.style.height = Math.max(1, _renderKeys.length * measured) + "px";
+  // Measure the tallest visible card. The card is allowed to grow naturally;
+  // the virtual canvas is enlarged so the bottom buttons remain reachable.
+  let measured = 0;
+  spacer.querySelectorAll(".customer-card").forEach(card => {
+    measured = Math.max(measured, card.offsetHeight + 10);
+  });
 
-      // Reposition the visible cards using the new measured height.
-      const cards = spacer.querySelectorAll(".customer-card");
-      cards.forEach(card => {
-        const idx = _renderKeys.indexOf(card.id.replace("card_", ""));
-        if (idx >= 0) card.style.top = (idx * measured) + "px";
-      });
-    }
+  if (measured > 0 && Math.abs(measured - est) > 10) {
+    _renderCardHeight = measured;
+    spacer.style.height = Math.max(1, _renderKeys.length * measured) + "px";
+
+    spacer.querySelectorAll(".customer-card").forEach(card => {
+      const id = card.id.replace("card_", "");
+      const idx = _renderKeys.indexOf(id);
+      if (idx >= 0) card.style.top = (idx * measured) + "px";
+    });
   }
 }
+
 
 function buildCustomerCardHTML(cust) {
   const isActive = (cust.ma_khang === activeMaKhang) ? "active" : "";
