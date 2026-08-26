@@ -582,7 +582,7 @@ async function saveCustomerData(maKhang) {
   });
 
   //showToast(`⏳ Đang lưu dữ liệu KH ${maKhang}...`);
-  showToast(`⚔ Nguy hiểm, có 500 cao thủ đang công thành, coi chừng sập sever `);
+  showToast(`⚔ Thành Đô, Lâm An, Đại Lý ta tìm nàng... `);
   fetch(API_URL, {
     method: "POST",
     headers: { "Content-Type": "text/plain;charset=utf-8" },
