@@ -83,39 +83,73 @@ function loadChiSoData() {
   } catch (e) {}
 
   if (cachedList && cachedList.length) {
-    // Giữ nguyên renderGroupedList gốc: CSS đẹp + bấm card hiện 3 nút.
+    // Giữ nguyên giao diện/card gốc.
     groupAndRender(cachedList);
-    //showToast("⚡ Đang lấy danh sách khách hàng...");
   } else {
     container.innerHTML = "<p style='text-align:center; padding-top:20px;'>⏳ Đang tải dữ liệu...</p>";
   }
 
-  fetch(API_URL, {
-    method: "POST",
-    headers: { "Content-Type": "text/plain;charset=utf-8" },
-    body: JSON.stringify({ action: "GET_CHISO_DATA", ten_ndung: currentUser.ten_ndung })
-  })
-  .then(res => res.json())
-  .then(res => {
-    if (res.status === "success") {
+  const payload = JSON.stringify({
+    action: "GET_CHISO_DATA",
+    ten_ndung: currentUser.ten_ndung
+  });
+
+  let attempt = 0;
+  const maxAttempt = 3;
+
+  function requestList() {
+    attempt++;
+
+    fetch(API_URL, {
+      method: "POST",
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      body: payload
+    })
+    .then(res => {
+      if (!res.ok) throw new Error("HTTP " + res.status);
+      return res.text();
+    })
+    .then(text => {
+      let res;
+      try {
+        res = JSON.parse(text);
+      } catch (e) {
+        throw new Error("Server không trả JSON");
+      }
+
+      if (res.status !== "success") {
+        throw new Error(res.message || "Server trả lỗi");
+      }
+
       try {
         localStorage.setItem(getClientCacheKey(), JSON.stringify({
           time: Date.now(),
           list: res.list
         }));
       } catch (e) {}
-      groupAndRender(res.list);
-    } else if (!cachedList) {
-      container.innerHTML = "<p style='color:red; text-align:center;'>Lỗi: " + res.message + "</p>";
-    }
-  })
-  .catch(() => {
-    if (!cachedList) {
-      container.innerHTML = "<p style='color:red; text-align:center;'>Lỗi kết nối máy chủ!</p>";
-    }
-  });
-}
 
+      groupAndRender(res.list);
+    })
+    .catch(err => {
+      // First/second failure: retry silently. Do not destroy a good cached list.
+      if (attempt < maxAttempt) {
+        setTimeout(requestList, 900 * attempt);
+        return;
+      }
+
+      if (!cachedList || !cachedList.length) {
+        container.innerHTML =
+          "<p style='color:red; text-align:center;'>❌ Máy chủ chưa phản hồi. Bấm TẢI LẠI để thử lại.</p>";
+      } else {
+        showToast("⚠️ Máy chủ chưa phản hồi, đang dùng danh sách đã lưu trên máy.");
+      }
+
+      console.warn("GET_CHISO_DATA failed:", err);
+    });
+  }
+
+  requestList();
+}
 function groupAndRender(flatList) {
   groupedData = {};
   flatList.forEach(item => {
