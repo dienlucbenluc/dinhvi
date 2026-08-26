@@ -66,21 +66,7 @@
         .btn-modal-cancel { background: #e0e0e0; color: #333; }
         .btn-modal-confirm { background: #28a745; color: white; }
 
-        .btn-back {
-      background: #e9ecef;
-      border: 1px solid #ccc;
-      border-radius: 5px;
-      padding: 5px 10px;
-      font-size: 13px;
-      font-weight: 600;
-      cursor: pointer;
-      color: #333;
-      text-decoration: none;
-    }
-    .btn-back:active { background: #dae0e5; }
-    .header { display: flex; justify-content: space-between; align-items: center; }    
-    .title { font-size: 16px; font-weight: bold; color: #0056b3; }
-        
+     
         /* Spinner Loader CSS Pure */
         .spinner {
             width: 24px;
@@ -103,11 +89,22 @@
 <body>
     <div class="app-container">
         <div class="fixed-header">
-    <div class="header">
-      <div class="title">🌏 Định vị công tơ</div>
-      <button class="btn-back" onclick="window.location.href='home.html'">⬅ Quay lại</button>
-    </div>
-  </div>
+            <div class="header-top-row">
+                <div class="header-logo-container">
+                    <img src="LOGO.png" alt="CMIS Logo" class="main-logo">
+                    <div class="header-text-group">
+                        <div class="company-title">Điện lực Bến Lức-Định vị công tơ</div>
+                        <div class="tac-gia" id="currentUserDisplay">👤 Đang tải...</div>
+                    </div>
+                </div>
+                <div class="menu-container">
+                    <button class="menu-btn" onclick="toggleMenu()">☰</button>
+                    <div class="menu-dropdown" id="menuDropdown">
+                        <div class="menu-item" onclick="openPassModal()">🔑 Đổi mật khẩu</div>
+                        <div class="menu-item" onclick="handleLogout()" style="color: red;">🚪 Thoát</div>
+                    </div>
+                </div>
+            </div>
 
 
             <div class="form-group form-row">
