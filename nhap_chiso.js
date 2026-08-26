@@ -119,33 +119,6 @@ function groupAndRender(flatList) {
     groupedData[makh].items.push(item);
   });
 
-  updateSummaryBar();
-  // Gọi hàm render phân mảnh đã tối ưu ở HTML
-  renderGroupedList(groupedData);
-}
-
-function groupAndRender(flatList) {
-  groupedData = {};
-  flatList.forEach(item => {
-    const makh = item.ma_khang;
-    if (!groupedData[makh]) {
-      groupedData[makh] = {
-        ma_khang: item.ma_khang,
-        ten_khang: item.ten_khang,
-        dia_chi: item.dia_chi,
-        ma_sogcs: item.ma_sogcs,
-        danh_so: item.danh_so,
-        so_cot: item.so_cot,
-        ten_tram: item.ten_tram,
-        so_cto: item.so_cto,
-        so_dthoai: item.so_dthoai || "",
-        ghi_chu: item.ghi_chu || "",
-        items: []
-      };
-    }
-    groupedData[makh].items.push(item);
-  });
-
   Object.keys(groupedData).forEach(makh => {
     groupedData[makh].items.sort((a, b) => {
       let idxA = BCS_ORDER.indexOf(String(a.bcs).toUpperCase().trim());
