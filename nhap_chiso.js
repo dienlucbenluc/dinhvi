@@ -604,7 +604,7 @@ async function saveCustomerData(maKhang) {
       // Trường hợp 1: Nhiều người cùng bấm, backend đang bận xử lý người khác -> Tự động thử lại sau 2 giây
       if (res.status === "WAIT_QUEUE") {
         showToast(`⏳ Nhiều người đang lưu, đang chờ tới lượt KH ${maKhang}...`);
-        await new Promise(resolve => setTimeout(resolve, 2000));
+        await new Promise(resolve => setTimeout(resolve, 5000));
         return sendSaveRequest(); // Thử lại lượt mới
       }
 
