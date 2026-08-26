@@ -345,7 +345,31 @@
     .modal-buttons button { flex: 1; padding: 9px; font-size: 13px; font-weight: bold; border-radius: 6px; margin: 0; border: none; cursor: pointer; }
     .btn-modal-cancel { background: #e0e0e0; color: #333; }
     .btn-modal-confirm { background: #28a745; color: white; }
-  </style>
+  
+/* v2.1.1: touch-safe customer cards */
+.customer-card {
+  overflow: visible !important;
+  min-height: 0 !important;
+}
+.customer-card .card-btn-group {
+  position: relative !important;
+  z-index: 20 !important;
+  display: flex !important;
+  visibility: visible !important;
+}
+.customer-card input,
+.customer-card button,
+.customer-card select,
+.customer-card textarea {
+  position: relative;
+  z-index: 30;
+}
+#listContainer,
+#virtualSpacer {
+  overflow: visible;
+}
+
+</style>
 </head>
 <body>
 
@@ -502,6 +526,6 @@
   </script>
 
   <!-- Nhúng file Script tách rời -->
-<script charset="UTF-8" src="nhap_chiso.js?v=1.2.1"></script>
+<script charset="UTF-8" src="nhap_chiso.js?v=2.1.1"></script>
 </body>
 </html>
