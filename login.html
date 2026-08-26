@@ -116,17 +116,23 @@
             // Lấy thời gian đăng nhập
             const time_log = getCurrentFormattedTime();
 
+            // Xác thực lần đầu. Sau khi thành công, phiên được lưu localStorage
+            // nên các lần sau sẽ vào thẳng home.html ở DOMContentLoaded.
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 15000);
+
             fetch(API_URL, {
                 method: "POST",
                 headers: { "Content-Type": "text/plain;charset=utf-8" },
                 redirect: "follow",
+                signal: controller.signal,
                 body: JSON.stringify({ 
                     action: "LOGIN", 
                     ten_ndung: ten_ndung, 
                     mat_khau: mat_khau,
                     time_log: time_log 
                 })
-            })
+            }).finally(() => clearTimeout(timeoutId))
             .then(res => res.text())
             .then(text => JSON.parse(text))
             .then(res => {
@@ -162,7 +168,9 @@
             .catch(err => {
                 btn.disabled = false;
                 msgEl.style.color = "#dc3545";
-                msgEl.innerText = "Lỗi kết nối máy chủ!";
+                msgEl.innerText = err.name === "AbortError"
+                    ? "Máy chủ phản hồi quá lâu, vui lòng thử lại!"
+                    : "Lỗi kết nối máy chủ!";
                 console.error(err);
             });
         }
