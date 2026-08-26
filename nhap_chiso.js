@@ -76,7 +76,22 @@ function loadChiSoData() {
   .then(res => res.json())
   .then(res => {
     if (res.status === "success") {
-      groupAndRender(res.list);
+      // Thực hiện sắp xếp dữ liệu mảng ở Frontend
+      const list = res.list || [];
+      list.sort((a, b) => {
+        const sogcsA = String(a.ma_sogcs || "").toUpperCase();
+        const sogcsB = String(b.ma_sogcs || "").toUpperCase();
+        if (sogcsA < sogcsB) return -1;
+        if (sogcsA > sogcsB) return 1;
+
+        const dsA = isNaN(a.danh_so) ? String(a.danh_so || "") : Number(a.danh_so);
+        const dsB = isNaN(b.danh_so) ? String(b.danh_so || "") : Number(b.danh_so);
+        if (dsA < dsB) return -1;
+        if (dsA > dsB) return 1;
+        return 0;
+      });
+
+      groupAndRender(list);
     } else {
       document.getElementById("listContainer").innerHTML = "<p style='color:red; text-align:center;'>Lỗi: " + res.message + "</p>";
     }
