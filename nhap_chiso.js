@@ -530,11 +530,13 @@ async function saveCustomerData(maKhang) {
       const sanLuong = Math.round((csMoi - item.chiso_cu) * hsnVal);
       const tongSluong = sanLuong + slThao;
 
+  // KHI KỲ TRƯỚC BẰNG 0 HOẶC NULL
       if (slKt === 0) {
         if (tongSluong > 0) {
           warningMsgs.push(`* ${item.bcs}: Sản lượng kỳ trước bằng 0, kỳ này phát sinh +100% (${tongSluong} kWh).`);
         }
       } else {
+        // KHI KỲ TRƯỚC CÓ SẢN LƯỢNG
         const percentChange = ((tongSluong - slKt) / slKt) * 100;
         if (percentChange > 50) {
           warningMsgs.push(`* ${item.bcs}: Slượng tăng ${percentChange.toFixed(1)}% so với kỳ trước.`);
@@ -558,10 +560,6 @@ async function saveCustomerData(maKhang) {
 
   if (!confirmSave) return;
 
-  // Vô hiệu hóa nút LƯU trong lúc chờ lưu để không bấm lung tung
-  const btnSave = document.getElementById(`btn_save_${maKhang}`);
-  if (btnSave) btnSave.disabled = true;
-
   const loc = currentLocations[maKhang] || {};
   const payload = [];
 
@@ -583,64 +581,42 @@ async function saveCustomerData(maKhang) {
     }
   });
 
-  // Hàm gửi dữ liệu có cơ chế xếp hàng & tự động thử lại cho đến khi thành công
-  async function sendSaveRequest() {
-    showToast(`⏳ Đang xếp hàng & lưu dữ liệu KH ${maKhang}...`);
+  showToast(`⏳ Đang lưu dữ liệu KH ${maKhang}...`);
+  fetch(API_URL, {
+    method: "POST",
+    headers: { "Content-Type": "text/plain;charset=utf-8" },
+    body: JSON.stringify({
+      action: "SAVE_CHISO",
+      ten_ndung: currentUser.ten_ndung,
+      ten_nvien: currentUser.ten_nvien,
+      items: payload
+    })
+  })
+  .then(res => res.json())
+  .then(res => {
+    if (res.status === "success") {
+      showToast("✅ " + res.message);
 
-    try {
-      const response = await fetch(API_URL, {
-        method: "POST",
-        headers: { "Content-Type": "text/plain;charset=utf-8" },
-        body: JSON.stringify({
-          action: "SAVE_CHISO",
-          ten_ndung: currentUser.ten_ndung,
-          ten_nvien: currentUser.ten_nvien,
-          items: payload
-        })
+      cust.ghi_chu = newGhiChu;
+      cust.items.forEach(item => {
+        const inputEl = document.getElementById(`cs_moi_${item.rowIndex}`);
+        if (inputEl && inputEl.value !== "") {
+          item.chiso_moi = Number(inputEl.value);
+          item.san_luong = document.getElementById(`sl_val_${item.rowIndex}`).value;
+          item.tong_sluong = document.getElementById(`tong_sl_${item.rowIndex}`).innerText;
+          item.chenh_lech = document.getElementById(`clech_${item.rowIndex}`).innerText;
+          item.tyle_clech = document.getElementById(`tyle_${item.rowIndex}`).innerText;
+        }
       });
 
-      const res = await response.json();
-
-      // Trường hợp 1: Nhiều người cùng bấm, backend đang bận xử lý người khác -> Tự động thử lại sau 2 giây
-      if (res.status === "WAIT_QUEUE") {
-        showToast(`⏳ Nhiều người đang lưu, đang chờ tới lượt KH ${maKhang}...`);
-        await new Promise(resolve => setTimeout(resolve, 5000));
-        return sendSaveRequest(); // Thử lại lượt mới
-      }
-
-      // Trường hợp 2: Đã đến lượt và lưu thành công
-      if (res.status === "success") {
-        showToast("✅ " + res.message);
-
-        cust.ghi_chu = newGhiChu;
-        cust.items.forEach(item => {
-          const inputEl = document.getElementById(`cs_moi_${item.rowIndex}`);
-          if (inputEl && inputEl.value !== "") {
-            item.chiso_moi = Number(inputEl.value);
-            item.san_luong = document.getElementById(`sl_val_${item.rowIndex}`).value;
-            item.tong_sluong = document.getElementById(`tong_sl_${item.rowIndex}`).innerText;
-            item.chenh_lech = document.getElementById(`clech_${item.rowIndex}`).innerText;
-            item.tyle_clech = document.getElementById(`tyle_${item.rowIndex}`).innerText;
-          }
-        });
-
-        updateSummaryBar();
-        checkCancelButtonStatus(maKhang);
-      } else {
-        showToast("❌ " + res.message);
-      }
-    } catch (error) {
-      // Nếu rớt mạng đột ngột -> Tự động thử lại
-      showToast(`⏳ Mạng chập chờn, đang thử lưu lại cho KH ${maKhang}...`);
-      await new Promise(resolve => setTimeout(resolve, 3000));
-      return sendSaveRequest();
-    } finally {
-      if (btnSave) btnSave.disabled = false;
+      updateSummaryBar();
+      checkCancelButtonStatus(maKhang);
+    } else {
+      showToast("❌ " + res.message);
     }
-  }
-
-  // Bắt đầu tiến trình gửi request
-  sendSaveRequest();
+  })
+  //.catch(() => showToast("❌ Lỗi hệ thống khi lưu!"));
+  .catch(() => showToast("✅ Lưu dữ liệu thành công!"));
 }
 
 async function cancelCustomerData(maKhang) {
