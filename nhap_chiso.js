@@ -616,7 +616,10 @@ async function saveCustomerData(maKhang) {
     }
   })
   //.catch(() => showToast("❌ Lỗi hệ thống khi lưu!"));
-  .catch(() => showToast("✅ Lưu dữ liệu thành công!"));
+  //.catch(() => showToast("✅ Lưu dữ liệu thành công!"));
+  .catch((err) => {
+  showToast("❌ Lỗi kết nối hoặc hệ thống đang bận, vui lòng thử lại!");
+   });
 }
 
 async function cancelCustomerData(maKhang) {
