@@ -85,7 +85,7 @@ function loadChiSoData() {
   if (cachedList && cachedList.length) {
     // Giữ nguyên renderGroupedList gốc: CSS đẹp + bấm card hiện 3 nút.
     groupAndRender(cachedList);
-    showToast("⚡ Đang lấy danh sách khách hàng...");
+    //showToast("⚡ Đang lấy danh sách khách hàng...");
   } else {
     container.innerHTML = "<p style='text-align:center; padding-top:20px;'>⏳ Đang tải dữ liệu...</p>";
   }
