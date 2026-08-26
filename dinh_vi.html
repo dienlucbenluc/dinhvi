@@ -78,6 +78,7 @@
       text-decoration: none;
     }
     .btn-back:active { background: #dae0e5; }
+    .header { display: flex; justify-content: space-between; align-items: center; }    
     .title { font-size: 16px; font-weight: bold; color: #0056b3; }
         
         /* Spinner Loader CSS Pure */
@@ -102,17 +103,12 @@
 <body>
     <div class="app-container">
         <div class="fixed-header">
-            <div class="header-top-row">
-                <div class="header-logo-container">
-                    <div class="header-text-group">
-                        <div class="title">🌏 Định vị công tơ</div>
-                        <!--div class="tac-gia" id="currentUserDisplay">👷 Đang tải...</div-->
-                    </div>
-                </div>
-                              <div class="menu-container">
-<button class="btn-back" onclick="window.location.href='home.html'">⬅ Quay lại</button>
-                </div>
-            </div>
+    <div class="header">
+      <div class="title">🌏 Định vị công tơ</div>
+      <button class="btn-back" onclick="window.location.href='home.html'">⬅ Quay lại</button>
+    </div>
+  </div>
+
 
             <div class="form-group form-row">
                 <div class="col-40">
