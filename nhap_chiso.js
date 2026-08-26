@@ -66,8 +66,46 @@ function showCustomConfirm(title, message, isDanger = false) {
   });
 }
 
+function getClientCacheKey() {
+  return "cmis_chiso_cache_" + String(currentUser?.ten_ndung || "").trim().toLowerCase();
+}
+
+function saveClientCache(list) {
+  try {
+    localStorage.setItem(getClientCacheKey(), JSON.stringify({
+      time: Date.now(),
+      list: list
+    }));
+  } catch (e) {
+    // LocalStorage đầy/bị chặn thì bỏ qua.
+  }
+}
+
+function loadClientCache() {
+  try {
+    const raw = localStorage.getItem(getClientCacheKey());
+    if (!raw) return null;
+    const cached = JSON.parse(raw);
+    if (!cached || !Array.isArray(cached.list)) return null;
+    return cached.list;
+  } catch (e) {
+    return null;
+  }
+}
+
 function loadChiSoData() {
-  document.getElementById("listContainer").innerHTML = "<p style='text-align:center; padding-top:20px;'>⏳ Đang tải dữ liệu...</p>";
+  const container = document.getElementById("listContainer");
+  const cachedList = loadClientCache();
+
+  // Có cache trình duyệt thì hiện ngay, không chờ server.
+  if (cachedList && cachedList.length) {
+    groupAndRender(cachedList);
+    showToast("⚡ Đã hiện danh sách nhanh — đang đồng bộ dữ liệu mới...");
+  } else {
+    container.innerHTML = "<p style='text-align:center; padding-top:20px;'>⏳ Đang tải dữ liệu...</p>";
+  }
+
+  // Vẫn gọi server nền để lấy dữ liệu mới nhất.
   fetch(API_URL, {
     method: "POST",
     headers: { "Content-Type": "text/plain;charset=utf-8" },
@@ -76,13 +114,18 @@ function loadChiSoData() {
   .then(res => res.json())
   .then(res => {
     if (res.status === "success") {
+      saveClientCache(res.list);
       groupAndRender(res.list);
-    } else {
-      document.getElementById("listContainer").innerHTML = "<p style='color:red; text-align:center;'>Lỗi: " + res.message + "</p>";
+    } else if (!cachedList) {
+      container.innerHTML = "<p style='color:red; text-align:center;'>Lỗi: " + res.message + "</p>";
     }
   })
   .catch(() => {
-    document.getElementById("listContainer").innerHTML = "<p style='color:red; text-align:center;'>Lỗi kết nối máy chủ!</p>";
+    if (!cachedList) {
+      container.innerHTML = "<p style='color:red; text-align:center;'>Lỗi kết nối máy chủ!</p>";
+    } else {
+      showToast("⚠️ Đang dùng danh sách tạm — chưa đồng bộ được máy chủ.");
+    }
   });
 }
 
@@ -273,7 +316,7 @@ function renderGroupedList(groups) {
                      id="cs_moi_${item.rowIndex}" 
                      value="${csMoiVal}" ${isDisabled}
                      onclick="event.stopPropagation(); updateRowDetail('${cust.ma_khang}', '${item.bcs}', document.getElementById('sl_val_${item.rowIndex}').value, ${item.sluong_thao}, ${item.sluong_kt});"
-                     oninput="calculateRow('${cust.ma_khang}', '${item.bcs}', ${item.rowIndex}, ${item.chiso_cu || 0}, ${item.hsn}, ${item.sluong_thao || 0}, ${item.sluong_kt || 0})"
+                     oninput="calculateRow('${cust.ma_khang}', '${item.bcs}', ${item.rowIndex}, ${item.chiso_cu || 0}, ${item.hsn}, ${item.sluong_thao || 0}, ${item.sluong_kt || 0})">
               <input type="hidden" id="sl_val_${item.rowIndex}" value="${item.san_luong !== "" && item.san_luong !== undefined ? item.san_luong : '-'}">
             </td>
             <td id="tong_sl_${item.rowIndex}" class="val-calc-large text-right">${item.tong_sluong !== "" && item.tong_sluong !== undefined ? item.tong_sluong : '-'}</td>
@@ -511,6 +554,29 @@ function filterData() {
   }
 }
 
+function flattenGroupedDataForCache() {
+  const list = [];
+  Object.keys(groupedData).forEach(makh => {
+    const cust = groupedData[makh];
+    cust.items.forEach(item => {
+      list.push({
+        ...item,
+        ma_khang: cust.ma_khang,
+        ten_khang: cust.ten_khang,
+        dia_chi: cust.dia_chi,
+        ma_sogcs: cust.ma_sogcs,
+        danh_so: cust.danh_so,
+        so_cot: cust.so_cot,
+        ten_tram: cust.ten_tram,
+        so_cto: cust.so_cto,
+        so_dthoai: cust.so_dthoai,
+        ghi_chu: cust.ghi_chu
+      });
+    });
+  });
+  return list;
+}
+
 async function saveCustomerData(maKhang) {
   const cust = groupedData[maKhang];
   if (!cust) return;
@@ -612,6 +678,7 @@ async function saveCustomerData(maKhang) {
 
       updateSummaryBar();
       checkCancelButtonStatus(maKhang);
+      saveClientCache(flattenGroupedDataForCache());
     } else {
       showToast("❌ " + res.message);
     }
@@ -676,6 +743,7 @@ async function cancelCustomerData(maKhang) {
       if (btnCancel) btnCancel.disabled = true;
 
       updateSummaryBar();
+      saveClientCache(flattenGroupedDataForCache());
     } else {
       showToast("❌ " + res.message);
     }
