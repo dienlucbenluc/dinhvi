@@ -152,9 +152,8 @@
                         localStorage.removeItem("cmis_remember_pass");
                     }
 
-                    setTimeout(() => {
-                        window.location.href = "home.html";
-                    }, 2000);
+                    // Vào trang chủ ngay, không chờ thêm 2 giây
+                    window.location.href = "home.html";
                 } else {
                     msgEl.style.color = "#dc3545";
                     msgEl.innerText = "Lỗi: " + res.message;
