@@ -8,7 +8,6 @@
     <meta http-equiv="Expires" content="0">
     
     <title>Quản trị hệ thống - Điện lực Bến Lức</title>
-    <!-- Font Google Chuyên Nghiệp -->
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
     
     <style>
@@ -45,7 +44,6 @@
             position: relative;
         }
 
-        /* Fixed Modern Header */
         .fixed-header { 
             flex-shrink: 0; 
             background: rgba(255, 255, 255, 0.85); 
@@ -97,7 +95,6 @@
             margin-top: 3px;
         }
         
-        /* Modern Hamburger Button & Dropdown */
         .menu-container { position: relative; }
         
         .menu-btn { 
@@ -156,7 +153,6 @@
         .menu-item:hover { background: #f8fafc; }
         .menu-item.danger { color: var(--danger-color); font-weight: 600; }
 
-        /* Dashboard Main Body */
         .scrollable-content { 
             flex: 1; 
             overflow-y: auto; 
@@ -184,7 +180,6 @@
             margin-bottom: 12px;
         }
 
-        /* Feature Grid Menu */
         .features-grid {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
@@ -227,7 +222,6 @@
         .feature-title { font-size: 14px; font-weight: 700; color: var(--text-main); }
         .feature-desc { font-size: 11px; color: var(--text-sub); }
 
-        /* Modern Modals */
         .modal-overlay { 
             position: fixed; 
             top: 0; left: 0; width: 100vw; height: 100vh; 
@@ -278,7 +272,6 @@
 </head>
 <body>
     <div class="app-container">
-        <!-- Header -->
         <div class="fixed-header">
             <div class="header-top-row">
                 <div class="header-logo-container">
@@ -304,34 +297,30 @@
             </div>
         </div>
 
-        <!-- Scrollable Dashboard Content -->
         <div class="scrollable-content">
             <div class="welcome-card">
-                <h2>Quản Trị Hệ Thống</h2>
-                <p>Tổng hợp các chức năng quản lý, theo dõi dữ liệu chỉ số và công tác ghi chỉ số Điện lực Bến Lức.</p>
+                <h2>Bảng Quản Trị Hệ Thống</h2>
+                <p>Tổng hợp chức năng quản lý, tổng hợp ghi chỉ số và đồng bộ dữ liệu vào CMIS.</p>
             </div>
 
             <div class="section-title">Chức năng quản trị</div>
             <div class="features-grid">
-                <!-- Hộp 1: Link tới thop_ghics.html -->
                 <div class="feature-card" onclick="window.location.href='thop_ghics.html'">
                     <div class="feature-icon icon-green">♻️</div>
                     <div>
                         <div class="feature-title">Tổng hợp GCS</div>
-                        <div class="feature-desc">Tổng hợp chỉ số ghi điện</div>
+                        <div class="feature-desc">Tổng hợp chỉ số ghi nhận được</div>
                     </div>
                 </div>
 
-                <!-- Hộp 2: Link tới xem_chiso.html -->
                 <div class="feature-card" onclick="window.location.href='xem_chiso.html'">
                     <div class="feature-icon icon-cyan">📊</div>
                     <div>
-                        <div class="feature-title">Xem chỉ số</div>
-                        <div class="feature-desc">Xem và nhập CS vào CMIS</div>
+                        <div class="feature-title">Nhập CMIS</div>
+                        <div class="feature-desc">Xem và nhập chỉ số vào CMIS</div>
                     </div>
                 </div>
 
-                <!-- Hộp 3: Để trống nhập sau -->
                 <div class="feature-card">
                     <div class="feature-icon icon-purple">⚙️</div>
                     <div>
@@ -340,7 +329,6 @@
                     </div>
                 </div>
 
-                <!-- Hộp 4: Để trống nhập sau -->
                 <div class="feature-card">
                     <div class="feature-icon icon-orange">📌</div>
                     <div>
@@ -352,7 +340,6 @@
         </div>
     </div>
 
-    <!-- Modal Lập trình viên -->
     <div id="devModal" class="modal-overlay">
         <div class="modal-box">
             <div class="modal-title" style="color: var(--primary-color);">Lập Trình Viên</div>
@@ -369,7 +356,6 @@
         </div>
     </div>
 
-    <!-- Modal Đăng xuất -->
     <div id="logoutModal" class="modal-overlay">
         <div class="modal-box">
             <div class="modal-title" style="color: var(--danger-color);">Xác Nhận Thoát</div>
@@ -383,7 +369,6 @@
         </div>
     </div>
 
-    <!-- Modal Đổi Mật Khẩu -->
     <div id="passModal" class="modal-overlay">
         <div class="modal-box">
             <div class="modal-title">Đổi Mật Khẩu</div>
@@ -402,7 +387,6 @@
         </div>
     </div>
 
-    <!-- Modal Thông Báo -->
     <div id="alertModal" class="modal-overlay">
         <div class="modal-box" style="text-align: center;">
             <div class="alert-icon" style="font-size: 40px; margin-bottom: 8px;">✅</div>
