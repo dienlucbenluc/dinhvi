@@ -135,13 +135,13 @@
                     msgEl.style.color = "#28a745";
                     msgEl.innerText = "Thành công, đang vào trang định vị...";
                     
-                    // Lưu thông tin phiên đăng nhập
-                   // const sessionData = {
-                   //     ten_ndung: res.ten_ndung,
-                    //    ten_nvien: res.ten_nvien,
-                    //    mat_khau: mat_khau
-                   // };
-                    //localStorage.setItem("cmis_user_session", JSON.stringify(sessionData));
+                     Lưu thông tin phiên đăng nhập
+                    const sessionData = {
+                        ten_ndung: res.ten_ndung,
+                        ten_nvien: res.ten_nvien,
+                        mat_khau: mat_khau
+                    };
+                    localStorage.setItem("cmis_user_session", JSON.stringify(sessionData));
 
                     // Xử lý ghi nhớ tên đăng nhập & mật khẩu
                     if (rememberMe) {
