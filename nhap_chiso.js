@@ -645,8 +645,8 @@ async function saveCustomerData(maKhang) {
     }
   });
 
-  showToast(`⏳ Đang lưu dữ liệu KH ${maKhang}...`);
-  //showToast(`⚔ Thành Đô, Lâm An, Đại Lý ta tìm nàng... `);
+  //showToast(`⏳ Đang lưu dữ liệu KH ${maKhang}...`);
+  showToast(`⚔ Thành Đô, Lâm An, Đại Lý ta tìm nàng...</br>Gặp em, giữa Tương Dương chiều mưa.. `);
   fetch(API_URL, {
     method: "POST",
     headers: { "Content-Type": "text/plain;charset=utf-8" },
