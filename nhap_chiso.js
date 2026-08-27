@@ -83,7 +83,6 @@ function loadChiSoData() {
   } catch (e) {}
 
   if (cachedList && cachedList.length) {
-    // Giữ nguyên giao diện/card gốc.
     groupAndRender(cachedList);
   } else {
     container.innerHTML = "<p style='text-align:center; padding-top:20px;'>⏳ Đang tải dữ liệu...</p>";
@@ -131,7 +130,6 @@ function loadChiSoData() {
       groupAndRender(res.list);
     })
     .catch(err => {
-      // First/second failure: retry silently. Do not destroy a good cached list.
       if (attempt < maxAttempt) {
         setTimeout(requestList, 900 * attempt);
         return;
@@ -150,6 +148,7 @@ function loadChiSoData() {
 
   requestList();
 }
+
 function groupAndRender(flatList) {
   groupedData = {};
   flatList.forEach(item => {
@@ -237,7 +236,6 @@ function updateRowDetail(maKhang, bcs, sanLuong, sluongThao, sluongKt) {
   }
 }
 
-// TỐI ƯU HÀM RENDER DÙNG CHUNK RENDERING
 function renderGroupedList(groups) {
   const container = document.getElementById("listContainer");
   const keys = Object.keys(groups);
@@ -249,7 +247,7 @@ function renderGroupedList(groups) {
 
   container.innerHTML = "";
   
-  const CHUNK_SIZE = 30; // Render trước 30 khách hàng để hiện ngay màn hình
+  const CHUNK_SIZE = 30;
   let currentIndex = 0;
 
   function renderChunk() {
@@ -337,7 +335,7 @@ function renderGroupedList(groups) {
                      id="cs_moi_${item.rowIndex}" 
                      value="${csMoiVal}" ${isDisabled}
                      onclick="event.stopPropagation(); updateRowDetail('${cust.ma_khang}', '${item.bcs}', document.getElementById('sl_val_${item.rowIndex}').value, ${item.sluong_thao}, ${item.sluong_kt});"
-                     oninput="calculateRow('${cust.ma_khang}', '${item.bcs}', ${item.rowIndex}, ${item.chiso_cu || 0}, ${item.hsn}, ${item.sluong_thao || 0}, ${item.sluong_kt || 0})"
+                     oninput="calculateRow('${cust.ma_khang}', '${item.bcs}', ${item.rowIndex}, ${item.chiso_cu || 0}, ${item.hsn}, ${item.sluong_thao || 0}, ${item.sluong_kt || 0})">
               <input type="hidden" id="sl_val_${item.rowIndex}" value="${item.san_luong !== "" && item.san_luong !== undefined ? item.san_luong : '-'}">
             </td>
             <td id="tong_sl_${item.rowIndex}" class="val-calc-large text-right">${item.tong_sluong !== "" && item.tong_sluong !== undefined ? item.tong_sluong : '-'}</td>
@@ -372,7 +370,7 @@ function renderGroupedList(groups) {
 
     currentIndex += CHUNK_SIZE;
     if (currentIndex < keys.length) {
-      setTimeout(renderChunk, 0); // Đưa công việc tiếp theo vào Event Loop để không khóa UI
+      setTimeout(renderChunk, 0);
     }
   }
 
@@ -407,8 +405,7 @@ async function getLocation(maKhang) {
           chiso_moi: "",
           ghi_chu: currentGhiChu,
           lat: lat,
-          lng: lng,
-          nhap_cmis: 0
+          lng: lng
         }));
 
         showToast(`⏳ Đang lưu tọa độ GPS...`);
@@ -485,7 +482,6 @@ function calculateRow(maKhang, bcs, rowIndex, csCu, hsn, sluongThao, sluongKt) {
   const clechCell = document.getElementById(`clech_${rowIndex}`);
   const tyleCell = document.getElementById(`tyle_${rowIndex}`);
 
-  // 1. Kiểm tra nếu rỗng hoặc không phải số hợp lệ
   if (val === "" || isNaN(Number(val))) {
     if (slHiddenEl) slHiddenEl.value = "-";
     if (tongSlCell) tongSlCell.innerText = "-";
@@ -496,32 +492,27 @@ function calculateRow(maKhang, bcs, rowIndex, csCu, hsn, sluongThao, sluongKt) {
     return;
   }
 
-  // 2. Ép kiểu an toàn
   const csMoi = Number(val);
   const csCuVal = Number(csCu) || 0;
   const hsnVal = Number(hsn) || 1;
   const slThao = Number(sluongThao) || 0;
   const slKt = Number(sluongKt) || 0;
 
-  // 3. Tính toán sản lượng
   const sanLuong = Math.round((csMoi - csCuVal) * hsnVal);
   const tongSluong = sanLuong + slThao;
   const chenhLech = tongSluong - slKt;
 
-  // 4. Tính tỷ lệ chênh lệch
   let tyleClech = "-";
   if (slKt !== 0) {
     const rawTyle = ((tongSluong - slKt) / slKt) * 100;
     const prefix = rawTyle > 0 ? "+" : "";
     tyleClech = prefix + rawTyle.toFixed(2) + "%";
   } else if (tongSluong > 0) {
-    // Trường hợp kỳ trước bằng 0 nhưng kỳ này có sản lượng
     tyleClech = "+100%";
   } else {
     tyleClech = "0%";
   }
 
-  // 5. Cập nhật lên UI
   if (slHiddenEl) slHiddenEl.value = sanLuong;
   if (tongSlCell) tongSlCell.innerText = tongSluong;
   if (clechCell) clechCell.innerText = chenhLech;
@@ -594,13 +585,11 @@ async function saveCustomerData(maKhang) {
       const sanLuong = Math.round((csMoi - item.chiso_cu) * hsnVal);
       const tongSluong = sanLuong + slThao;
 
-  // KHI KỲ TRƯỚC BẰNG 0 HOẶC NULL
       if (slKt === 0) {
         if (tongSluong > 0) {
           warningMsgs.push(`* ${item.bcs}: Sản lượng kỳ trước bằng 0, kỳ này phát sinh +100% (${tongSluong} kWh).`);
         }
       } else {
-        // KHI KỲ TRƯỚC CÓ SẢN LƯỢNG
         const percentChange = ((tongSluong - slKt) / slKt) * 100;
         if (percentChange > 50) {
           warningMsgs.push(`* ${item.bcs}: Slượng tăng ${percentChange.toFixed(1)}% so với kỳ trước.`);
@@ -639,14 +628,13 @@ async function saveCustomerData(maKhang) {
         sluong_thao: item.sluong_thao,
         sluong_kt: item.sluong_kt,
         lat: loc.lat || item.lat || "",
-        lng: loc.lng || item.lng || "",
-        nhap_cmis: 0
+        lng: loc.lng || item.lng || ""
       });
     }
   });
 
-  //showToast(`⏳ Đang lưu dữ liệu KH ${maKhang}...`);
-  showToast(`⚔ Thành Đô, Lâm An, Đại Lý ta tìm nàng... Gặp em, giữa Dương Châu chiều mưa.. `);
+  showToast(`⏳ Đang lưu dữ liệu KH ${maKhang}...`);
+
   fetch(API_URL, {
     method: "POST",
     headers: { "Content-Type": "text/plain;charset=utf-8" },
@@ -680,8 +668,7 @@ async function saveCustomerData(maKhang) {
       showToast("❌ " + res.message);
     }
   })
-  //.catch(() => showToast("❌ Lỗi hệ thống khi lưu!"));
-  .catch(() => showToast("✅ Lưu dữ liệu thành công!"));
+  .catch(() => showToast("❌ Lỗi kết nối hệ thống khi lưu!"));
 }
 
 async function cancelCustomerData(maKhang) {
@@ -744,7 +731,7 @@ async function cancelCustomerData(maKhang) {
       showToast("❌ " + res.message);
     }
   })
-  .catch(() => showToast("❌ Lỗi hệ thống!"));
+  .catch(() => showToast("❌ Lỗi kết nối hệ thống khi hủy!"));
 }
 
 function handleLogout() {
