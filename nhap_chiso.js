@@ -74,7 +74,7 @@ function loadChiSoData() {
   const container = document.getElementById("listContainer");
   let cachedList = null;
 
-  // 1. Lấy dữ liệu cũ trong máy ra hiển thị TỨC THÌ (0.1 giây)
+  // 1. Lấy dữ liệu cũ trong máy ra hiển thị TỨC THÌ
   try {
     const raw = localStorage.getItem(getClientCacheKey());
     if (raw) {
@@ -91,6 +91,11 @@ function loadChiSoData() {
   }
 
   // 2. Tải ngầm dữ liệu mới nhất từ Google Sheet
+  fetchSilentLatestData();
+}
+
+// Hàm hỗ trợ âm thầm lấy danh sách mới nhất từ server và cập nhật cache/UI
+function fetchSilentLatestData() {
   fetch(API_URL, {
     method: "POST",
     headers: { "Content-Type": "text/plain;charset=utf-8" },
@@ -112,7 +117,8 @@ function loadChiSoData() {
     }
   })
   .catch(err => {
-    if (!cachedList) {
+    const container = document.getElementById("listContainer");
+    if (container && container.innerHTML.includes("Đang tải dữ liệu lần đầu")) {
       container.innerHTML = "<p style='color:red; text-align:center;'>❌ Lỗi tải dữ liệu, vui lòng thử lại!</p>";
     }
   });
@@ -400,6 +406,9 @@ async function getLocation(maKhang) {
             if (mapSpan) {
               mapSpan.innerHTML = `<a href="https://www.google.com/maps?q=${lat},${lng}" target="_blank" style="color:#007bff; font-weight:bold; text-decoration:none;">🌏 Xem Google Maps</a>`;
             }
+
+            // Đồng bộ âm thầm lại danh sách
+            fetchSilentLatestData();
           } else {
             showToast("❌ Lỗi lưu định vị: " + res.message);
           }
@@ -602,7 +611,6 @@ async function saveCustomerData(maKhang) {
     }
   });
 
-  //showToast(`⏳ Đang lưu dữ liệu KH ${maKhang}...`);
   showToast(`⚔ Thành Đô, Lâm An, Đại Lý ta tìm nàng... Gặp em, giữa Dương Châu chiều mưa.. `);
   
   fetch(API_URL, {
@@ -620,6 +628,7 @@ async function saveCustomerData(maKhang) {
     if (res.status === "success") {
       showToast("✅ " + res.message);
 
+      // 1. CẬP NHẬT TỨC THÌ LÊN MÀN HÌNH MÁY
       cust.ghi_chu = newGhiChu;
       cust.items.forEach(item => {
         const inputEl = document.getElementById(`cs_moi_${item.rowIndex}`);
@@ -634,6 +643,9 @@ async function saveCustomerData(maKhang) {
 
       updateSummaryBar();
       checkCancelButtonStatus(maKhang);
+
+      // 2. ÂM THẦM TẢI LẠI DANH SÁCH MỚI NHẤT TỪ SERVER ĐỂ ĐỒNG BỘ CHẮC CHẮN
+      fetchSilentLatestData();
     } else {
       showToast("❌ " + res.message);
     }
@@ -697,6 +709,9 @@ async function cancelCustomerData(maKhang) {
       if (btnCancel) btnCancel.disabled = true;
 
       updateSummaryBar();
+
+      // Đồng bộ âm thầm lại dữ liệu mới nhất
+      fetchSilentLatestData();
     } else {
       showToast("❌ " + res.message);
     }
@@ -714,7 +729,9 @@ function closeLogoutModal() {
   if (logoutModal) logoutModal.style.display = 'none';
 }
 
+// Xử lý đăng xuất: Xóa luôn Cache chỉ số để khi đăng nhập lại phải tải mới toàn bộ
 function confirmLogout() {
   localStorage.removeItem("cmis_user_session");
+  localStorage.removeItem(getClientCacheKey());
   window.location.href = "login.html";
 }
