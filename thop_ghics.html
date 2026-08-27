@@ -136,18 +136,25 @@ const API_URL = "https://script.google.com/macros/s/AKfycbyKaG42B8RFzHToMu2Gqk7y
       loadTongHopData();
     });
 
-    function loadTongHopData() {
-      const loadingEl = document.getElementById("loadingText");
-      const tableWrapper = document.getElementById("tableWrapper");
+   function loadTongHopData() {
+  const loadingEl = document.getElementById("loadingText");
+  const tableWrapper = document.getElementById("tableWrapper");
 
-      fetch(API_URL, {
-        method: "POST",
-        headers: { "Content-Type": "text/plain" },
-        // Truyền ten_nvien = "" để lấy toàn bộ dữ liệu từ chi_so
-        body: JSON.stringify({ action: "GET_CHISO_DATA", ten_nvien: "" }),
-        redirect: "follow"
-      })
-      .then(async res => {
+  // Lấy thông tin user đăng nhập từ Session
+  const sessionStr = localStorage.getItem("cmis_user_session");
+  const currentUser = sessionStr ? JSON.parse(sessionStr) : {};
+
+  fetch(API_URL, {
+    method: "POST",
+    headers: { "Content-Type": "text/plain" },
+    body: JSON.stringify({ 
+      action: "GET_CHISO_DATA", 
+      ten_ndung: currentUser.ten_ndung || "", // Bổ sung ten_ndung
+      ten_nvien: ""                           // Giữ nguyên "" để lấy tất cả
+    }),
+    redirect: "follow"
+  })
+  .then(async res => {
         const text = await res.text();
         try {
           return JSON.parse(text);
