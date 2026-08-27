@@ -74,14 +74,14 @@ function loadChiSoData() {
   const container = document.getElementById("listContainer");
   let cachedList = null;
 
-  // 1. Lấy dữ liệu cũ trong máy ra hiển thị TỨC THÌ
+  // 1. Đọc cache từ máy ra hiện ngay lập tức
   try {
     const raw = localStorage.getItem(getClientCacheKey());
     if (raw) {
       const obj = JSON.parse(raw);
       if (obj && Array.isArray(obj.list) && obj.list.length > 0) {
         cachedList = obj.list;
-        groupAndRender(cachedList); // Hiện bảng ngay lập tức!
+        groupAndRender(cachedList);
       }
     }
   } catch (e) {}
@@ -90,8 +90,53 @@ function loadChiSoData() {
     container.innerHTML = "<p style='text-align:center; padding-top:20px;'>⏳ Đang tải dữ liệu lần đầu...</p>";
   }
 
-  // 2. Tải ngầm dữ liệu mới nhất từ Google Sheet
-  fetchSilentLatestData();
+  // 2. Kiểm tra chắc chắn có username mới gọi API lấy dữ liệu ngầm
+  if (currentUser && currentUser.ten_ndung) {
+    fetchSilentLatestData(currentUser.ten_ndung, !cachedList);
+  } else {
+    container.innerHTML = "<p style='color:red; text-align:center;'>❌ Lỗi phiên đăng nhập, vui lòng đăng xuất và đăng nhập lại!</p>";
+  }
+}
+
+// Hàm hỗ trợ âm thầm lấy danh sách mới nhất từ server
+function fetchSilentLatestData(username, isFirstLoad = false) {
+  const targetUser = username || currentUser?.ten_ndung;
+  if (!targetUser) return;
+
+  fetch(API_URL, {
+    method: "POST",
+    headers: { "Content-Type": "text/plain;charset=utf-8" },
+    body: JSON.stringify({
+      action: "GET_CHISO_DATA",
+      ten_ndung: targetUser
+    })
+  })
+  .then(res => res.json())
+  .then(res => {
+    if (res.status === "success") {
+      // Cập nhật bộ nhớ cache trong máy
+      localStorage.setItem(getClientCacheKey(), JSON.stringify({
+        time: Date.now(),
+        list: res.list
+      }));
+      // Render lại màn hình
+      groupAndRender(res.list);
+    } else if (isFirstLoad) {
+      const container = document.getElementById("listContainer");
+      if (container) {
+        container.innerHTML = `<p style='color:red; text-align:center;'>❌ ${res.message || 'Lỗi tải dữ liệu!'}</p>`;
+      }
+    }
+  })
+  .catch(err => {
+    // Nếu đã có dữ liệu cache hiện trên màn hình rồi thì âm thầm bỏ qua lỗi mạng tạm thời, không đè lỗi lên màn hình
+    if (isFirstLoad) {
+      const container = document.getElementById("listContainer");
+      if (container) {
+        container.innerHTML = "<p style='color:red; text-align:center;'>❌ Lỗi kết nối máy chủ, vui lòng kiểm tra mạng!</p>";
+      }
+    }
+  });
 }
 
 // Hàm hỗ trợ âm thầm lấy danh sách mới nhất từ server và cập nhật cache/UI
