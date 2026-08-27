@@ -74,79 +74,48 @@ function loadChiSoData() {
   const container = document.getElementById("listContainer");
   let cachedList = null;
 
+  // 1. Lấy dữ liệu cũ trong máy ra hiển thị TỨC THÌ (0.1 giây)
   try {
     const raw = localStorage.getItem(getClientCacheKey());
     if (raw) {
       const obj = JSON.parse(raw);
-      if (obj && Array.isArray(obj.list)) cachedList = obj.list;
+      if (obj && Array.isArray(obj.list) && obj.list.length > 0) {
+        cachedList = obj.list;
+        groupAndRender(cachedList); // Hiện bảng ngay lập tức!
+      }
     }
   } catch (e) {}
 
-  if (cachedList && cachedList.length) {
-    groupAndRender(cachedList);
-  } else {
-    container.innerHTML = "<p style='text-align:center; padding-top:20px;'>⏳ Đang tải dữ liệu...</p>";
+  if (!cachedList) {
+    container.innerHTML = "<p style='text-align:center; padding-top:20px;'>⏳ Đang tải dữ liệu lần đầu...</p>";
   }
 
-  const payload = JSON.stringify({
-    action: "GET_CHISO_DATA",
-    ten_ndung: currentUser.ten_ndung
-  });
-
-  let attempt = 0;
-  const maxAttempt = 3;
-
-  function requestList() {
-    attempt++;
-
-    fetch(API_URL, {
-      method: "POST",
-      headers: { "Content-Type": "text/plain;charset=utf-8" },
-      body: payload
+  // 2. Tải ngầm dữ liệu mới nhất từ Google Sheet
+  fetch(API_URL, {
+    method: "POST",
+    headers: { "Content-Type": "text/plain;charset=utf-8" },
+    body: JSON.stringify({
+      action: "GET_CHISO_DATA",
+      ten_ndung: currentUser.ten_ndung
     })
-    .then(res => {
-      if (!res.ok) throw new Error("HTTP " + res.status);
-      return res.text();
-    })
-    .then(text => {
-      let res;
-      try {
-        res = JSON.parse(text);
-      } catch (e) {
-        throw new Error("Server không trả JSON");
-      }
-
-      if (res.status !== "success") {
-        throw new Error(res.message || "Server trả lỗi");
-      }
-
-      try {
-        localStorage.setItem(getClientCacheKey(), JSON.stringify({
-          time: Date.now(),
-          list: res.list
-        }));
-      } catch (e) {}
-
+  })
+  .then(res => res.json())
+  .then(res => {
+    if (res.status === "success") {
+      // Cập nhật bộ nhớ máy
+      localStorage.setItem(getClientCacheKey(), JSON.stringify({
+        time: Date.now(),
+        list: res.list
+      }));
+      // Render lại giao diện mới
       groupAndRender(res.list);
-    })
-    .catch(err => {
-      if (attempt < maxAttempt) {
-        setTimeout(requestList, 900 * attempt);
-        return;
-      }
-
-      if (!cachedList || !cachedList.length) {
-        container.innerHTML =
-          "<p style='color:red; text-align:center;'>❌ Máy chủ chưa phản hồi. Bấm TẢI LẠI để thử lại.</p>";
-      } else {
-        showToast("⚠️ Máy chủ chưa phản hồi, đang dùng danh sách đã lưu trên máy.");
-      }
-
-      console.warn("GET_CHISO_DATA failed:", err);
-    });
-  }
-
-  requestList();
+    }
+  })
+  .catch(err => {
+    if (!cachedList) {
+      container.innerHTML = "<p style='color:red; text-align:center;'>❌ Lỗi tải dữ liệu, vui lòng thử lại!</p>";
+    }
+  });
 }
 
 function groupAndRender(flatList) {
