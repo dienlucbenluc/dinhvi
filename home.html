@@ -470,7 +470,7 @@
 
         let currentUser = null;
         let isAvatarChanged = false;
-        let base64AvatarResized = ""; // Chuỗi base64 đã nén 50x50px
+        let base64AvatarResized = ""; 
 
         document.addEventListener("DOMContentLoaded", () => {
             const sessionStr = localStorage.getItem("cmis_user_session");
@@ -481,13 +481,11 @@
             
             currentUser = JSON.parse(sessionStr);
             
-            // Hiển thị tên
             const userDisplay = document.getElementById("currentUserDisplay");
             if (userDisplay) {
                 userDisplay.innerText = `👷 ${currentUser.ten_nvien || currentUser.ten_ndung || currentUser.ma_nvien}`;
             }
 
-            // Hiển thị Avatar
             const avatarHeader = document.getElementById("userAvatarHeader");
             if (avatarHeader) {
                 avatarHeader.src = currentUser.avatar || DEFAULT_AVATAR;
@@ -508,7 +506,6 @@
             if (dropdown) dropdown.classList.toggle("show");
         }
 
-        /* Logic Modal Admin Auth */
         function openAdminAuthModal() {
             closeAllMenus();
             document.getElementById('adminPasswordInput').value = '';
@@ -548,7 +545,7 @@
             document.getElementById('oldPassInput').value = '';
             document.getElementById('newPassInput').value = '';
             document.getElementById('avatarFileInput').value = '';
-            isAvatarChanged = false; // Reset cờ chọn ảnh
+            isAvatarChanged = false;
             base64AvatarResized = "";
             
             if (currentUser) {
@@ -607,7 +604,7 @@
             document.getElementById('alertModal').style.display = 'none';
         }
 
-        /* Tối ưu hóa Resize ảnh về vuông 50x50px và tạo Base64 */
+        /* Nén ảnh thành chuẩn 50x50px Base64 */
         function handleAvatarFileSelect(event) {
             const file = event.target.files[0];
             if (!file) return;
@@ -621,17 +618,14 @@
                     canvas.height = 50;
                     const ctx = canvas.getContext("2d");
 
-                    // Crop ảnh vuông 50x50
                     let minSide = Math.min(img.width, img.height);
                     let sx = (img.width - minSide) / 2;
                     let sy = (img.height - minSide) / 2;
                     
                     ctx.drawImage(img, sx, sy, minSide, minSide, 0, 0, 50, 50);
 
-                    // Lấy chuỗi base64 đã nén
                     base64AvatarResized = canvas.toDataURL("image/jpeg", 0.85);
 
-                    // Preview ảnh trên giao diện
                     document.getElementById('avatarPreview').src = base64AvatarResized;
                     isAvatarChanged = true;
                 };
@@ -662,37 +656,40 @@
             btnSave.innerText = "Đang tải ảnh & lưu...";
 
             try {
+                // CHUYỂN DỮ LIỆU SANG URLSEARCHPARAMS ĐỂ BỎ QUA CHẶN CORS CỦA GOOGLE
+                const formData = new URLSearchParams();
+                formData.append("action", "CHANGE_PASSWORD");
+                formData.append("ten_ndung", username);
+                formData.append("mat_khau_cu", oldPass);
+                formData.append("mat_khau_moi", newPass || oldPass);
+                formData.append("ten_nvien", newTenNvien);
+                formData.append("is_avatar_changed", isAvatarChanged ? "true" : "false");
+                formData.append("avatar_base64", base64AvatarResized);
+
                 const response = await fetch(API_URL, {
                     method: "POST",
-                    body: JSON.stringify({
-                        action: "CHANGE_PASSWORD",
-                        ten_ndung: username,
-                        mat_khau_cu: oldPass,
-                        mat_khau_moi: newPass || oldPass,
-                        ten_nvien: newTenNvien,
-                        is_avatar_changed: isAvatarChanged,
-                        avatar_base64: base64AvatarResized
-                    })
+                    headers: {
+                        "Content-Type": "application/x-www-form-urlencoded"
+                    },
+                    body: formData.toString()
                 });
 
                 const result = await response.json();
 
                 if (result.status === "success") {
-                    // Cập nhật thông tin trong Session (localStorage)
                     currentUser.ten_nvien = newTenNvien;
                     if (result.avatar_url) {
                         currentUser.avatar = result.avatar_url;
                     }
                     localStorage.setItem("cmis_user_session", JSON.stringify(currentUser));
 
-                    // Cập nhật hiển thị lên Header
                     document.getElementById("currentUserDisplay").innerText = `👷 ${newTenNvien}`;
                     if (currentUser.avatar) {
                         document.getElementById("userAvatarHeader").src = currentUser.avatar;
                     }
 
                     closePassModal();
-                    showAlert("Cập nhật hồ sơ và tải ảnh đại diện lên Google Drive thành công!", "Thành Công", true);
+                    showAlert("Cập nhật hồ sơ và tải ảnh lên Google Drive thành công!", "Thành Công", true);
                 } else {
                     showAlert(result.message || "Thất bại. Vui lòng kiểm tra lại!", "Lỗi Thất Bại", false);
                 }
