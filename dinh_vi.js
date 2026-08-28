@@ -175,32 +175,51 @@ function filterLocations() {
   
   let locationsToDisplay = [...allLocations];
 
-  locationsToDisplay.sort((a, b) => {
-    const timeA = parseTimeString(a.time);
-    const timeB = parseTimeString(b.time);
-    return timeB - timeA;
-  });
-
   if (!rawQuery) {
+    locationsToDisplay.sort((a, b) => parseTimeString(b.time) - parseTimeString(a.time));
     renderList(locationsToDisplay);
     return;
   }
 
   const query = removeAccents(rawQuery.toLowerCase());
 
-  const filtered = locationsToDisplay.filter(loc => {
-    const fullText = String(loc.ma_khang || "") + " " + 
-                     String(loc.ten_khang || "") + " " + 
-                     String(loc.so_cto || "") + " " + 
-                     String(loc.ten_nvien || "") + " " + 
-                     String(loc.ten_cviec || "") + " " + 
-                     String(loc.note || "");
-                     
-    const normalizedText = removeAccents(fullText.toLowerCase());
+  // 1. Chỉ lọc các mục có chứa từ khóa trong ma_khang, ten_khang, so_cto
+  const matchedLocations = locationsToDisplay.filter(loc => {
+    const targetText = String(loc.ma_khang || "") + " " + 
+                       String(loc.ten_khang || "") + " " + 
+                       String(loc.so_cto || "");
+    const normalizedText = removeAccents(targetText.toLowerCase());
     return normalizedText.includes(query);
   });
+
+  // 2. Tính điểm ưu tiên khớp (điểm càng nhỏ càng được đẩy lên trên cùng)
+  function getMatchScore(loc) {
+    const mk = removeAccents(String(loc.ma_khang || "").toLowerCase());
+    const tk = removeAccents(String(loc.ten_khang || "").toLowerCase());
+    const sc = removeAccents(String(loc.so_cto || "").toLowerCase());
+
+    if (mk === query || sc === query) return 1; // Khớp chính xác 100% MKH hoặc Số CTơ
+    if (mk.startsWith(query) || sc.startsWith(query) || tk.startsWith(query)) return 2; // Khớp đầu chuỗi
+    
+    const words = tk.split(/\s+/);
+    if (words.some(w => w.startsWith(query))) return 3; // Khớp từ đầu tiên của bất kỳ từ nào trong Tên KH
+
+    return 4; // Khớp ở vị trí bất kỳ khác
+  }
+
+  // 3. Sắp xếp danh sách theo độ ưu tiên gần đúng nhất
+  matchedLocations.sort((a, b) => {
+    const scoreA = getMatchScore(a);
+    const scoreB = getMatchScore(b);
+
+    if (scoreA !== scoreB) {
+      return scoreA - scoreB;
+    }
+
+    return parseTimeString(b.time) - parseTimeString(a.time); // Nếu cùng điểm thì xếp thời gian mới hơn lên trên
+  });
   
-  renderList(filtered);
+  renderList(matchedLocations);
 }
 
 function renderList(locations) {
