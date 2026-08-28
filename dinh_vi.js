@@ -1,4 +1,4 @@
-const API_URL = "https://script.google.com/macros/s/AKfycbzKm3QsCZeO8Ps8EOtujg9GkiZlVHVISHlwEqAajBysbSforCgJaDKMyc5j35MUpO91/exec"; 
+const API_URL = "https://script.google.com/macros/s/AKfycbzKm3QsCZeO8Ps8EOtujg9GkiZlVHVISHlwEqAajBysbSforCgJaDKMyc5j35MUpO91/exec";
 
 let allLocations = [];
 let currentId = null;
@@ -25,8 +25,8 @@ document.addEventListener("DOMContentLoaded", () => {
   // Kiểm tra hoặc cập nhật ngầm avatar từ server nếu cần
   loadCurrentUserAvatar();
 
-  restoreLocalSettings(); 
-  loadInitData(); 
+  restoreLocalSettings();
+  loadInitData();
   
   const searchInput = document.getElementById("searchInput");
   if(searchInput) {
@@ -50,7 +50,6 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 });
-
 
 function normalizeAvatarUrl(url) {
   if (!url) return "https://via.placeholder.com/40";
@@ -128,7 +127,7 @@ function restoreLocalSettings() {
     const el = document.getElementById("loai_tim");
     if(el) {
       el.value = loai_tim;
-      el.dispatchEvent(new Event('change')); 
+      el.dispatchEvent(new Event('change'));
     }
   }
   
@@ -251,7 +250,6 @@ function filterLocations() {
 
   const query = removeAccents(rawQuery.toLowerCase());
 
-  // 1. Chỉ lọc các mục có chứa từ khóa trong ma_khang, ten_khang, so_cto
   const matchedLocations = locationsToDisplay.filter(loc => {
     const targetText = String(loc.ma_khang || "") + " " + 
                        String(loc.ten_khang || "") + " " + 
@@ -260,22 +258,20 @@ function filterLocations() {
     return normalizedText.includes(query);
   });
 
-  // 2. Tính điểm ưu tiên khớp (điểm càng nhỏ càng được đẩy lên trên cùng)
   function getMatchScore(loc) {
     const mk = removeAccents(String(loc.ma_khang || "").toLowerCase());
     const tk = removeAccents(String(loc.ten_khang || "").toLowerCase());
     const sc = removeAccents(String(loc.so_cto || "").toLowerCase());
 
-    if (mk === query || sc === query) return 1; // Khớp chính xác 100% MKH hoặc Số CTơ
-    if (mk.startsWith(query) || sc.startsWith(query) || tk.startsWith(query)) return 2; // Khớp đầu chuỗi
+    if (mk === query || sc === query) return 1;
+    if (mk.startsWith(query) || sc.startsWith(query) || tk.startsWith(query)) return 2;
     
     const words = tk.split(/\s+/);
-    if (words.some(w => w.startsWith(query))) return 3; // Khớp từ đầu tiên của bất kỳ từ nào trong Tên KH
+    if (words.some(w => w.startsWith(query))) return 3;
 
-    return 4; // Khớp ở vị trí bất kỳ khác
+    return 4;
   }
 
-  // 3. Sắp xếp danh sách theo độ ưu tiên gần đúng nhất
   matchedLocations.sort((a, b) => {
     const scoreA = getMatchScore(a);
     const scoreB = getMatchScore(b);
@@ -284,13 +280,13 @@ function filterLocations() {
       return scoreA - scoreB;
     }
 
-    return parseTimeString(b.time) - parseTimeString(a.time); // Nếu cùng điểm thì xếp thời gian mới hơn lên trên
+    return parseTimeString(b.time) - parseTimeString(a.time);
   });
   
   renderList(matchedLocations);
 }
 
-renderList(locations) {
+function renderList(locations) {
   const listElement = document.getElementById("locationList");
   const countElement = document.getElementById("locationCount");
   
@@ -308,15 +304,13 @@ renderList(locations) {
   locations.forEach(loc => {
     const li = document.createElement("li");
     
-    // Xử lý sự kiện click chỉ mở 1 khách hàng duy nhất
+    // Đóng các thẻ khác khi chọn dòng mới
     li.onclick = function() {
         const isAlreadySelected = this.classList.contains("selected");
         
-        // Ẩn tất cả các khung nút Sửa / Xóa đang mở khác
         const allItems = listElement.querySelectorAll("li");
         allItems.forEach(item => item.classList.remove("selected"));
 
-        // Toggle mở item hiện tại nếu nó chưa mở
         if (!isAlreadySelected) {
             this.classList.add("selected");
         }
@@ -522,7 +516,7 @@ function getLocation() {
 
     const locData = {
       id: uniqueId, 
-      search_type: searchType, 
+      search_type: searchType,  
       search_value: searchValueInput,
       ten_ndung: currentUser.ten_ndung, 
       ten_nvien: currentUser.ten_nvien, 
