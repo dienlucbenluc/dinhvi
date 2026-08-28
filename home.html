@@ -455,7 +455,7 @@
             <div class="alert-icon" style="font-size: 40px; margin-bottom: 8px;">✅</div>
             <div class="modal-title alert-title" style="color: #36b37e; margin-bottom: 8px;">Thành Công</div>
             <p id="alertMessage" style="font-size: 14px; color: var(--text-sub); line-height: 1.5; margin-bottom: 16px;">
-                Mật khẩu của bạn đã được cập nhật thành công!
+                Cập nhật thành công!
             </p>
             <div class="modal-buttons">
                 <button class="btn-modal-confirm" onclick="closeAlertModal()" style="width: 100%;">Xác nhận</button>
@@ -470,7 +470,7 @@
 
         let currentUser = null;
         let isAvatarChanged = false;
-        let selectedFileName = "";
+        let base64AvatarResized = ""; // Chuỗi base64 đã nén 50x50px
 
         document.addEventListener("DOMContentLoaded", () => {
             const sessionStr = localStorage.getItem("cmis_user_session");
@@ -484,7 +484,7 @@
             // Hiển thị tên
             const userDisplay = document.getElementById("currentUserDisplay");
             if (userDisplay) {
-                userDisplay.innerText = `👷 ${currentUser.ten_nvien || currentUser.ma_nvien}`;
+                userDisplay.innerText = `👷 ${currentUser.ten_nvien || currentUser.ten_ndung || currentUser.ma_nvien}`;
             }
 
             // Hiển thị Avatar
@@ -547,13 +547,14 @@
 
             document.getElementById('oldPassInput').value = '';
             document.getElementById('newPassInput').value = '';
+            document.getElementById('avatarFileInput').value = '';
             isAvatarChanged = false; // Reset cờ chọn ảnh
+            base64AvatarResized = "";
             
             if (currentUser) {
                 document.getElementById('editTenNvienInput').value = currentUser.ten_nvien || '';
                 const avatarSrc = currentUser.avatar || DEFAULT_AVATAR;
                 document.getElementById('avatarPreview').src = avatarSrc;
-                base64AvatarResized = "";
             }
 
             document.getElementById('passModal').style.display = 'flex';
@@ -606,105 +607,103 @@
             document.getElementById('alertModal').style.display = 'none';
         }
 
-        /* Tối ưu hóa Resize ảnh về vuông 50x50px */
-      function handleAvatarFileSelect(event) {
-    const file = event.target.files[0];
-    if (!file) return;
+        /* Tối ưu hóa Resize ảnh về vuông 50x50px và tạo Base64 */
+        function handleAvatarFileSelect(event) {
+            const file = event.target.files[0];
+            if (!file) return;
 
-    // Đặt tên file lưu trong thư mục image (ví dụ: avatar_admin.jpg)
-    const fileExt = file.name.split('.').pop();
-    const username = currentUser ? (currentUser.ten_ndung || currentUser.ma_nvien) : 'user';
-    selectedFileName = `avatar_${username}.${fileExt}`;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const img = new Image();
+                img.onload = function() {
+                    const canvas = document.createElement("canvas");
+                    canvas.width = 50;
+                    canvas.height = 50;
+                    const ctx = canvas.getContext("2d");
 
-    const reader = new FileReader();
-    reader.onload = function(e) {
-        const img = new Image();
-        img.onload = function() {
-            const canvas = document.createElement("canvas");
-            canvas.width = 50;
-            canvas.height = 50;
-            const ctx = canvas.getContext("2d");
+                    // Crop ảnh vuông 50x50
+                    let minSide = Math.min(img.width, img.height);
+                    let sx = (img.width - minSide) / 2;
+                    let sy = (img.height - minSide) / 2;
+                    
+                    ctx.drawImage(img, sx, sy, minSide, minSide, 0, 0, 50, 50);
 
-            // Crop ảnh vuông 50x50
-            let minSide = Math.min(img.width, img.height);
-            let sx = (img.width - minSide) / 2;
-            let sy = (img.height - minSide) / 2;
-            
-            ctx.drawImage(img, sx, sy, minSide, minSide, 0, 0, 50, 50);
+                    // Lấy chuỗi base64 đã nén
+                    base64AvatarResized = canvas.toDataURL("image/jpeg", 0.85);
 
-            // Preview ảnh trên giao diện
-            document.getElementById('avatarPreview').src = canvas.toDataURL("image/jpeg", 0.8);
-            isAvatarChanged = true;
-        };
-        img.src = e.target.result;
-    };
-    reader.readAsDataURL(file);
-}
-
- async function saveProfileAndPass() {
-    const oldPass = document.getElementById('oldPassInput').value.trim();
-    const newPass = document.getElementById('newPassInput').value.trim();
-    const newTenNvien = document.getElementById('editTenNvienInput').value.trim();
-    const btnSave = document.getElementById('btnSavePass');
-
-    if (!oldPass) {
-        showAlert("Vui lòng nhập mật khẩu cũ để xác nhận!", "Lỗi Nhập Liệu", false);
-        return;
-    }
-
-    const username = currentUser ? (currentUser.ten_ndung || currentUser.ma_nvien) : null;
-
-    if (!currentUser || !username) {
-        showAlert("Không tìm thấy thông tin đăng nhập. Vui lòng đăng nhập lại!", "Lỗi Phiên Đăng Nhập", false);
-        return;
-    }
-
-    btnSave.disabled = true;
-    btnSave.innerText = "Đang lưu...";
-
-    try {
-        const response = await fetch(API_URL, {
-            method: "POST",
-            body: JSON.stringify({
-                action: "CHANGE_PASSWORD",
-                ten_ndung: username,
-                mat_khau_cu: oldPass,
-                mat_khau_moi: newPass || oldPass,
-                ten_nvien: newTenNvien,
-                is_avatar_changed: isAvatarChanged,
-                file_name: selectedFileName
-            })
-        });
-
-        const result = await response.json();
-
-        if (result.status === "success") {
-            // Cập nhật thông tin trong Session (localStorage)
-            currentUser.ten_nvien = newTenNvien;
-            if (result.avatar_path) {
-                currentUser.avatar = result.avatar_path;
-            }
-            localStorage.setItem("cmis_user_session", JSON.stringify(currentUser));
-
-            // Cập nhật hiển thị lên Header của trang home.html
-            document.getElementById("currentUserDisplay").innerText = `👷 ${newTenNvien}`;
-            if (currentUser.avatar) {
-                document.getElementById("userAvatarHeader").src = currentUser.avatar;
-            }
-
-            closePassModal();
-            showAlert("Cập nhật hồ sơ thành công! Vui lòng tải file ảnh chọn lên thư mục 'image' trên GitHub.", "Thành Công", true);
-        } else {
-            showAlert(result.message || "Thất bại. Vui lòng kiểm tra lại!", "Lỗi Thất Bại", false);
+                    // Preview ảnh trên giao diện
+                    document.getElementById('avatarPreview').src = base64AvatarResized;
+                    isAvatarChanged = true;
+                };
+                img.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
         }
-    } catch (err) {
-        showAlert("Lỗi kết nối máy chủ. Vui lòng thử lại sau!", "Lỗi Kết Nối", false);
-        console.error(err);
-    } finally {
-        btnSave.disabled = false;
-        btnSave.innerText = "Lưu thay đổi";
-    }
-}
+
+        async function saveProfileAndPass() {
+            const oldPass = document.getElementById('oldPassInput').value.trim();
+            const newPass = document.getElementById('newPassInput').value.trim();
+            const newTenNvien = document.getElementById('editTenNvienInput').value.trim();
+            const btnSave = document.getElementById('btnSavePass');
+
+            if (!oldPass) {
+                showAlert("Vui lòng nhập mật khẩu cũ để xác nhận!", "Lỗi Nhập Liệu", false);
+                return;
+            }
+
+            const username = currentUser ? (currentUser.ten_ndung || currentUser.ma_nvien) : null;
+
+            if (!currentUser || !username) {
+                showAlert("Không tìm thấy thông tin đăng nhập. Vui lòng đăng nhập lại!", "Lỗi Phiên Đăng Nhập", false);
+                return;
+            }
+
+            btnSave.disabled = true;
+            btnSave.innerText = "Đang tải ảnh & lưu...";
+
+            try {
+                const response = await fetch(API_URL, {
+                    method: "POST",
+                    body: JSON.stringify({
+                        action: "CHANGE_PASSWORD",
+                        ten_ndung: username,
+                        mat_khau_cu: oldPass,
+                        mat_khau_moi: newPass || oldPass,
+                        ten_nvien: newTenNvien,
+                        is_avatar_changed: isAvatarChanged,
+                        avatar_base64: base64AvatarResized
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.status === "success") {
+                    // Cập nhật thông tin trong Session (localStorage)
+                    currentUser.ten_nvien = newTenNvien;
+                    if (result.avatar_url) {
+                        currentUser.avatar = result.avatar_url;
+                    }
+                    localStorage.setItem("cmis_user_session", JSON.stringify(currentUser));
+
+                    // Cập nhật hiển thị lên Header
+                    document.getElementById("currentUserDisplay").innerText = `👷 ${newTenNvien}`;
+                    if (currentUser.avatar) {
+                        document.getElementById("userAvatarHeader").src = currentUser.avatar;
+                    }
+
+                    closePassModal();
+                    showAlert("Cập nhật hồ sơ và tải ảnh đại diện lên Google Drive thành công!", "Thành Công", true);
+                } else {
+                    showAlert(result.message || "Thất bại. Vui lòng kiểm tra lại!", "Lỗi Thất Bại", false);
+                }
+            } catch (err) {
+                showAlert("Lỗi kết nối máy chủ. Vui lòng thử lại sau!", "Lỗi Kết Nối", false);
+                console.error(err);
+            } finally {
+                btnSave.disabled = false;
+                btnSave.innerText = "Lưu thay đổi";
+            }
+        }
     </script>
 </body>
 </html>
