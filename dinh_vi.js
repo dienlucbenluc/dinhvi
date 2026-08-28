@@ -228,6 +228,19 @@ function parseTimeString(timeStr) {
   return isNaN(t) ? 0 : t;
 }
 
+// Kiểm tra thời gian đã lưu quá 1 giờ (3,600,000 miligiây)
+function isOverOneHour(timeStr) {
+  if (!timeStr) return false;
+  const recordedTime = parseTimeString(timeStr);
+  if (!recordedTime) return false;
+  
+  const now = Date.now();
+  const diffInMs = now - recordedTime;
+  const ONE_HOUR_IN_MS = 60 * 60 * 1000;
+  
+  return diffInMs > ONE_HOUR_IN_MS;
+}
+
 function removeAccents(str) {
   if (!str) return "";
   return String(str)
@@ -573,6 +586,13 @@ function checkAndOpenEditModal(id) {
     showToast("Không thể sửa dữ liệu người khác nhập");
     return;
   }
+
+  // Kiểm tra thời gian nếu quá 1 giờ thì chặn sửa
+  if (isOverOneHour(loc.time)) {
+    showToast("Thông tin định vị đã lưu quá 1 giờ, không thể sửa!");
+    return;
+  }
+
   openEditModal(id);
 }
 
@@ -584,6 +604,13 @@ function checkAndOpenDeleteModal(id) {
     showToast("Không thể xóa dữ liệu người khác nhập");
     return;
   }
+
+  // Kiểm tra thời gian nếu quá 1 giờ thì chặn xóa
+  if (isOverOneHour(loc.time)) {
+    showToast("Thông tin định vị đã lưu quá 1 giờ, không thể xóa!");
+    return;
+  }
+
   openConfirmModal(id);
 }
 
