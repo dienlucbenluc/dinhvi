@@ -102,11 +102,9 @@ function syncLocalCache() {
   localStorage.setItem("cmis_full_init_data", JSON.stringify(cachePayload));
 }
 
-// TỐI ƯU TỐC ĐỘ: BẬT NAY CACHE TỪ LOCALSTORAGE
 function loadInitData() {
   const listElement = document.getElementById("locationList");
 
-  // 1. Đọc dữ liệu từ Cache bộ nhớ trước (Mở app trong 0.1 giây)
   const cachedData = localStorage.getItem("cmis_full_init_data");
   if (cachedData) {
     try {
@@ -124,7 +122,6 @@ function loadInitData() {
     `;
   }
 
-  // 2. Tải dữ liệu mới nhất ngầm từ Server về để cập nhật
   fetch(API_URL, {
     method: "POST",
     headers: { "Content-Type": "text/plain;charset=utf-8" },
@@ -176,23 +173,19 @@ function filterLocations() {
   const searchInput = document.getElementById("searchInput");
   const rawQuery = searchInput ? searchInput.value.trim() : "";
   
-  // 1. Tạo bản sao danh sách để sắp xếp
   let locationsToDisplay = [...allLocations];
 
-  // 2. Sắp xếp danh sách theo thời gian giảm dần (mới nhất lên đầu)
   locationsToDisplay.sort((a, b) => {
     const timeA = parseTimeString(a.time);
     const timeB = parseTimeString(b.time);
-    return timeB - timeA; // Giảm dần
+    return timeB - timeA;
   });
 
-  // 3. Nếu không có ô tìm kiếm hoặc từ khóa trống -> render danh sách đã sắp xếp
   if (!rawQuery) {
     renderList(locationsToDisplay);
     return;
   }
 
-  // 4. Lọc dữ liệu theo từ khóa tìm kiếm
   const query = removeAccents(rawQuery.toLowerCase());
 
   const filtered = locationsToDisplay.filter(loc => {
