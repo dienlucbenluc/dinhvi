@@ -471,6 +471,46 @@
     <script>
         const API_URL = "https://script.google.com/macros/s/AKfycbzKkiiIsB_4BWx2VUN2rIiC6s1MQY6L9g5S90J90__ja83-7_awlfyxbMYevwAFJuq9fg/exec";
         const DEFAULT_AVATAR = "https://via.placeholder.com/50";
+        // Chuẩn hóa URL avatar Google Drive để ảnh hiển thị ổn định trên Web App.
+        function getAvatarUrl(avatar) {
+            if (!avatar || typeof avatar !== "string") return DEFAULT_AVATAR;
+            const url = avatar.trim();
+            if (!url) return DEFAULT_AVATAR;
+
+            // Đã là URL thumbnail Drive.
+            if (url.includes("drive.google.com/thumbnail")) return url;
+
+            // Drive: /file/d/FILE_ID/view
+            let match = url.match(/drive\.google\.com\/file\/d\/([^/?#]+)/i);
+            if (match && match[1]) {
+                return "https://drive.google.com/thumbnail?id=" + match[1] + "&sz=w100";
+            }
+
+            // Drive: open?id=FILE_ID hoặc uc?id=FILE_ID
+            match = url.match(/[?&]id=([^&#]+)/i);
+            if (url.includes("drive.google.com") && match && match[1]) {
+                return "https://drive.google.com/thumbnail?id=" + match[1] + "&sz=w100";
+            }
+
+            // URL cũ: lh3.googleusercontent.com/d/FILE_ID
+            match = url.match(/lh3\.googleusercontent\.com\/d\/([^/?#]+)/i);
+            if (match && match[1]) {
+                return "https://drive.google.com/thumbnail?id=" + match[1] + "&sz=w100";
+            }
+
+            return url;
+        }
+
+        function setHeaderAvatar(avatar) {
+            const avatarHeader = document.getElementById("userAvatarHeader");
+            if (!avatarHeader) return;
+            avatarHeader.onerror = function() {
+                this.onerror = null;
+                this.src = DEFAULT_AVATAR;
+            };
+            avatarHeader.src = getAvatarUrl(avatar);
+        }
+
         const ADMIN_PASSWORD = "cmis&123";
 
         let currentUser = null;
@@ -491,14 +531,7 @@
                 userDisplay.innerText = `👷 ${currentUser.ten_nvien || currentUser.ten_ndung || currentUser.ma_nvien}`;
             }
 
-            const avatarHeader = document.getElementById("userAvatarHeader");
-            if (avatarHeader) {
-                if (currentUser.avatar && currentUser.avatar.trim() !== "") {
-                    avatarHeader.src = currentUser.avatar.trim();
-                } else {
-                    avatarHeader.src = DEFAULT_AVATAR;
-                }
-            }
+            setHeaderAvatar(currentUser.avatar);
 
             window.addEventListener('click', function(e) {
                 if (!e.target.matches('.menu-btn')) {
@@ -559,8 +592,7 @@
             
             if (currentUser) {
                 document.getElementById('editTenNvienInput').value = currentUser.ten_nvien || '';
-                const avatarSrc = (currentUser.avatar && currentUser.avatar.trim() !== "") ? currentUser.avatar.trim() : DEFAULT_AVATAR;
-                document.getElementById('avatarPreview').src = avatarSrc;
+                document.getElementById('avatarPreview').src = getAvatarUrl(currentUser.avatar);
             }
 
             document.getElementById('passModal').style.display = 'flex';
@@ -692,9 +724,7 @@
                     localStorage.setItem("cmis_user_session", JSON.stringify(currentUser));
 
                     document.getElementById("currentUserDisplay").innerText = `👷 ${newTenNvien}`;
-                    if (currentUser.avatar) {
-                        document.getElementById("userAvatarHeader").src = currentUser.avatar;
-                    }
+                    setHeaderAvatar(currentUser.avatar);
 
                     closePassModal();
                     showAlert("Cập nhật hồ sơ và tải ảnh lên Google Drive thành công!", "Thành Công", true);
