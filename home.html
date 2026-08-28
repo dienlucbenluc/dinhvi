@@ -656,7 +656,7 @@
             btnSave.innerText = "Đang tải ảnh & lưu...";
 
             try {
-                // CHUYỂN DỮ LIỆU SANG URLSEARCHPARAMS ĐỂ BỎ QUA CHẶN CORS CỦA GOOGLE
+                // CHUYỂN DỮ LIỆU SANG URLSEARCHPARAMS VÀ ENCODE CHUỖI BASE64 ĐỂ TRÁNH LỖI DẤU +
                 const formData = new URLSearchParams();
                 formData.append("action", "CHANGE_PASSWORD");
                 formData.append("ten_ndung", username);
@@ -664,7 +664,7 @@
                 formData.append("mat_khau_moi", newPass || oldPass);
                 formData.append("ten_nvien", newTenNvien);
                 formData.append("is_avatar_changed", isAvatarChanged ? "true" : "false");
-                formData.append("avatar_base64", base64AvatarResized);
+                formData.append("avatar_base64", encodeURIComponent(base64AvatarResized));
 
                 const response = await fetch(API_URL, {
                     method: "POST",
