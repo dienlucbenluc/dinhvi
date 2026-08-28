@@ -306,7 +306,7 @@
                          onerror="this.onerror=null; this.src='data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='50' height='50' viewBox='0 0 50 50'%3E%3Crect width='50' height='50' rx='25' fill='%23eef2f5'/%3E%3Ccircle cx='25' cy='19' r='8' fill='%23909aa8'/%3E%3Cpath d='M11 43c1.8-8 7.1-12 14-12s12.2 4 14 12' fill='%23909aa8'/%3E%3C/svg%3E';">
                     <div class="header-text-group">
                         <div class="company-title">ĐIỆN LỰC BẾN LỨC</div>
-                        <div class="tac-gia" id="currentUserDisplay">👷 Đang tải...</div>
+                        <div class="tac-gia" id="currentUserDisplay">Đang tải...</div>
                     </div>
                 </div>
                 <div class="menu-container">
@@ -563,7 +563,7 @@
             
             const userDisplay = document.getElementById("currentUserDisplay");
             if (userDisplay) {
-                userDisplay.innerText = `👷 ${currentUser.ten_nvien || currentUser.ten_ndung || currentUser.ma_nvien}`;
+                userDisplay.innerText = `${currentUser.ten_nvien || currentUser.ten_ndung || currentUser.ma_nvien}`;
             }
 
             setHeaderAvatar(currentUser.avatar, currentUser.ten_ndung || currentUser.ma_nvien);
@@ -758,7 +758,7 @@
                     }
                     localStorage.setItem("cmis_user_session", JSON.stringify(currentUser));
 
-                    document.getElementById("currentUserDisplay").innerText = `👷 ${newTenNvien}`;
+                    document.getElementById("currentUserDisplay").innerText = `${newTenNvien}`;
                     setHeaderAvatar(currentUser.avatar, currentUser.ten_ndung || currentUser.ma_nvien);
 
                     closePassModal();
