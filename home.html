@@ -67,7 +67,7 @@
             gap: 12px; 
         }
 
-        /* Styling Avatar Header 50x50 */
+        /* Styling Avatar Header 50x50 (Giữ kích thước hiển thị 50px nhưng hình gốc rõ nét) */
         .user-avatar-header { 
             width: 50px; 
             height: 50px; 
@@ -432,11 +432,11 @@
                 <input type="text" id="editTenNvienInput" placeholder="Nhập tên nhân viên">
             </div>
             <div class="form-group">
-                <label>Hình đại diện (Avatar 50x50px)</label>
+                <label>Hình đại diện (Chuẩn rõ nét HD)</label>
                 <input type="file" id="avatarFileInput" accept="image/*" onchange="handleAvatarFileSelect(event)">
                 <div class="avatar-preview-container">
                     <img id="avatarPreview" src="data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='50' height='50' viewBox='0 0 50 50'%3E%3Crect width='50' height='50' rx='25' fill='%23eef2f5'/%3E%3Ccircle cx='25' cy='19' r='8' fill='%23909aa8'/%3E%3Cpath d='M11 43c1.8-8 7.1-12 14-12s12.2 4 14 12' fill='%23909aa8'/%3E%3C/svg%3E" class="avatar-preview" alt="Preview" onerror="this.onerror=null; this.src='data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='50' height='50' viewBox='0 0 50 50'%3E%3Crect width='50' height='50' rx='25' fill='%23eef2f5'/%3E%3Ccircle cx='25' cy='19' r='8' fill='%23909aa8'/%3E%3Cpath d='M11 43c1.8-8 7.1-12 14-12s12.2 4 14 12' fill='%23909aa8'/%3E%3C/svg%3E';">
-                    <span style="font-size: 11px; color: var(--text-sub);">Đã tối ưu hóa nén 50x50px</span>
+                    <span style="font-size: 11px; color: var(--text-sub);">Đã tối ưu hóa nén HD 300x300px rõ nét</span>
                 </div>
             </div>
             <hr style="margin: 12px 0; border: none; border-top: 1px solid #eee;">
@@ -471,36 +471,29 @@
     <script>
         const API_URL = "https://script.google.com/macros/s/AKfycbzKkiiIsB_4BWx2VUN2rIiC6s1MQY6L9g5S90J90__ja83-7_awlfyxbMYevwAFJuq9fg/exec";
         const DEFAULT_AVATAR = "data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='50' height='50' viewBox='0 0 50 50'%3E%3Crect width='50' height='50' rx='25' fill='%23eef2f5'/%3E%3Ccircle cx='25' cy='19' r='8' fill='%23909aa8'/%3E%3Cpath d='M11 43c1.8-8 7.1-12 14-12s12.2 4 14 12' fill='%23909aa8'/%3E%3C/svg%3E";
-        // Chuẩn hóa Avatar Google Drive.
-        // Hỗ trợ các dạng URL cũ đang có trong Sheet và URL mới.
+
         function getAvatarUrl(avatar) {
             if (!avatar || typeof avatar !== "string") return DEFAULT_AVATAR;
 
             const url = avatar.trim();
             if (!url) return DEFAULT_AVATAR;
 
-            // Đã là URL uc/view hoặc thumbnail của Drive.
-            if (url.includes("drive.google.com/uc?") ||
-                url.includes("drive.google.com/thumbnail")) {
+            if (url.includes("drive.google.com/uc?") || url.includes("drive.google.com/thumbnail")) {
                 return url;
             }
 
             let match;
 
-            // https://drive.google.com/file/d/FILE_ID/view
             match = url.match(/drive\.google\.com\/file\/d\/([^/?#]+)/i);
             if (match && match[1]) {
                 return "https://drive.google.com/uc?export=view&id=" + match[1];
             }
 
-            // https://drive.google.com/open?id=FILE_ID
-            // https://drive.google.com/uc?id=FILE_ID
             match = url.match(/[?&]id=([^&#]+)/i);
             if (url.includes("drive.google.com") && match && match[1]) {
                 return "https://drive.google.com/uc?export=view&id=" + match[1];
             }
 
-            // URL cũ https://lh3.googleusercontent.com/d/FILE_ID
             match = url.match(/lh3\.googleusercontent\.com\/d\/([^/?#]+)/i);
             if (match && match[1]) {
                 return "https://drive.google.com/uc?export=view&id=" + match[1];
@@ -518,8 +511,6 @@
                 this.src = DEFAULT_AVATAR;
             };
 
-            // Lấy đúng link trong cột avatar thông qua server, rồi đọc file Drive
-            // thành Base64. Cách này không phụ thuộc link Drive có hiển thị trực tiếp hay không.
             if (username) {
                 try {
                     const formData = new URLSearchParams();
@@ -542,7 +533,6 @@
                 }
             }
 
-            // Fallback: thử URL đang có trong localStorage.
             img.src = getAvatarUrl(avatar);
         }
 
@@ -680,7 +670,7 @@
             document.getElementById('alertModal').style.display = 'none';
         }
 
-        /* Nén ảnh thành chuẩn 50x50px Base64 */
+        /* Nén ảnh thành chuẩn 300x300px Base64 (Đã nâng từ 50x50px lên 300x300px để không bị mờ) */
         function handleAvatarFileSelect(event) {
             const file = event.target.files[0];
             if (!file) return;
@@ -690,17 +680,20 @@
                 const img = new Image();
                 img.onload = function() {
                     const canvas = document.createElement("canvas");
-                    canvas.width = 50;
-                    canvas.height = 50;
+                    // Đổi kích thước Canvas lên 300x300px
+                    canvas.width = 300;
+                    canvas.height = 300;
                     const ctx = canvas.getContext("2d");
 
                     let minSide = Math.min(img.width, img.height);
                     let sx = (img.width - minSide) / 2;
                     let sy = (img.height - minSide) / 2;
                     
-                    ctx.drawImage(img, sx, sy, minSide, minSide, 0, 0, 50, 50);
+                    // Cắt ô vuông ở giữa và vẽ lên canvas 300x300
+                    ctx.drawImage(img, sx, sy, minSide, minSide, 0, 0, 300, 300);
 
-                    base64AvatarResized = canvas.toDataURL("image/jpeg", 0.85);
+                    // Tăng chất lượng hình ảnh nén JPEG lên 0.95 để giữ rõ đường nét
+                    base64AvatarResized = canvas.toDataURL("image/jpeg", 0.95);
 
                     document.getElementById('avatarPreview').src = base64AvatarResized;
                     isAvatarChanged = true;
