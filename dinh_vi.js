@@ -17,7 +17,12 @@ document.addEventListener("DOMContentLoaded", () => {
     userDisplay.innerText = `${currentUser.ten_nvien || currentUser.ten_ndung || ""}`;
   }
 
-  // Lấy đúng avatar theo ten_ndung từ sheet nhan_vien qua API định vị.
+  // Ưu tiên hiển thị Avatar ngay lập tức từ LocalStorage giống home.html
+  if (currentUser && currentUser.avatar) {
+    setCurrentUserAvatar(currentUser.avatar);
+  }
+
+  // Kiểm tra hoặc cập nhật ngầm avatar từ server nếu cần
   loadCurrentUserAvatar();
 
   restoreLocalSettings(); 
@@ -78,10 +83,7 @@ function setCurrentUserAvatar(avatar) {
 }
 
 function loadCurrentUserAvatar() {
-  if (!currentUser || !currentUser.ten_ndung) {
-    setCurrentUserAvatar(currentUser && currentUser.avatar);
-    return;
-  }
+  if (!currentUser || !currentUser.ten_ndung) return;
 
   fetch(API_URL, {
     method: "POST",
@@ -95,17 +97,17 @@ function loadCurrentUserAvatar() {
   .then(res => res.text())
   .then(text => JSON.parse(text))
   .then(res => {
-    if (res.status === "success") {
-      currentUser.avatar = res.avatar || "";
-      localStorage.setItem("cmis_user_session", JSON.stringify(currentUser));
-      setCurrentUserAvatar(res.avatar);
-    } else {
-      setCurrentUserAvatar(currentUser.avatar);
+    if (res.status === "success" && res.avatar) {
+      // Chỉ cập nhật lại DOM và LocalStorage nếu Avatar trên server có thay đổi
+      if (currentUser.avatar !== res.avatar) {
+        currentUser.avatar = res.avatar;
+        localStorage.setItem("cmis_user_session", JSON.stringify(currentUser));
+        setCurrentUserAvatar(res.avatar);
+      }
     }
   })
   .catch(err => {
     console.error("Không lấy được avatar nhân viên:", err);
-    setCurrentUserAvatar(currentUser.avatar);
   });
 }
 
