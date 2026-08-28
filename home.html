@@ -469,7 +469,8 @@
         const ADMIN_PASSWORD = "cmis&123";
 
         let currentUser = null;
-        let base64AvatarResized = ""; // Chứa chuỗi base64 đã nén 50x50
+        let base64AvatarResized = ""; 
+        let isAvatarChanged = false; // Đánh dấu nếu người dùng chọn ảnh mới
 
         document.addEventListener("DOMContentLoaded", () => {
             const sessionStr = localStorage.getItem("cmis_user_session");
@@ -546,12 +547,13 @@
 
             document.getElementById('oldPassInput').value = '';
             document.getElementById('newPassInput').value = '';
+            isAvatarChanged = false; // Reset cờ chọn ảnh
             
             if (currentUser) {
                 document.getElementById('editTenNvienInput').value = currentUser.ten_nvien || '';
                 const avatarSrc = currentUser.avatar || DEFAULT_AVATAR;
                 document.getElementById('avatarPreview').src = avatarSrc;
-                base64AvatarResized = currentUser.avatar || '';
+                base64AvatarResized = "";
             }
 
             document.getElementById('passModal').style.display = 'flex';
@@ -604,7 +606,7 @@
             document.getElementById('alertModal').style.display = 'none';
         }
 
-        /* Tối ưu hóa Resize ảnh về đúng 50x50px để nén dung lượng xuống tối thiểu */
+        /* Tối ưu hóa Resize ảnh về vuông 50x50px */
         function handleAvatarFileSelect(event) {
             const file = event.target.files[0];
             if (!file) return;
@@ -618,16 +620,16 @@
                     canvas.height = 50;
                     const ctx = canvas.getContext("2d");
 
-                    // Vẽ và crop ảnh về vuông 50x50
                     let minSide = Math.min(img.width, img.height);
                     let sx = (img.width - minSide) / 2;
                     let sy = (img.height - minSide) / 2;
                     
                     ctx.drawImage(img, sx, sy, minSide, minSide, 0, 0, 50, 50);
 
-                    // Chuyển thành Base64 chất lượng 0.8 để nhẹ nhất tải lên host
-                    base64AvatarResized = canvas.toDataURL("image/jpeg", 0.8);
+                    // Tạo dữ liệu base64 để gửi lên backend lưu vào file
+                    base64AvatarResized = canvas.toDataURL("image/jpeg", 0.85);
                     document.getElementById('avatarPreview').src = base64AvatarResized;
+                    isAvatarChanged = true;
                 };
                 img.src = e.target.result;
             };
@@ -662,28 +664,31 @@
                         action: "CHANGE_PASSWORD",
                         ten_ndung: username,
                         mat_khau_cu: oldPass,
-                        mat_khau_moi: newPass || oldPass, // Nếu không nhập MK mới thì dùng lại MK cũ
+                        mat_khau_moi: newPass || oldPass,
                         ten_nvien: newTenNvien,
-                        avatar: base64AvatarResized
+                        is_avatar_changed: isAvatarChanged,
+                        avatar_base64: isAvatarChanged ? base64AvatarResized : "" // Gửi base64 nếu có chọn ảnh mới
                     })
                 });
 
                 const result = await response.json();
 
                 if (result.status === "success") {
-                    // Cập nhật lại thông tin ở LocalStorage
+                    // Cập nhật thông tin trong Session
                     currentUser.ten_nvien = newTenNvien;
-                    currentUser.avatar = base64AvatarResized;
+                    if (result.avatar_url) {
+                        currentUser.avatar = result.avatar_url; // Đường dẫn ảnh vừa tạo (ví dụ: image/avatar_abc.jpg)
+                    }
                     localStorage.setItem("cmis_user_session", JSON.stringify(currentUser));
 
-                    // Cập nhật giao diện Header
+                    // Cập nhật giao diện Header ngay lập tức
                     document.getElementById("currentUserDisplay").innerText = `👷 ${newTenNvien}`;
-                    if (base64AvatarResized) {
-                        document.getElementById("userAvatarHeader").src = base64AvatarResized;
+                    if (currentUser.avatar) {
+                        document.getElementById("userAvatarHeader").src = currentUser.avatar;
                     }
 
                     closePassModal();
-                    showAlert("Hồ sơ và thông tin tài khoản đã được cập nhật thành công!", "Thành Công", true);
+                    showAlert("Hồ sơ và ảnh đại diện đã được lưu thành công!", "Thành Công", true);
                 } else {
                     showAlert(result.message || "Đổi thông tin thất bại. Vui lòng kiểm tra lại mật khẩu cũ!", "Lỗi Thất Bại", false);
                 }
