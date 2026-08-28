@@ -8,7 +8,6 @@
     <meta http-equiv="Expires" content="0">
     
     <title>Ghi nhớ vị trí công tơ của khách hàng</title>
-    <!-- Font Google Chuyên Nghiệp -->
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
     
     <style>
@@ -68,13 +67,14 @@
             gap: 12px; 
         }
 
-        .main-logo { 
-            width: 44px; 
-            height: 44px; 
-            object-fit: contain; 
-            border-radius: 10px;
+        /* Styling Avatar Header 50x50 */
+        .user-avatar-header { 
+            width: 50px; 
+            height: 50px; 
+            object-fit: cover; 
+            border-radius: 50%;
             background: #f0f4ff;
-            padding: 4px;
+            border: 2px solid var(--primary-color);
         }
 
         .header-text-group { 
@@ -246,6 +246,8 @@
             border-radius: var(--radius-lg); 
             padding: 24px; 
             box-shadow: 0 20px 40px rgba(0,0,0,0.2); 
+            max-height: 90vh;
+            overflow-y: auto;
         }
 
         .modal-title { font-size: 18px; font-weight: 700; margin-bottom: 12px; text-align: center; }
@@ -253,9 +255,9 @@
         .form-group { margin-bottom: 12px; }
         .form-group label { font-size: 12px; font-weight: 600; color: var(--text-sub); display: block; margin-bottom: 6px; }
         
-        input[type="password"] { 
+        input[type="password"], input[type="text"], input[type="file"] { 
             width: 100%; 
-            padding: 12px; 
+            padding: 10px 12px; 
             border: 1px solid #dfe1e6; 
             border-radius: var(--radius-md); 
             font-size: 14px; 
@@ -263,7 +265,22 @@
             transition: border-color 0.2s;
         }
 
-        input[type="password"]:focus { border-color: var(--primary-color); }
+        input[type="password"]:focus, input[type="text"]:focus { border-color: var(--primary-color); }
+
+        .avatar-preview-container {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-top: 6px;
+        }
+
+        .avatar-preview {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 1px solid #ccc;
+        }
 
         .modal-buttons { display: flex; gap: 10px; margin-top: 18px; }
         .modal-buttons button { 
@@ -278,11 +295,10 @@
 </head>
 <body>
     <div class="app-container">
-        <!-- Header -->
         <div class="fixed-header">
             <div class="header-top-row">
                 <div class="header-logo-container">
-                    <img src="LOGO.png" alt="CMIS Logo" class="main-logo">
+                    <img id="userAvatarHeader" src="https://via.placeholder.com/50" alt="Avatar" class="user-avatar-header">
                     <div class="header-text-group">
                         <div class="company-title">ĐIỆN LỰC BẾN LỨC</div>
                         <div class="tac-gia" id="currentUserDisplay">👷 Đang tải...</div>
@@ -294,14 +310,13 @@
                         <div class="menu-item" onclick="openDevModal()">🛠️ Lập trình phần mềm</div>
                         <div class="menu-item" onclick="window.location.href='dinh_vi.html'">🌏 Định vị công tác</div>
                         <div class="menu-item" onclick="window.location.href='nhap_chiso.html'">📝 Ghi chỉ số</div>
-                        <div class="menu-item" onclick="openPassModal()">🔑 Đổi mật khẩu</div>
+                        <div class="menu-item" onclick="openPassModal()">🔑 Đổi mật khẩu & Hồ sơ</div>
                         <div class="menu-item danger" onclick="handleLogout()">🛑 Thoát ứng dụng</div>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- Scrollable Dashboard Content -->
         <div class="scrollable-content">
             <div class="welcome-card">
                 <h2>Hệ Thống Định Vị Công Tơ</h2>
@@ -326,19 +341,19 @@
                     </div>
                 </div>
 
-<div class="feature-card" onclick="openAdminAuthModal()">
-    <div class="feature-icon icon-cyan">⚙️</div>
-    <div>
-        <div class="feature-title">Quản trị</div>
-        <div class="feature-desc">Truy cập bảng quản trị hệ thống</div>
-    </div>
-</div>
+                <div class="feature-card" onclick="openAdminAuthModal()">
+                    <div class="feature-icon icon-cyan">⚙️</div>
+                    <div>
+                        <div class="feature-title">Quản trị</div>
+                        <div class="feature-desc">Truy cập bảng quản trị hệ thống</div>
+                    </div>
+                </div>
 
                 <div class="feature-card" onclick="openPassModal()">
                     <div class="feature-icon icon-orange">🔑</div>
                     <div>
-                        <div class="feature-title">Mật khẩu</div>
-                        <div class="feature-desc">Đổi mật khẩu tài khoản</div>
+                        <div class="feature-title">Tài khoản</div>
+                        <div class="feature-desc">Đổi MK & Tên, Avatar</div>
                     </div>
                 </div>
 
@@ -361,7 +376,6 @@
         </div>
     </div>
 
-    <!-- Modal Xác Nhận Quyền Admin -->
     <div id="adminAuthModal" class="modal-overlay">
         <div class="modal-box">
             <div class="modal-title" style="color: var(--primary-color);">Xác Nhận Quyền Admin</div>
@@ -376,7 +390,6 @@
         </div>
     </div>
 
-    <!-- Modal Lập trình viên -->
     <div id="devModal" class="modal-overlay">
         <div class="modal-box">
             <div class="modal-title" style="color: var(--primary-color);">Lập Trình Viên</div>
@@ -393,7 +406,6 @@
         </div>
     </div>
 
-    <!-- Modal Đăng xuất -->
     <div id="logoutModal" class="modal-overlay">
         <div class="modal-box">
             <div class="modal-title" style="color: var(--danger-color);">Xác Nhận Thoát</div>
@@ -407,26 +419,37 @@
         </div>
     </div>
 
-    <!-- Modal Đổi Mật Khẩu -->
     <div id="passModal" class="modal-overlay">
         <div class="modal-box">
-            <div class="modal-title">Đổi Mật Khẩu</div>
+            <div class="modal-title">Cập Nhật Hồ Sơ</div>
+            <div class="form-group">
+                <label>Tên nhân viên</label>
+                <input type="text" id="editTenNvienInput" placeholder="Nhập tên nhân viên">
+            </div>
+            <div class="form-group">
+                <label>Hình đại diện (Avatar 50x50px)</label>
+                <input type="file" id="avatarFileInput" accept="image/*" onchange="handleAvatarFileSelect(event)">
+                <div class="avatar-preview-container">
+                    <img id="avatarPreview" src="https://via.placeholder.com/50" class="avatar-preview" alt="Preview">
+                    <span style="font-size: 11px; color: var(--text-sub);">Đã tối ưu hóa nén 50x50px</span>
+                </div>
+            </div>
+            <hr style="margin: 12px 0; border: none; border-top: 1px solid #eee;">
             <div class="form-group">
                 <label>Mật khẩu cũ</label>
                 <input type="password" id="oldPassInput" placeholder="••••••••">
             </div>
             <div class="form-group">
-                <label>Mật khẩu mới</label>
+                <label>Mật khẩu mới (Bỏ trống nếu không đổi)</label>
                 <input type="password" id="newPassInput" placeholder="••••••••">
             </div>
             <div class="modal-buttons">
                 <button class="btn-modal-cancel" onclick="closePassModal()">Hủy</button>
-                <button class="btn-modal-confirm" id="btnSavePass" onclick="saveNewPassword()">Lưu thay đổi</button>
+                <button class="btn-modal-confirm" id="btnSavePass" onclick="saveProfileAndPass()">Lưu thay đổi</button>
             </div>
         </div>
     </div>
 
-    <!-- Modal Thông Báo Chuyên Nghiệp -->
     <div id="alertModal" class="modal-overlay">
         <div class="modal-box" style="text-align: center;">
             <div class="alert-icon" style="font-size: 40px; margin-bottom: 8px;">✅</div>
@@ -441,12 +464,12 @@
     </div>
 
     <script>
-       const API_URL = "https://script.google.com/macros/s/AKfycbzKkiiIsB_4BWx2VUN2rIiC6s1MQY6L9g5S90J90__ja83-7_awlfyxbMYevwAFJuq9fg/exec";
-
-        // Cấu hình mật khẩu Admin tại đây
+        const API_URL = "https://script.google.com/macros/s/AKfycbzKkiiIsB_4BWx2VUN2rIiC6s1MQY6L9g5S90J90__ja83-7_awlfyxbMYevwAFJuq9fg/exec";
+        const DEFAULT_AVATAR = "https://via.placeholder.com/50";
         const ADMIN_PASSWORD = "cmis&123";
 
         let currentUser = null;
+        let base64AvatarResized = ""; // Chứa chuỗi base64 đã nén 50x50
 
         document.addEventListener("DOMContentLoaded", () => {
             const sessionStr = localStorage.getItem("cmis_user_session");
@@ -456,9 +479,17 @@
             }
             
             currentUser = JSON.parse(sessionStr);
+            
+            // Hiển thị tên
             const userDisplay = document.getElementById("currentUserDisplay");
             if (userDisplay) {
                 userDisplay.innerText = `👷 ${currentUser.ten_nvien || currentUser.ma_nvien}`;
+            }
+
+            // Hiển thị Avatar
+            const avatarHeader = document.getElementById("userAvatarHeader");
+            if (avatarHeader) {
+                avatarHeader.src = currentUser.avatar || DEFAULT_AVATAR;
             }
 
             window.addEventListener('click', function(e) {
@@ -490,15 +521,15 @@
             document.getElementById('adminAuthModal').style.display = 'none';
         }
 
-function verifyAdminPassword() {
-    const passInput = document.getElementById('adminPasswordInput').value.trim();
-    if (passInput === ADMIN_PASSWORD) {
-        closeAdminAuthModal();
-        window.location.href = "quan_tri.html";
-    } else {
-        showAlert("Mật khẩu Admin không đúng. Vui lòng kiểm tra lại!", "Truy Cập Bị Từ Chối", false);
-    }
-}
+        function verifyAdminPassword() {
+            const passInput = document.getElementById('adminPasswordInput').value.trim();
+            if (passInput === ADMIN_PASSWORD) {
+                closeAdminAuthModal();
+                window.location.href = "quan_tri.html";
+            } else {
+                showAlert("Mật khẩu Admin không đúng. Vui lòng kiểm tra lại!", "Truy Cập Bị Từ Chối", false);
+            }
+        }
 
         function openDevModal() {
             closeAllMenus();
@@ -515,6 +546,13 @@ function verifyAdminPassword() {
 
             document.getElementById('oldPassInput').value = '';
             document.getElementById('newPassInput').value = '';
+            
+            if (currentUser) {
+                document.getElementById('editTenNvienInput').value = currentUser.ten_nvien || '';
+                const avatarSrc = currentUser.avatar || DEFAULT_AVATAR;
+                document.getElementById('avatarPreview').src = avatarSrc;
+                base64AvatarResized = currentUser.avatar || '';
+            }
 
             document.getElementById('passModal').style.display = 'flex';
         }
@@ -566,13 +604,44 @@ function verifyAdminPassword() {
             document.getElementById('alertModal').style.display = 'none';
         }
 
-        async function saveNewPassword() {
+        /* Tối ưu hóa Resize ảnh về đúng 50x50px để nén dung lượng xuống tối thiểu */
+        function handleAvatarFileSelect(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const img = new Image();
+                img.onload = function() {
+                    const canvas = document.createElement("canvas");
+                    canvas.width = 50;
+                    canvas.height = 50;
+                    const ctx = canvas.getContext("2d");
+
+                    // Vẽ và crop ảnh về vuông 50x50
+                    let minSide = Math.min(img.width, img.height);
+                    let sx = (img.width - minSide) / 2;
+                    let sy = (img.height - minSide) / 2;
+                    
+                    ctx.drawImage(img, sx, sy, minSide, minSide, 0, 0, 50, 50);
+
+                    // Chuyển thành Base64 chất lượng 0.8 để nhẹ nhất tải lên host
+                    base64AvatarResized = canvas.toDataURL("image/jpeg", 0.8);
+                    document.getElementById('avatarPreview').src = base64AvatarResized;
+                };
+                img.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
+
+        async function saveProfileAndPass() {
             const oldPass = document.getElementById('oldPassInput').value.trim();
             const newPass = document.getElementById('newPassInput').value.trim();
+            const newTenNvien = document.getElementById('editTenNvienInput').value.trim();
             const btnSave = document.getElementById('btnSavePass');
 
-            if (!oldPass || !newPass) {
-                showAlert("Vui lòng nhập đầy đủ mật khẩu cũ và mật khẩu mới!", "Lỗi Nhập Liệu", false);
+            if (!oldPass) {
+                showAlert("Vui lòng nhập mật khẩu cũ để xác nhận!", "Lỗi Nhập Liệu", false);
                 return;
             }
 
@@ -593,17 +662,30 @@ function verifyAdminPassword() {
                         action: "CHANGE_PASSWORD",
                         ten_ndung: username,
                         mat_khau_cu: oldPass,
-                        mat_khau_moi: newPass
+                        mat_khau_moi: newPass || oldPass, // Nếu không nhập MK mới thì dùng lại MK cũ
+                        ten_nvien: newTenNvien,
+                        avatar: base64AvatarResized
                     })
                 });
 
                 const result = await response.json();
 
                 if (result.status === "success") {
+                    // Cập nhật lại thông tin ở LocalStorage
+                    currentUser.ten_nvien = newTenNvien;
+                    currentUser.avatar = base64AvatarResized;
+                    localStorage.setItem("cmis_user_session", JSON.stringify(currentUser));
+
+                    // Cập nhật giao diện Header
+                    document.getElementById("currentUserDisplay").innerText = `👷 ${newTenNvien}`;
+                    if (base64AvatarResized) {
+                        document.getElementById("userAvatarHeader").src = base64AvatarResized;
+                    }
+
                     closePassModal();
-                    showAlert("Mật khẩu của bạn đã được cập nhật thành công vào hệ thống!", "Thành Công", true);
+                    showAlert("Hồ sơ và thông tin tài khoản đã được cập nhật thành công!", "Thành Công", true);
                 } else {
-                    showAlert(result.message || "Đổi mật khẩu thất bại. Vui lòng kiểm tra lại mật khẩu cũ!", "Lỗi Thất Bại", false);
+                    showAlert(result.message || "Đổi thông tin thất bại. Vui lòng kiểm tra lại mật khẩu cũ!", "Lỗi Thất Bại", false);
                 }
             } catch (err) {
                 showAlert("Lỗi kết nối máy chủ. Vui lòng thử lại sau!", "Lỗi Kết Nối", false);
