@@ -20,6 +20,12 @@
         .header-top-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
         .header-logo-container { display: flex; align-items: center; gap: 10px; }
         .main-logo { width: 40px; height: 40px; object-fit: contain; flex-shrink: 0; mix-blend-mode: multiply; }
+        .user-avatar-header {
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid #1E90FF;
+            background: #f0f4ff;
+        }
         .header-text-group { display: flex; flex-direction: column; justify-content: center; }
         .company-title { font-size: 15px; font-weight: bold; color: #1E90FF; line-height: 1.2; margin-bottom: 2px; }
         .tac-gia { font-size: 13px; color: #8B0000; font-weight: bold; margin-bottom: 2px; }
@@ -88,7 +94,11 @@
         <div class="fixed-header">
             <div class="header-top-row">
                 <div class="header-logo-container">
-                    <img src="LOGO.png" alt="CMIS Logo" class="main-logo">
+                    <img id="userAvatarHeader"
+                         src="https://via.placeholder.com/50"
+                         alt="Avatar"
+                         class="main-logo user-avatar-header"
+                         onerror="this.onerror=null; this.src='https://via.placeholder.com/50';">
                     <div class="header-text-group">
                         <div class="company-title">Điện lực Bến Lức-Định vị công tơ</div>
                         <div class="tac-gia" id="currentUserDisplay">👤 Đang tải...</div>
@@ -273,6 +283,19 @@
         }
 
         document.addEventListener('DOMContentLoaded', () => {
+            const sessionStr = localStorage.getItem("cmis_user_session");
+            if (sessionStr) {
+                try {
+                    const user = JSON.parse(sessionStr);
+                    const avatarEl = document.getElementById("userAvatarHeader");
+                    if (avatarEl && user.avatar && String(user.avatar).trim() !== "") {
+                        avatarEl.src = String(user.avatar).trim();
+                    }
+                } catch (e) {
+                    console.error("Không đọc được avatar:", e);
+                }
+            }
+
             const loaiTimSelect = document.getElementById('loai_tim');
             const locNameInput = document.getElementById('locName');
 
