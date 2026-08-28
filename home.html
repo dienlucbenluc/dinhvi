@@ -299,11 +299,11 @@
             <div class="header-top-row">
                 <div class="header-logo-container">
                     <img id="userAvatarHeader" 
-                         src="https://via.placeholder.com/50" 
+                         src="data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='50' height='50' viewBox='0 0 50 50'%3E%3Crect width='50' height='50' rx='25' fill='%23eef2f5'/%3E%3Ccircle cx='25' cy='19' r='8' fill='%23909aa8'/%3E%3Cpath d='M11 43c1.8-8 7.1-12 14-12s12.2 4 14 12' fill='%23909aa8'/%3E%3C/svg%3E" 
                          alt="Avatar" 
                          class="user-avatar-header"
                          crossorigin="anonymous"
-                         onerror="this.onerror=null; this.src='https://via.placeholder.com/50';">
+                         onerror="this.onerror=null; this.src='data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='50' height='50' viewBox='0 0 50 50'%3E%3Crect width='50' height='50' rx='25' fill='%23eef2f5'/%3E%3Ccircle cx='25' cy='19' r='8' fill='%23909aa8'/%3E%3Cpath d='M11 43c1.8-8 7.1-12 14-12s12.2 4 14 12' fill='%23909aa8'/%3E%3C/svg%3E';">
                     <div class="header-text-group">
                         <div class="company-title">ĐIỆN LỰC BẾN LỨC</div>
                         <div class="tac-gia" id="currentUserDisplay">👷 Đang tải...</div>
@@ -435,7 +435,7 @@
                 <label>Hình đại diện (Avatar 50x50px)</label>
                 <input type="file" id="avatarFileInput" accept="image/*" onchange="handleAvatarFileSelect(event)">
                 <div class="avatar-preview-container">
-                    <img id="avatarPreview" src="https://via.placeholder.com/50" class="avatar-preview" alt="Preview" onerror="this.onerror=null; this.src='https://via.placeholder.com/50';">
+                    <img id="avatarPreview" src="data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='50' height='50' viewBox='0 0 50 50'%3E%3Crect width='50' height='50' rx='25' fill='%23eef2f5'/%3E%3Ccircle cx='25' cy='19' r='8' fill='%23909aa8'/%3E%3Cpath d='M11 43c1.8-8 7.1-12 14-12s12.2 4 14 12' fill='%23909aa8'/%3E%3C/svg%3E" class="avatar-preview" alt="Preview" onerror="this.onerror=null; this.src='data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='50' height='50' viewBox='0 0 50 50'%3E%3Crect width='50' height='50' rx='25' fill='%23eef2f5'/%3E%3Ccircle cx='25' cy='19' r='8' fill='%23909aa8'/%3E%3Cpath d='M11 43c1.8-8 7.1-12 14-12s12.2 4 14 12' fill='%23909aa8'/%3E%3C/svg%3E';">
                     <span style="font-size: 11px; color: var(--text-sub);">Đã tối ưu hóa nén 50x50px</span>
                 </div>
             </div>
@@ -470,46 +470,57 @@
 
     <script>
         const API_URL = "https://script.google.com/macros/s/AKfycbzKkiiIsB_4BWx2VUN2rIiC6s1MQY6L9g5S90J90__ja83-7_awlfyxbMYevwAFJuq9fg/exec";
-        const DEFAULT_AVATAR = "https://via.placeholder.com/50";
-        // Chuẩn hóa URL avatar Google Drive để ảnh hiển thị ổn định trên Web App.
+        const DEFAULT_AVATAR = "data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='50' height='50' viewBox='0 0 50 50'%3E%3Crect width='50' height='50' rx='25' fill='%23eef2f5'/%3E%3Ccircle cx='25' cy='19' r='8' fill='%23909aa8'/%3E%3Cpath d='M11 43c1.8-8 7.1-12 14-12s12.2 4 14 12' fill='%23909aa8'/%3E%3C/svg%3E";
+        // Chuẩn hóa Avatar Google Drive.
+        // Hỗ trợ các dạng URL cũ đang có trong Sheet và URL mới.
         function getAvatarUrl(avatar) {
             if (!avatar || typeof avatar !== "string") return DEFAULT_AVATAR;
+
             const url = avatar.trim();
             if (!url) return DEFAULT_AVATAR;
 
-            // Đã là URL thumbnail Drive.
-            if (url.includes("drive.google.com/thumbnail")) return url;
-
-            // Drive: /file/d/FILE_ID/view
-            let match = url.match(/drive\.google\.com\/file\/d\/([^/?#]+)/i);
-            if (match && match[1]) {
-                return "https://drive.google.com/thumbnail?id=" + match[1] + "&sz=w100";
+            // Đã là URL uc/view hoặc thumbnail của Drive.
+            if (url.includes("drive.google.com/uc?") ||
+                url.includes("drive.google.com/thumbnail")) {
+                return url;
             }
 
-            // Drive: open?id=FILE_ID hoặc uc?id=FILE_ID
+            let match;
+
+            // https://drive.google.com/file/d/FILE_ID/view
+            match = url.match(/drive\.google\.com\/file\/d\/([^/?#]+)/i);
+            if (match && match[1]) {
+                return "https://drive.google.com/uc?export=view&id=" + match[1];
+            }
+
+            // https://drive.google.com/open?id=FILE_ID
+            // https://drive.google.com/uc?id=FILE_ID
             match = url.match(/[?&]id=([^&#]+)/i);
             if (url.includes("drive.google.com") && match && match[1]) {
-                return "https://drive.google.com/thumbnail?id=" + match[1] + "&sz=w100";
+                return "https://drive.google.com/uc?export=view&id=" + match[1];
             }
 
-            // URL cũ: lh3.googleusercontent.com/d/FILE_ID
+            // URL cũ https://lh3.googleusercontent.com/d/FILE_ID
             match = url.match(/lh3\.googleusercontent\.com\/d\/([^/?#]+)/i);
             if (match && match[1]) {
-                return "https://drive.google.com/thumbnail?id=" + match[1] + "&sz=w100";
+                return "https://drive.google.com/uc?export=view&id=" + match[1];
             }
 
             return url;
         }
 
         function setHeaderAvatar(avatar) {
-            const avatarHeader = document.getElementById("userAvatarHeader");
-            if (!avatarHeader) return;
-            avatarHeader.onerror = function() {
+            const img = document.getElementById("userAvatarHeader");
+            if (!img) return;
+
+            img.onerror = function() {
                 this.onerror = null;
                 this.src = DEFAULT_AVATAR;
             };
-            avatarHeader.src = getAvatarUrl(avatar);
+
+            img.src = getAvatarUrl(avatar);
         }
+
 
         const ADMIN_PASSWORD = "cmis&123";
 
