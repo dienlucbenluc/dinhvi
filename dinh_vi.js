@@ -14,7 +14,7 @@ document.addEventListener("DOMContentLoaded", () => {
   currentUser = JSON.parse(sessionStr);
   const userDisplay = document.getElementById("currentUserDisplay");
   if (userDisplay) {
-    userDisplay.innerText = `👷 ${currentUser.ten_nvien || currentUser.ten_ndung || ""}`;
+    userDisplay.innerText = `${currentUser.ten_nvien || currentUser.ten_ndung || ""}`;
   }
 
   // Lấy đúng avatar theo ten_ndung từ sheet nhan_vien qua API định vị.
