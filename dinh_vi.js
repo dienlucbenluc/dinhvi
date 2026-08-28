@@ -290,7 +290,7 @@ function filterLocations() {
   renderList(matchedLocations);
 }
 
-function renderList(locations) {
+renderList(locations) {
   const listElement = document.getElementById("locationList");
   const countElement = document.getElementById("locationCount");
   
@@ -305,22 +305,22 @@ function renderList(locations) {
   
   const fragment = document.createDocumentFragment();
   
-locations.forEach(loc => {
-  const li = document.createElement("li");
-  li.onclick = function() {
-      // Kiểm tra xem thẻ hiện tại đã được chọn chưa
-      const isAlreadySelected = this.classList.contains("selected");
+  locations.forEach(loc => {
+    const li = document.createElement("li");
+    
+    // Xử lý sự kiện click chỉ mở 1 khách hàng duy nhất
+    li.onclick = function() {
+        const isAlreadySelected = this.classList.contains("selected");
+        
+        // Ẩn tất cả các khung nút Sửa / Xóa đang mở khác
+        const allItems = listElement.querySelectorAll("li");
+        allItems.forEach(item => item.classList.remove("selected"));
 
-      // Xóa lớp 'selected' ở tất cả các dòng khác trong danh sách
-      const allItems = listElement.querySelectorAll("li");
-      allItems.forEach(item => item.classList.remove("selected"));
-
-      // Nếu thẻ vừa bấm chưa chọn thì toggle hiển thị (mở ra)
-      // Nếu đã được chọn từ trước thì hành động click sẽ đóng nó lại
-      if (!isAlreadySelected) {
-          this.classList.add("selected");
-      }
-  };
+        // Toggle mở item hiện tại nếu nó chưa mở
+        if (!isAlreadySelected) {
+            this.classList.add("selected");
+        }
+    };
 
     const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${loc.lat},${loc.lng}`;
     
