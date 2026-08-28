@@ -67,7 +67,6 @@
             gap: 12px; 
         }
 
-        /* Styling Avatar Header 50x50 (Giữ kích thước hiển thị 50px nhưng hình gốc rõ nét) */
         .user-avatar-header { 
             width: 50px; 
             height: 50px; 
@@ -302,8 +301,7 @@
                          src="data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='50' height='50' viewBox='0 0 50 50'%3E%3Crect width='50' height='50' rx='25' fill='%23eef2f5'/%3E%3Ccircle cx='25' cy='19' r='8' fill='%23909aa8'/%3E%3Cpath d='M11 43c1.8-8 7.1-12 14-12s12.2 4 14 12' fill='%23909aa8'/%3E%3C/svg%3E" 
                          alt="Avatar" 
                          class="user-avatar-header"
-                         crossorigin="anonymous"
-                         onerror="this.onerror=null; this.src='data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='50' height='50' viewBox='0 0 50 50'%3E%3Crect width='50' height='50' rx='25' fill='%23eef2f5'/%3E%3Ccircle cx='25' cy='19' r='8' fill='%23909aa8'/%3E%3Cpath d='M11 43c1.8-8 7.1-12 14-12s12.2 4 14 12' fill='%23909aa8'/%3E%3C/svg%3E';">
+                         crossorigin="anonymous">
                     <div class="header-text-group">
                         <div class="company-title">ĐIỆN LỰC BẾN LỨC</div>
                         <div class="tac-gia" id="currentUserDisplay">Đang tải...</div>
@@ -435,7 +433,7 @@
                 <label>Hình đại diện (Chuẩn rõ nét HD)</label>
                 <input type="file" id="avatarFileInput" accept="image/*" onchange="handleAvatarFileSelect(event)">
                 <div class="avatar-preview-container">
-                    <img id="avatarPreview" src="data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='50' height='50' viewBox='0 0 50 50'%3E%3Crect width='50' height='50' rx='25' fill='%23eef2f5'/%3E%3Ccircle cx='25' cy='19' r='8' fill='%23909aa8'/%3E%3Cpath d='M11 43c1.8-8 7.1-12 14-12s12.2 4 14 12' fill='%23909aa8'/%3E%3C/svg%3E" class="avatar-preview" alt="Preview" onerror="this.onerror=null; this.src='data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='50' height='50' viewBox='0 0 50 50'%3E%3Crect width='50' height='50' rx='25' fill='%23eef2f5'/%3E%3Ccircle cx='25' cy='19' r='8' fill='%23909aa8'/%3E%3Cpath d='M11 43c1.8-8 7.1-12 14-12s12.2 4 14 12' fill='%23909aa8'/%3E%3C/svg%3E';">
+                    <img id="avatarPreview" src="data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='50' height='50' viewBox='0 0 50 50'%3E%3Crect width='50' height='50' rx='25' fill='%23eef2f5'/%3E%3Ccircle cx='25' cy='19' r='8' fill='%23909aa8'/%3E%3Cpath d='M11 43c1.8-8 7.1-12 14-12s12.2 4 14 12' fill='%23909aa8'/%3E%3C/svg%3E" class="avatar-preview" alt="Preview">
                     <span style="font-size: 11px; color: var(--text-sub);">Đã tối ưu hóa nén HD 300x300px rõ nét</span>
                 </div>
             </div>
@@ -471,38 +469,34 @@
     <script>
         const API_URL = "https://script.google.com/macros/s/AKfycbzKkiiIsB_4BWx2VUN2rIiC6s1MQY6L9g5S90J90__ja83-7_awlfyxbMYevwAFJuq9fg/exec";
         const DEFAULT_AVATAR = "data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='50' height='50' viewBox='0 0 50 50'%3E%3Crect width='50' height='50' rx='25' fill='%23eef2f5'/%3E%3Ccircle cx='25' cy='19' r='8' fill='%23909aa8'/%3E%3Cpath d='M11 43c1.8-8 7.1-12 14-12s12.2 4 14 12' fill='%23909aa8'/%3E%3C/svg%3E";
+        const ADMIN_PASSWORD = "cmis&123";
+
+        let currentUser = null;
+        let isAvatarChanged = false;
+        let base64AvatarResized = ""; 
 
         function getAvatarUrl(avatar) {
             if (!avatar || typeof avatar !== "string") return DEFAULT_AVATAR;
-
             const url = avatar.trim();
             if (!url) return DEFAULT_AVATAR;
 
-            if (url.includes("drive.google.com/uc?") || url.includes("drive.google.com/thumbnail")) {
+            if (url.startsWith("data:image/") || url.includes("drive.google.com/uc?") || url.includes("drive.google.com/thumbnail")) {
                 return url;
             }
 
-            let match;
-
-            match = url.match(/drive\.google\.com\/file\/d\/([^/?#]+)/i);
-            if (match && match[1]) {
-                return "https://drive.google.com/uc?export=view&id=" + match[1];
-            }
+            let match = url.match(/drive\.google\.com\/file\/d\/([^/?#]+)/i);
+            if (match && match[1]) return "https://drive.google.com/uc?export=view&id=" + match[1];
 
             match = url.match(/[?&]id=([^&#]+)/i);
-            if (url.includes("drive.google.com") && match && match[1]) {
-                return "https://drive.google.com/uc?export=view&id=" + match[1];
-            }
+            if (url.includes("drive.google.com") && match && match[1]) return "https://drive.google.com/uc?export=view&id=" + match[1];
 
             match = url.match(/lh3\.googleusercontent\.com\/d\/([^/?#]+)/i);
-            if (match && match[1]) {
-                return "https://drive.google.com/uc?export=view&id=" + match[1];
-            }
+            if (match && match[1]) return "https://drive.google.com/uc?export=view&id=" + match[1];
 
             return url;
         }
 
-        async function setHeaderAvatar(avatar, username) {
+        async function setHeaderAvatar(avatar, username, forceFetch = false) {
             const img = document.getElementById("userAvatarHeader");
             if (!img) return;
 
@@ -511,7 +505,15 @@
                 this.src = DEFAULT_AVATAR;
             };
 
-            if (username) {
+            // 1. Nếu có avatar trong Local Cache và không ép tải lại từ server -> Dùng ngay tức thì!
+            const cachedAvatar = localStorage.getItem("cmis_user_avatar_cache");
+            if (cachedAvatar && !forceFetch) {
+                img.src = cachedAvatar;
+                return;
+            }
+
+            // 2. Nếu không có cache hoặc ép tải từ server
+            if (username && forceFetch) {
                 try {
                     const formData = new URLSearchParams();
                     formData.append("action", "GET_AVATAR");
@@ -526,6 +528,7 @@
 
                     if (result.status === "success" && result.avatar) {
                         img.src = result.avatar;
+                        localStorage.setItem("cmis_user_avatar_cache", result.avatar);
                         return;
                     }
                 } catch (err) {
@@ -533,14 +536,12 @@
                 }
             }
 
-            img.src = getAvatarUrl(avatar);
+            const targetUrl = getAvatarUrl(avatar);
+            img.src = targetUrl;
+            if (targetUrl && !targetUrl.startsWith("data:image/svg")) {
+                localStorage.setItem("cmis_user_avatar_cache", targetUrl);
+            }
         }
-
-        const ADMIN_PASSWORD = "cmis&123";
-
-        let currentUser = null;
-        let isAvatarChanged = false;
-        let base64AvatarResized = ""; 
 
         document.addEventListener("DOMContentLoaded", () => {
             const sessionStr = localStorage.getItem("cmis_user_session");
@@ -556,7 +557,9 @@
                 userDisplay.innerText = `${currentUser.ten_nvien || currentUser.ten_ndung || currentUser.ma_nvien}`;
             }
 
-            setHeaderAvatar(currentUser.avatar, currentUser.ten_ndung || currentUser.ma_nvien);
+            // Load ảnh tức thì từ Cache (chỉ tải từ server nếu chưa có cache)
+            const hasCache = !!localStorage.getItem("cmis_user_avatar_cache");
+            setHeaderAvatar(currentUser.avatar, currentUser.ten_ndung || currentUser.ma_nvien, !hasCache);
 
             window.addEventListener('click', function(e) {
                 if (!e.target.matches('.menu-btn')) {
@@ -617,7 +620,8 @@
             
             if (currentUser) {
                 document.getElementById('editTenNvienInput').value = currentUser.ten_nvien || '';
-                document.getElementById('avatarPreview').src = getAvatarUrl(currentUser.avatar);
+                const cachedAvatar = localStorage.getItem("cmis_user_avatar_cache");
+                document.getElementById('avatarPreview').src = cachedAvatar || getAvatarUrl(currentUser.avatar);
             }
 
             document.getElementById('passModal').style.display = 'flex';
@@ -642,7 +646,9 @@
         }
 
         function confirmLogout() {
+            // Đăng xuất: Xóa toàn bộ session và cache avatar để buộc tải mới khi đăng nhập lại
             localStorage.removeItem("cmis_user_session");
+            localStorage.removeItem("cmis_user_avatar_cache");
             window.location.href = "login.html";
         }
 
@@ -670,7 +676,6 @@
             document.getElementById('alertModal').style.display = 'none';
         }
 
-        /* Nén ảnh thành chuẩn 300x300px Base64 (Đã nâng từ 50x50px lên 300x300px để không bị mờ) */
         function handleAvatarFileSelect(event) {
             const file = event.target.files[0];
             if (!file) return;
@@ -680,7 +685,6 @@
                 const img = new Image();
                 img.onload = function() {
                     const canvas = document.createElement("canvas");
-                    // Đổi kích thước Canvas lên 300x300px
                     canvas.width = 300;
                     canvas.height = 300;
                     const ctx = canvas.getContext("2d");
@@ -689,10 +693,8 @@
                     let sx = (img.width - minSide) / 2;
                     let sy = (img.height - minSide) / 2;
                     
-                    // Cắt ô vuông ở giữa và vẽ lên canvas 300x300
                     ctx.drawImage(img, sx, sy, minSide, minSide, 0, 0, 300, 300);
 
-                    // Tăng chất lượng hình ảnh nén JPEG lên 0.95 để giữ rõ đường nét
                     base64AvatarResized = canvas.toDataURL("image/jpeg", 0.95);
 
                     document.getElementById('avatarPreview').src = base64AvatarResized;
@@ -746,16 +748,23 @@
 
                 if (result.status === "success") {
                     currentUser.ten_nvien = newTenNvien;
-                    if (result.avatar_url) {
+                    
+                    // Nếu có đổi avatar -> Cập nhật bộ nhớ cache avatar tức thì bằng Base64 hoặc URL mới
+                    if (isAvatarChanged && base64AvatarResized) {
+                        localStorage.setItem("cmis_user_avatar_cache", base64AvatarResized);
+                        currentUser.avatar = base64AvatarResized;
+                    } else if (result.avatar_url) {
                         currentUser.avatar = result.avatar_url;
+                        localStorage.setItem("cmis_user_avatar_cache", result.avatar_url);
                     }
+                    
                     localStorage.setItem("cmis_user_session", JSON.stringify(currentUser));
 
                     document.getElementById("currentUserDisplay").innerText = `${newTenNvien}`;
-                    setHeaderAvatar(currentUser.avatar, currentUser.ten_ndung || currentUser.ma_nvien);
+                    setHeaderAvatar(currentUser.avatar, currentUser.ten_ndung || currentUser.ma_nvien, false);
 
                     closePassModal();
-                    showAlert("Cập nhật hồ sơ và tải ảnh lên Google Drive thành công!", "Thành Công", true);
+                    showAlert("Cập nhật hồ sơ thành công!", "Thành Công", true);
                 } else {
                     showAlert(result.message || "Thất bại. Vui lòng kiểm tra lại!", "Lỗi Thất Bại", false);
                 }
