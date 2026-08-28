@@ -305,11 +305,22 @@ function renderList(locations) {
   
   const fragment = document.createDocumentFragment();
   
-  locations.forEach(loc => {
-    const li = document.createElement("li");
-    li.onclick = function() {
-        this.classList.toggle("selected");
-    };
+locations.forEach(loc => {
+  const li = document.createElement("li");
+  li.onclick = function() {
+      // Kiểm tra xem thẻ hiện tại đã được chọn chưa
+      const isAlreadySelected = this.classList.contains("selected");
+
+      // Xóa lớp 'selected' ở tất cả các dòng khác trong danh sách
+      const allItems = listElement.querySelectorAll("li");
+      allItems.forEach(item => item.classList.remove("selected"));
+
+      // Nếu thẻ vừa bấm chưa chọn thì toggle hiển thị (mở ra)
+      // Nếu đã được chọn từ trước thì hành động click sẽ đóng nó lại
+      if (!isAlreadySelected) {
+          this.classList.add("selected");
+      }
+  };
 
     const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${loc.lat},${loc.lng}`;
     
