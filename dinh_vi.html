@@ -7,6 +7,10 @@
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
     
+    <!-- Tối ưu tốc độ load ảnh thumbnail từ Google Drive -->
+    <link rel="preconnect" href="https://drive.google.com">
+    <link rel="dns-prefetch" href="https://drive.google.com">
+    
     <title>Ghi nhớ vị trí công tơ của khách hàng</title>
     <style>
         html, body { height: 100%; margin: 0; padding: 0; font-family: Arial, sans-serif; background: #f4f4f9; color: #333; overflow: hidden; }
@@ -243,7 +247,7 @@
         </div>
     </div>
 
-    <script src="dinh_vi.js?v=1.0.9"></script>
+    <script src="dinh_vi.js?v=1.1.0"></script>
     <script>
         function openPageHome() {
             window.location.href = "login.html";
