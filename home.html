@@ -298,7 +298,12 @@
         <div class="fixed-header">
             <div class="header-top-row">
                 <div class="header-logo-container">
-                    <img id="userAvatarHeader" src="https://via.placeholder.com/50" alt="Avatar" class="user-avatar-header">
+                    <img id="userAvatarHeader" 
+                         src="https://via.placeholder.com/50" 
+                         alt="Avatar" 
+                         class="user-avatar-header"
+                         crossorigin="anonymous"
+                         onerror="this.onerror=null; this.src='https://via.placeholder.com/50';">
                     <div class="header-text-group">
                         <div class="company-title">ĐIỆN LỰC BẾN LỨC</div>
                         <div class="tac-gia" id="currentUserDisplay">👷 Đang tải...</div>
@@ -430,7 +435,7 @@
                 <label>Hình đại diện (Avatar 50x50px)</label>
                 <input type="file" id="avatarFileInput" accept="image/*" onchange="handleAvatarFileSelect(event)">
                 <div class="avatar-preview-container">
-                    <img id="avatarPreview" src="https://via.placeholder.com/50" class="avatar-preview" alt="Preview">
+                    <img id="avatarPreview" src="https://via.placeholder.com/50" class="avatar-preview" alt="Preview" onerror="this.onerror=null; this.src='https://via.placeholder.com/50';">
                     <span style="font-size: 11px; color: var(--text-sub);">Đã tối ưu hóa nén 50x50px</span>
                 </div>
             </div>
@@ -488,7 +493,11 @@
 
             const avatarHeader = document.getElementById("userAvatarHeader");
             if (avatarHeader) {
-                avatarHeader.src = currentUser.avatar || DEFAULT_AVATAR;
+                if (currentUser.avatar && currentUser.avatar.trim() !== "") {
+                    avatarHeader.src = currentUser.avatar.trim();
+                } else {
+                    avatarHeader.src = DEFAULT_AVATAR;
+                }
             }
 
             window.addEventListener('click', function(e) {
@@ -550,7 +559,7 @@
             
             if (currentUser) {
                 document.getElementById('editTenNvienInput').value = currentUser.ten_nvien || '';
-                const avatarSrc = currentUser.avatar || DEFAULT_AVATAR;
+                const avatarSrc = (currentUser.avatar && currentUser.avatar.trim() !== "") ? currentUser.avatar.trim() : DEFAULT_AVATAR;
                 document.getElementById('avatarPreview').src = avatarSrc;
             }
 
@@ -656,7 +665,6 @@
             btnSave.innerText = "Đang tải ảnh & lưu...";
 
             try {
-                // CHUYỂN DỮ LIỆU SANG URLSEARCHPARAMS VÀ ENCODE CHUỖI BASE64 ĐỂ TRÁNH LỖI DẤU +
                 const formData = new URLSearchParams();
                 formData.append("action", "CHANGE_PASSWORD");
                 formData.append("ten_ndung", username);
@@ -664,7 +672,7 @@
                 formData.append("mat_khau_moi", newPass || oldPass);
                 formData.append("ten_nvien", newTenNvien);
                 formData.append("is_avatar_changed", isAvatarChanged ? "true" : "false");
-                formData.append("avatar_base64", encodeURIComponent(base64AvatarResized));
+                formData.append("avatar_base64", base64AvatarResized);
 
                 const response = await fetch(API_URL, {
                     method: "POST",
