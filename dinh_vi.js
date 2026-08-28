@@ -589,7 +589,7 @@ function checkAndOpenEditModal(id) {
 
   // Kiểm tra thời gian nếu quá 1 giờ thì chặn sửa
   if (isOverOneHour(loc.time)) {
-    showToast("Thông tin định vị đã lưu quá 1 giờ, không thể sửa!");
+    showToast("Thông tin lưu quá 1 giờ, không thể sửa.");
     return;
   }
 
@@ -607,7 +607,7 @@ function checkAndOpenDeleteModal(id) {
 
   // Kiểm tra thời gian nếu quá 1 giờ thì chặn xóa
   if (isOverOneHour(loc.time)) {
-    showToast("Thông tin định vị đã lưu quá 1 giờ, không thể xóa!");
+    showToast("Thông tin lưu quá 1 giờ, không thể xóa.");
     return;
   }
 
