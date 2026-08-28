@@ -14,8 +14,11 @@ document.addEventListener("DOMContentLoaded", () => {
   currentUser = JSON.parse(sessionStr);
   const userDisplay = document.getElementById("currentUserDisplay");
   if (userDisplay) {
-    userDisplay.innerText = `👷 ${currentUser.ten_nvien}`;
+    userDisplay.innerText = `👷 ${currentUser.ten_nvien || currentUser.ten_ndung || ""}`;
   }
+
+  // Lấy đúng avatar theo ten_ndung từ sheet nhan_vien qua API định vị.
+  loadCurrentUserAvatar();
 
   restoreLocalSettings(); 
   loadInitData(); 
@@ -42,6 +45,69 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 });
+
+
+function normalizeAvatarUrl(url) {
+  if (!url) return "https://via.placeholder.com/40";
+  url = String(url).trim();
+  if (!url) return "https://via.placeholder.com/40";
+
+  // Các dạng link Google Drive thường gặp.
+  let m = url.match(/drive\.google\.com\/file\/d\/([^/?#]+)/i);
+  if (m && m[1]) return "https://drive.google.com/thumbnail?id=" + m[1] + "&sz=w100";
+
+  m = url.match(/[?&]id=([^&#]+)/i);
+  if (url.includes("drive.google.com") && m && m[1]) {
+    return "https://drive.google.com/thumbnail?id=" + m[1] + "&sz=w100";
+  }
+
+  m = url.match(/lh3\.googleusercontent\.com\/d\/([^/?#]+)/i);
+  if (m && m[1]) return "https://drive.google.com/thumbnail?id=" + m[1] + "&sz=w100";
+
+  return url;
+}
+
+function setCurrentUserAvatar(avatar) {
+  const img = document.getElementById("userAvatarHeader");
+  if (!img) return;
+  img.onerror = function() {
+    this.onerror = null;
+    this.src = "https://via.placeholder.com/40";
+  };
+  img.src = normalizeAvatarUrl(avatar);
+}
+
+function loadCurrentUserAvatar() {
+  if (!currentUser || !currentUser.ten_ndung) {
+    setCurrentUserAvatar(currentUser && currentUser.avatar);
+    return;
+  }
+
+  fetch(API_URL, {
+    method: "POST",
+    headers: { "Content-Type": "text/plain;charset=utf-8" },
+    redirect: "follow",
+    body: JSON.stringify({
+      action: "GET_USER_AVATAR",
+      ten_ndung: currentUser.ten_ndung
+    })
+  })
+  .then(res => res.text())
+  .then(text => JSON.parse(text))
+  .then(res => {
+    if (res.status === "success") {
+      currentUser.avatar = res.avatar || "";
+      localStorage.setItem("cmis_user_session", JSON.stringify(currentUser));
+      setCurrentUserAvatar(res.avatar);
+    } else {
+      setCurrentUserAvatar(currentUser.avatar);
+    }
+  })
+  .catch(err => {
+    console.error("Không lấy được avatar nhân viên:", err);
+    setCurrentUserAvatar(currentUser.avatar);
+  });
+}
 
 function toggleMenu() {
   const dropdown = document.getElementById("menuDropdown");
