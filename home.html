@@ -509,7 +509,7 @@
             return url;
         }
 
-        function setHeaderAvatar(avatar) {
+        async function setHeaderAvatar(avatar, username) {
             const img = document.getElementById("userAvatarHeader");
             if (!img) return;
 
@@ -518,9 +518,33 @@
                 this.src = DEFAULT_AVATAR;
             };
 
+            // Lấy đúng link trong cột avatar thông qua server, rồi đọc file Drive
+            // thành Base64. Cách này không phụ thuộc link Drive có hiển thị trực tiếp hay không.
+            if (username) {
+                try {
+                    const formData = new URLSearchParams();
+                    formData.append("action", "GET_AVATAR");
+                    formData.append("ten_ndung", username);
+
+                    const response = await fetch(API_URL, {
+                        method: "POST",
+                        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+                        body: formData.toString()
+                    });
+                    const result = await response.json();
+
+                    if (result.status === "success" && result.avatar) {
+                        img.src = result.avatar;
+                        return;
+                    }
+                } catch (err) {
+                    console.warn("Không lấy được avatar từ server:", err);
+                }
+            }
+
+            // Fallback: thử URL đang có trong localStorage.
             img.src = getAvatarUrl(avatar);
         }
-
 
         const ADMIN_PASSWORD = "cmis&123";
 
@@ -542,7 +566,7 @@
                 userDisplay.innerText = `👷 ${currentUser.ten_nvien || currentUser.ten_ndung || currentUser.ma_nvien}`;
             }
 
-            setHeaderAvatar(currentUser.avatar);
+            setHeaderAvatar(currentUser.avatar, currentUser.ten_ndung || currentUser.ma_nvien);
 
             window.addEventListener('click', function(e) {
                 if (!e.target.matches('.menu-btn')) {
@@ -735,7 +759,7 @@
                     localStorage.setItem("cmis_user_session", JSON.stringify(currentUser));
 
                     document.getElementById("currentUserDisplay").innerText = `👷 ${newTenNvien}`;
-                    setHeaderAvatar(currentUser.avatar);
+                    setHeaderAvatar(currentUser.avatar, currentUser.ten_ndung || currentUser.ma_nvien);
 
                     closePassModal();
                     showAlert("Cập nhật hồ sơ và tải ảnh lên Google Drive thành công!", "Thành Công", true);
