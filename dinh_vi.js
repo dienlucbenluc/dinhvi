@@ -486,7 +486,7 @@ function getDistinctLocatedCustomerCount() {
 function updateGetLocationButtonText() {
   const btn = document.getElementById("btnGetLocation");
   if (!btn || isExistingLocation) return;
-  btn.innerHTML = `📍 Lấy định vị công tơ (Tổng KH đã lấy: ${getDistinctLocatedCustomerCount()})`;
+  btn.innerHTML = `📍 Lấy mới định vị công tơ (Đã lấy: ${getDistinctLocatedCustomerCount()})`;
 }
 
 function resetGetLocationButton() {
