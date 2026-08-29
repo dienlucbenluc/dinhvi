@@ -476,7 +476,7 @@ function resetGetLocationButton() {
   const btn = document.querySelector(".btn-get");
   if (!btn) return;
   btn.classList.remove("btn-reget");
-  btn.innerHTML = "📍 Lấy tọa độ vị trí treo công tơ";
+  btn.innerHTML = "📍 Lấy mới tọa độ vị trí treo công tơ";
   isExistingLocation = false;
   existingLocationInfo = null;
 }
@@ -485,7 +485,7 @@ function setRegetLocationButton(info) {
   const btn = document.querySelector(".btn-get");
   if (!btn) return;
   btn.classList.add("btn-reget");
-  btn.innerHTML = "📍 Lấy lại tọa độ công tơ";
+  btn.innerHTML = "📍 Lấy lại tọa độ vị trí treo công tơ";
   isExistingLocation = true;
   existingLocationInfo = info || null;
 }
@@ -553,7 +553,7 @@ function getLocation() {
   .then(res => {
     if (res.status === "exists") {
       setRegetLocationButton(res);
-      showToast(`⚠️ Mã KH ${res.ma_khang} đã có tọa độ. Nút đã chuyển sang "Lấy lại tọa độ công tơ" màu đỏ.`);
+      showToast(`⚠️ Mã KH ${res.ma_khang} đã có tọa độ, nếu bạn muốn lấy lại tọa độ mới thì bấm lấy lại bên dưới.`);
       return;
     }
 
