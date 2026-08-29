@@ -255,6 +255,68 @@ function removeAccents(str) {
     .replace(/đ/g, "d").replace(/Đ/g, "D");
 }
 
+function searchLocations() {
+  filterLocations();
+}
+
+function filterLocations() {
+  const searchInput = document.getElementById("searchInput");
+  const rawQuery = searchInput ? searchInput.value.trim() : "";
+  
+  // Luôn sắp xếp toàn bộ danh sách theo thời gian nhập gần nhất
+  let sortedLocations = [...allLocations].sort((a, b) => parseTimeString(b.time) - parseTimeString(a.time));
+
+  if (!rawQuery) {
+    // Nếu không có từ khóa tìm kiếm, lấy 50 khách hàng có thời gian nhập gần nhất
+    renderList(sortedLocations.slice(0, 50));
+    return;
+  }
+
+  const query = removeAccents(rawQuery.toLowerCase());
+
+  // Lọc tất cả khách hàng khớp từ khóa trong bảng dinh_vi
+  const matchedLocations = sortedLocations.filter(loc => {
+    const targetText = String(loc.ma_khang || "") + " " + 
+                       String(loc.ten_khang || "") + " " + 
+                       String(loc.so_cto || "") + " " +
+                       String(loc.ten_nvien || "") + " " +
+                       String(loc.ten_cviec || "") + " " +
+                       String(loc.note || "");
+    const normalizedText = removeAccents(targetText.toLowerCase());
+    return normalizedText.includes(query);
+  });
+
+  // Tính điểm ưu tiên độ khớp gần đúng nhất
+  function getMatchScore(loc) {
+    const mk = removeAccents(String(loc.ma_khang || "").toLowerCase());
+    const tk = removeAccents(String(loc.ten_khang || "").toLowerCase());
+    const sc = removeAccents(String(loc.so_cto || "").toLowerCase());
+
+    if (mk === query || sc === query) return 1;
+    if (mk.startsWith(query) || sc.startsWith(query) || tk.startsWith(query)) return 2;
+    
+    const words = tk.split(/\s+/);
+    if (words.some(w => w.startsWith(query))) return 3;
+
+    return 4;
+  }
+
+  // Đưa khách hàng khớp gần đúng nhất lên trên cùng
+  matchedLocations.sort((a, b) => {
+    const scoreA = getMatchScore(a);
+    const scoreB = getMatchScore(b);
+
+    if (scoreA !== scoreB) {
+      return scoreA - scoreB;
+    }
+
+    return parseTimeString(b.time) - parseTimeString(a.time);
+  });
+
+  // Lấy 50 khách hàng phù hợp nhất
+  renderList(matchedLocations.slice(0, 50));
+}
+
 function renderList(locations) {
   const listElement = document.getElementById("locationList");
   const countElement = document.getElementById("locationCount");
