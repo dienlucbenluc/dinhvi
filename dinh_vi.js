@@ -490,6 +490,21 @@ function setRegetLocationButton(info) {
   existingLocationInfo = info || null;
 }
 
+function openRegetModal() {
+  const modal = document.getElementById("regetModal");
+  if (modal) modal.style.display = "flex";
+}
+
+function closeRegetModal() {
+  const modal = document.getElementById("regetModal");
+  if (modal) modal.style.display = "none";
+}
+
+function confirmRegetLocation() {
+  closeRegetModal();
+  getGPSAndSave(true);
+}
+
 function getLocation() {
   const searchType = document.getElementById("loai_tim").value;
   const searchValueInput = document.getElementById("locName").value.trim();
@@ -516,25 +531,12 @@ function getLocation() {
     return;
   }
 
-  // Khách hàng đã có tọa độ: bấm lại nút đỏ sẽ hỏi xác nhận.
-if (isExistingLocation) {
+  // Khách hàng đã có tọa độ: mở Modal xác nhận
+  if (isExistingLocation) {
     openRegetModal();
     return;
   }
 
-  function openRegetModal() {
-  document.getElementById("regetModal").style.display = "flex";
-}
-
-function closeRegetModal() {
-  document.getElementById("regetModal").style.display = "none";
-}
-
-function confirmRegetLocation() {
-  closeRegetModal();
-  getGPSAndSave(true);
-}
-  
   showToast("⏳ Đang kiểm tra bảng định vị...", true);
 
   fetch(API_URL, {
@@ -566,26 +568,31 @@ function confirmRegetLocation() {
     console.error(err);
     showToast("Lỗi kết nối máy chủ khi kiểm tra!");
   });
+}
 
-  function getGPSAndSave(isRelocate) {
-    showToast("⏳ Đang lấy tọa độ GPS...", true);
+function getGPSAndSave(isRelocate) {
+  const searchType = document.getElementById("loai_tim").value;
+  const searchValueInput = document.getElementById("locName").value.trim();
+  const jobTitle = document.getElementById("jobSelect").value;
+  const noteContent = document.getElementById("locNote").value.trim();
 
-    if (!navigator.geolocation) {
-      showToast("Trình duyệt không hỗ trợ định vị GPS");
-      return;
-    }
+  showToast("⏳ Đang lấy tọa độ GPS...", true);
 
-    navigator.geolocation.getCurrentPosition(
-      position => {
-        saveToServer(position.coords.latitude, position.coords.longitude, isRelocate);
-      },
-      error => {
-        console.error(error);
-        showToast("Vui lòng bật định vị GPS trên thiết bị.");
-      },
-      { enableHighAccuracy: true, maximumAge: 0, timeout: 10000 }
-    );
+  if (!navigator.geolocation) {
+    showToast("Trình duyệt không hỗ trợ định vị GPS");
+    return;
   }
+
+  navigator.geolocation.getCurrentPosition(
+    position => {
+      saveToServer(position.coords.latitude, position.coords.longitude, isRelocate);
+    },
+    error => {
+      console.error(error);
+      showToast("Vui lòng bật định vị GPS trên thiết bị.");
+    },
+    { enableHighAccuracy: true, maximumAge: 0, timeout: 10000 }
+  );
 
   function saveToServer(lat, lng, isRelocate) {
     showToast("⏳ Đang xử lý lưu dữ liệu...", true);
