@@ -41,26 +41,26 @@
         textarea { height: 40px; resize: none; font-family: inherit; }
         button { width: 100%; padding: 12px; margin: 5px 0; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; }
         .btn-get { background: #28a745; color: white; }
-        .btn-reget { background: #f8d7da !important; color: #721c24 !important; border: 1px solid #f5c6cb !important; }
+        .btn-get.btn-reget { background: #f8d7da !important; color: #721c24 !important; border: 1px solid #f5c6cb !important; }
         .search-box { margin-top: 0px; }
         .search-container {
-            display: flex;
-            gap: 6px;
-            margin-top: 0px;
+        display: flex;
+        gap: 6px;
+        margin-top: 0px;
         }
         
-        .btn-search {
-            background: #fff;
-            color: white;
-            border: 2px solid #E8E8E8;
-            padding: 0 16px;
-            border-radius: 8px;
-            font-weight: bold;
-            cursor: pointer;
-            white-space: nowrap;
-            width: auto;
-            margin: 0;
-        }
+       .btn-search {
+        background: #fff;
+        color: white;
+        border: 2px solid #E8E8E8;
+        padding: 0 16px;
+        border-radius: 8px;
+        font-weight: bold;
+        cursor: pointer;
+        white-space: nowrap;
+        width: auto;
+        margin: 0;
+    }
         .search-input { border: 2px solid #007bff; background: #fff; font-size: 13px; font-style: italic;}
         .list-title { margin-top: 5px; margin-bottom: 5px; font-size: 16px; font-weight: bold; }
         .scrollable-content { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; padding-right: 2px; position: relative; }
@@ -112,6 +112,7 @@
             <div class="header-top-row">
                 <div class="header-logo-container">
                     <img id="userAvatarHeader" 
+
                         src="data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='50' height='50' viewBox='0 0 50 50'%3E%3Crect width='50' height='50' rx='25' fill='%23eef2f5'/%3E%3Ccircle cx='25' cy='19' r='8' fill='%23909aa8'/%3E%3Cpath d='M11 43c1.8-8 7.1-12 14-12s12.2 4 14 12' fill='%23909aa8'/%3E%3C/svg%3E"
                         alt="Avatar" class="main-logo" onerror="this.onerror=null; this.src='https://via.placeholder.com/40';">
                     <div class="header-text-group">
@@ -146,30 +147,18 @@
                 <textarea id="locNote" placeholder="Nhập ghi chú thêm nếu có..."></textarea>
             </div>
             
-            <button id="btnGetLocation" class="btn-get" onclick="getLocation()">📍 Lấy tọa độ vị trí treo công tơ</button>
+            <button class="btn-get" id="btnGetLocation" onclick="getLocation()">📍 Lấy tọa độ vị trí treo công tơ</button>
 
-            <div class="search-box search-container">
-                <input type="text" id="searchInput" class="search-input" placeholder="Nhập MKH, Số CT, NV, công việc, ghi chú...">
-                <button type="button" id="btnSearch" class="btn-search" onclick="searchLocations()">🔍</button>
-            </div>
+            <!--div class="list-title">Danh sách vị trí công tơ: <span id="locationCount" style="color: #007bff;">(0)</span></div-->
+
+<div class="search-box search-container">
+    <input type="text" id="searchInput" class="search-input" placeholder="Nhập MKH, Số CT, NV, công việc, ghi chú...">
+    <button type="button" id="btnSearch" class="btn-search" onclick="searchLocations()">🔍</button>
+</div>
         </div>
 
         <div class="scrollable-content">
             <ul id="locationList"></ul>
-        </div>
-    </div>
-
-    <!-- Modal Xác nhận Lấy lại Tọa độ do Khách hàng tồn tại -->
-    <div id="regetLocationModal" class="modal-overlay">
-        <div class="modal-box">
-            <div class="modal-title" style="color: #dc3545;">Xác nhận lấy lại tọa độ</div>
-            <div class="modal-message" style="margin-bottom: 15px; font-size: 14px; color: #333; line-height: 1.4;">
-                Bạn có chắc chắn muốn lấy lại tọa độ do khách hàng tồn tại có tọa độ không chính xác không?
-            </div>
-            <div class="modal-buttons">
-                <button class="btn-modal-cancel" onclick="closeRegetLocationModal()">Hủy</button>
-                <button class="btn-modal-confirm" onclick="confirmRegetLocation()" style="background: #dc3545;">Xác nhận</button>
-            </div>
         </div>
     </div>
 
@@ -211,6 +200,20 @@
             <div class="modal-buttons">
                 <button class="btn-modal-cancel" onclick="closeConfirmModal()">Hủy</button>
                 <button class="btn-modal-confirm" id="btnConfirmDelete" onclick="deleteLocation()" style="background: #dc3545;">Xóa</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Xác nhận Lấy lại tọa độ -->
+    <div id="regetLocationModal" class="modal-overlay">
+        <div class="modal-box">
+            <div class="modal-title" style="color: #dc3545;">Xác nhận lấy lại tọa độ</div>
+            <div class="modal-message" style="margin-bottom: 15px; font-size: 14px; color: #333; text-align: left; line-height: 1.4;">
+                Bạn có muốn chắc chắn lấy lại tọa độ do khách hàng tồn tại có tọa độ không chính xác không?
+            </div>
+            <div class="modal-buttons">
+                <button class="btn-modal-cancel" onclick="closeRegetModal()">Hủy</button>
+                <button class="btn-modal-confirm" onclick="confirmRegetLocation()" style="background: #dc3545;">Xác nhận</button>
             </div>
         </div>
     </div>
@@ -277,6 +280,67 @@
         </div>
     </div>
 
-    <script src="dinh_vi.js?v=1.1.3"></script>
+    <script src="dinh_vi.js?v=1.1.4"></script>
+    <script>
+        function openPageHome() {
+            window.location.href = "login.html";
+        }
+
+        function closeDevModal() {
+            const devModal = document.getElementById('devModal');
+            if (devModal) devModal.style.display = 'none';
+        }
+
+        function handleLogout() {
+            const menu = document.getElementById('menuDropdown');
+            if (menu) menu.classList.remove('show');
+            
+            const logoutModal = document.getElementById('logoutModal');
+            if (logoutModal) logoutModal.style.display = 'flex';
+        }
+
+        function closeLogoutModal() {
+            const logoutModal = document.getElementById('logoutModal');
+            if (logoutModal) logoutModal.style.display = 'none';
+        }
+
+        function confirmLogout() {
+            localStorage.removeItem("cmis_user_session");
+            window.location.href = "login.html";
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const loaiTimSelect = document.getElementById('loai_tim');
+            const locNameInput = document.getElementById('locName');
+
+            function updateInputState(selectEl, inputEl) {
+                if (selectEl.value === 'MKH') { 
+                    inputEl.value = 'PB060600'; 
+                    inputEl.placeholder = '';
+                } else { 
+                    inputEl.value = ''; 
+                    inputEl.placeholder = 'Nhập 8 số cuối'; 
+                }
+            }
+
+            if (loaiTimSelect && locNameInput) {
+                loaiTimSelect.addEventListener('change', function() {
+                    updateInputState(this, locNameInput);
+                });
+                
+                setTimeout(() => {
+                    updateInputState(loaiTimSelect, locNameInput);
+                }, 150);
+            }
+
+            const editLoaiTimSelect = document.getElementById('editLoaiTim');
+            const editNameInput = document.getElementById('editNameInput');
+            if (editLoaiTimSelect && editNameInput) {
+                editLoaiTimSelect.addEventListener('change', function() {
+                    updateInputState(this, editNameInput);
+                });
+            }
+        });
+    </script>
 </body>
 </html>
