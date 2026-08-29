@@ -174,6 +174,7 @@ function applyInitData(res) {
   if (savedJob) document.getElementById("jobSelect").value = savedJob;
 
   allLocations = res.locations || [];
+  updateGetLocationButtonText();
   filterLocations();
 }
 
@@ -472,13 +473,29 @@ function showToast(msg, keepOpen = false) {
   }
 }
 
+function getDistinctLocatedCustomerCount() {
+  const distinctMaKhang = new Set();
+  allLocations.forEach(loc => {
+    if (String(loc.trang_thai) === "1" && loc.ma_khang !== undefined && loc.ma_khang !== null && String(loc.ma_khang).trim() !== "") {
+      distinctMaKhang.add(String(loc.ma_khang).trim());
+    }
+  });
+  return distinctMaKhang.size;
+}
+
+function updateGetLocationButtonText() {
+  const btn = document.getElementById("btnGetLocation");
+  if (!btn || isExistingLocation) return;
+  btn.innerHTML = `📍 Lấy định vị công tơ (Tổng KH đã lấy: ${getDistinctLocatedCustomerCount()})`;
+}
+
 function resetGetLocationButton() {
   const btn = document.querySelector(".btn-get");
   if (!btn) return;
   btn.classList.remove("btn-reget");
-  btn.innerHTML = "📍 Lấy mới tọa độ vị trí treo công tơ";
   isExistingLocation = false;
   existingLocationInfo = null;
+  updateGetLocationButtonText();
 }
 
 function setRegetLocationButton(info) {
@@ -553,6 +570,14 @@ function getLocation() {
   .then(res => {
     if (res.status === "exists") {
       setRegetLocationButton(res);
+
+      // Chỉ hiện đúng 1 khách hàng đang tồn tại dưới danh sách.
+      const existingCustomer = allLocations.find(loc =>
+        String(loc.ma_khang || "").trim() === String(res.ma_khang || "").trim() &&
+        String(loc.trang_thai) === "1"
+      );
+      if (existingCustomer) renderList([existingCustomer]);
+
       showToast(`⚠️ Mã KH ${res.ma_khang} đã có tọa độ, nếu bạn muốn lấy lại tọa độ mới thì bấm lấy lại bên dưới.`);
       return;
     }
@@ -637,6 +662,7 @@ function getGPSAndSave(isRelocate) {
         allLocations.unshift(locData);
 
         syncLocalCache();
+        updateGetLocationButtonText();
         filterLocations();
 
         showToast(
