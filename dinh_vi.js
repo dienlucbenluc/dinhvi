@@ -7,6 +7,7 @@ let currentUser = null;
 // Trạng thái khách hàng đã có định vị: lần bấm đầu kiểm tra, lần bấm tiếp theo cho phép lấy lại.
 let isExistingLocation = false;
 let existingLocationInfo = null;
+let relocateConfirmed = false;
 
 document.addEventListener("DOMContentLoaded", () => {
   const sessionStr = localStorage.getItem("cmis_user_session");
@@ -485,7 +486,7 @@ function setRegetLocationButton(info) {
   const btn = document.querySelector(".btn-get");
   if (!btn) return;
   btn.classList.add("btn-reget");
-  btn.innerHTML = "📍 Lấy lại tọa độ vị trí công tơ";
+  btn.innerHTML = "📍 Lấy lại tọa độ công tơ";
   isExistingLocation = true;
   existingLocationInfo = info || null;
 }
@@ -516,13 +517,14 @@ function getLocation() {
     return;
   }
 
-  // Khách hàng đã có tọa độ: bấm lại nút đỏ sẽ hỏi xác nhận.
+  // Khách hàng đã có tọa độ: bấm lại nút đỏ sẽ hỏi xác nhận bằng modal chuyên nghiệp.
   if (isExistingLocation) {
-    const confirmed = window.confirm(
-      "Bạn có chắc chắn lấy lại tọa độ do khách hàng cũ có tọa độ không chính xác không?"
-    );
-    if (!confirmed) return;
+    if (!relocateConfirmed) {
+      document.getElementById("regetConfirmModal").style.display = "flex";
+      return;
+    }
 
+    relocateConfirmed = false;
     getGPSAndSave(true);
     return;
   }
@@ -543,7 +545,7 @@ function getLocation() {
   .then(res => {
     if (res.status === "exists") {
       setRegetLocationButton(res);
-      showToast(`⚠️ Mã KH ${res.ma_khang} đã có tọa độ, Nếu xác nhận tọa độ cũ không đúng thì bấm lấy lại tọa độ.`);
+      showToast(`⚠️ Mã KH ${res.ma_khang} đã có tọa độ. Nút đã chuyển sang "Lấy lại tọa độ công tơ" màu đỏ.`);
       return;
     }
 
@@ -643,6 +645,19 @@ function getLocation() {
       loadInitData();
     });
   }
+}
+
+function closeRelocateConfirmModal() {
+  const modal = document.getElementById("regetConfirmModal");
+  if (modal) modal.style.display = "none";
+  relocateConfirmed = false;
+}
+
+function confirmRelocateLocation() {
+  const modal = document.getElementById("regetConfirmModal");
+  if (modal) modal.style.display = "none";
+  relocateConfirmed = true;
+  getLocation();
 }
 
 function checkAndOpenEditModal(id) {
@@ -855,19 +870,4 @@ function saveNewPassword() {
   .then(res => res.text())
   .then(text => JSON.parse(text))
   .then(res => {
-    if (res.status === "success") {
-      showToast("Đổi mật khẩu thành công! Vui lòng đăng nhập lại.");
-      closePassModal();
-      setTimeout(() => {
-        localStorage.removeItem("cmis_user_session");
-        window.location.href = "login.html";
-      }, 1500);
-    } else {
-      showToast("Lỗi: " + res.message);
-    }
-  })
-  .catch(err => {
-    showToast("Lỗi kết nối máy chủ!");
-    console.error(err);
-  });
-}
+    if (res.statu
