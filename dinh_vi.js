@@ -32,7 +32,6 @@ document.addEventListener("DOMContentLoaded", () => {
   if(searchInput) {
     searchInput.addEventListener("input", () => {
       saveLocalSettings();
-      filterLocations();
     });
   }
 
@@ -156,7 +155,6 @@ function applyInitData(res) {
   if (savedJob) document.getElementById("jobSelect").value = savedJob;
 
   allLocations = res.locations || [];
-  filterLocations();
 }
 
 function syncLocalCache() {
@@ -247,56 +245,6 @@ function removeAccents(str) {
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
     .replace(/đ/g, "d").replace(/Đ/g, "D");
-}
-
-function filterLocations() {
-  const searchInput = document.getElementById("searchInput");
-  const rawQuery = searchInput ? searchInput.value.trim() : "";
-  
-  let locationsToDisplay = [...allLocations];
-
-  if (!rawQuery) {
-    locationsToDisplay.sort((a, b) => parseTimeString(b.time) - parseTimeString(a.time));
-    renderList(locationsToDisplay);
-    return;
-  }
-
-  const query = removeAccents(rawQuery.toLowerCase());
-
-  const matchedLocations = locationsToDisplay.filter(loc => {
-    const targetText = String(loc.ma_khang || "") + " " + 
-                       String(loc.ten_khang || "") + " " + 
-                       String(loc.so_cto || "");
-    const normalizedText = removeAccents(targetText.toLowerCase());
-    return normalizedText.includes(query);
-  });
-
-  function getMatchScore(loc) {
-    const mk = removeAccents(String(loc.ma_khang || "").toLowerCase());
-    const tk = removeAccents(String(loc.ten_khang || "").toLowerCase());
-    const sc = removeAccents(String(loc.so_cto || "").toLowerCase());
-
-    if (mk === query || sc === query) return 1;
-    if (mk.startsWith(query) || sc.startsWith(query) || tk.startsWith(query)) return 2;
-    
-    const words = tk.split(/\s+/);
-    if (words.some(w => w.startsWith(query))) return 3;
-
-    return 4;
-  }
-
-  matchedLocations.sort((a, b) => {
-    const scoreA = getMatchScore(a);
-    const scoreB = getMatchScore(b);
-
-    if (scoreA !== scoreB) {
-      return scoreA - scoreB;
-    }
-
-    return parseTimeString(b.time) - parseTimeString(a.time);
-  });
-  
-  renderList(matchedLocations);
 }
 
 function renderList(locations) {
@@ -487,7 +435,6 @@ function getLocation() {
       if (searchInput) {
         searchInput.value = res.ma_khang;
         saveLocalSettings();
-        filterLocations();
       }
       return;
     }
@@ -561,7 +508,6 @@ function getLocation() {
         allLocations.unshift(locData);
         
         syncLocalCache();
-        filterLocations();
 
         showToast(`Đã lưu vị trí công tơ: \n${res.ma_khang} - ${res.ten_khang}`);
         document.getElementById("locName").value = searchType === 'MKH' ? 'PB060600' : '';
@@ -673,7 +619,6 @@ function saveEditLocation() {
           }
         }
         syncLocalCache();
-        filterLocations();
         closeEditModal();
         showToast("Cập nhật thành công!");
       } else {
@@ -739,7 +684,6 @@ function deleteLocation() {
     if (res.status === "success") {
       allLocations = allLocations.filter(loc => String(loc.id) !== String(currentId));
       syncLocalCache();
-      filterLocations();
       closeConfirmModal();
       showToast("Xóa khách hàng thành công!");
     } else {
