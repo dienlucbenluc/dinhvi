@@ -260,7 +260,9 @@ function renderList(locations) {
   const countElement = document.getElementById("locationCount");
   
   if(!listElement) return;
-  if(countElement) countElement.innerText = `(${locations.length}/${allLocations.length})`;
+  
+  // Yêu cầu 2: locationCount chỉ hiển thị tổng số khách hàng trong bảng dinh_vi (allLocations.length)
+  if(countElement) countElement.innerText = `(${allLocations.length})`;
   
   listElement.innerHTML = "";
   if (locations.length === 0) {
@@ -270,10 +272,10 @@ function renderList(locations) {
   
   const fragment = document.createDocumentFragment();
   
+  // Yêu cầu 3: Hiển thị danh sách khách hàng truyền vào (đã giới hạn tối đa 50 item ở filterLocations)
   locations.forEach(loc => {
     const li = document.createElement("li");
     
-    // Đóng các thẻ khác khi chọn dòng mới
     li.onclick = function() {
         const isAlreadySelected = this.classList.contains("selected");
         
