@@ -519,7 +519,7 @@ function getLocation() {
   // Khách hàng đã có tọa độ: bấm lại nút đỏ sẽ hỏi xác nhận.
   if (isExistingLocation) {
     const confirmed = window.confirm(
-      "Bạn có muốn chắc chắn lấy lại tọa độ do khách hàng tồn tại có tọa độ không chính xác không?"
+      "Bạn có chắc chắn lấy lại tọa độ do khách hàng cũ có tọa độ không chính xác không?"
     );
     if (!confirmed) return;
 
@@ -543,7 +543,7 @@ function getLocation() {
   .then(res => {
     if (res.status === "exists") {
       setRegetLocationButton(res);
-      showToast(`⚠️ Mã KH ${res.ma_khang} đã có tọa độ. Nút đã chuyển sang "Lấy lại tọa độ công tơ" màu đỏ.`);
+      showToast(`⚠️ Mã KH ${res.ma_khang} đã có tọa độ, Nếu xác nhận tọa độ cũ không đúng thì bấm lấy lại tọa độ.`);
       return;
     }
 
