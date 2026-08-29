@@ -67,7 +67,8 @@
             gap: 12px; 
         }
 
-.user-avatar-header { 
+        /* Tinh chỉnh avatar header: dùng contain và padding để hiển thị trọn vẹn hình ảnh */
+        .user-avatar-header { 
             width: 50px; 
             height: 50px; 
             object-fit: contain; 
@@ -278,10 +279,11 @@
             width: 52px;
             height: 52px;
             border-radius: 50%;
-            object-fit: cover;
+            object-fit: contain;
+            padding: 2px;
             border: 2px solid var(--primary-color);
             flex-shrink: 0;
-            background: #f0f4ff;
+            background: #ffffff;
         }
 
         .avatar-input-group {
