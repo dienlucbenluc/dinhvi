@@ -33,7 +33,15 @@ document.addEventListener("DOMContentLoaded", () => {
     searchInput.addEventListener("input", () => {
       saveLocalSettings();
     });
+
+    searchInput.addEventListener("keypress", (e) => {
+      if (e.key === "Enter") {
+        searchLocations();
+      }
+    });
   }
+
+  
 
   ['loai_tim', 'jobSelect'].forEach(id => {
     const el = document.getElementById(id);
