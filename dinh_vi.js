@@ -517,16 +517,24 @@ function getLocation() {
   }
 
   // Khách hàng đã có tọa độ: bấm lại nút đỏ sẽ hỏi xác nhận.
-  if (isExistingLocation) {
-    const confirmed = window.confirm(
-      "Bạn có muốn chắc chắn lấy lại tọa độ do khách hàng tồn tại có tọa độ không chính xác không?"
-    );
-    if (!confirmed) return;
-
-    getGPSAndSave(true);
+if (isExistingLocation) {
+    openRegetModal();
     return;
   }
 
+  function openRegetModal() {
+  document.getElementById("regetModal").style.display = "flex";
+}
+
+function closeRegetModal() {
+  document.getElementById("regetModal").style.display = "none";
+}
+
+function confirmRegetLocation() {
+  closeRegetModal();
+  getGPSAndSave(true);
+}
+  
   showToast("⏳ Đang kiểm tra bảng định vị...", true);
 
   fetch(API_URL, {
