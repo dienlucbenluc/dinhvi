@@ -7,6 +7,7 @@
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
     
+    <!-- Tối ưu tốc độ load ảnh thumbnail từ Google Drive -->
     <link rel="preconnect" href="https://drive.google.com">
     <link rel="dns-prefetch" href="https://drive.google.com">
     
@@ -40,12 +41,7 @@
         textarea { height: 40px; resize: none; font-family: inherit; }
         button { width: 100%; padding: 12px; margin: 5px 0; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; }
         .btn-get { background: #28a745; color: white; }
-        
-        /* Cải tiến giao diện thanh tìm kiếm */
-        .search-box { margin-top: 8px; display: flex; gap: 6px; align-items: center; }
-        .search-input { flex: 1; border: 2px solid #007bff; background: #fff; font-size: 14px; padding: 8px 12px; }
-        .btn-search-icon { width: 42px; height: 42px; background: #000000; color: white; border: none; border-radius: 8px; font-size: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0; flex-shrink: 0; }
-        .btn-search-icon:active { background: #000000; }
+        .search-input { margin-top: 8px; border: 2px solid #007bff; background: #fff; font-size: 14px; }
 
         .list-title-row { display: flex; justify-content: space-between; align-items: center; margin-top: 8px; margin-bottom: 6px; }
         .list-title { font-size: 15px; font-weight: bold; margin: 0; }
@@ -82,6 +78,11 @@
         .toast-popup { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: rgba(0, 0, 0, 0.85); color: #fff; padding: 10px 18px; border-radius: 20px; font-size: 14px; font-weight: bold; display: none; z-index: 20000; text-align: center; box-shadow: 0 4px 10px rgba(0,0,0,0.3); }
         .spinner { border: 3px solid #f3f3f3; border-top: 3px solid #007bff; border-radius: 50%; width: 18px; height: 18px; animation: spin 0.8s linear infinite; display: inline-block; vertical-align: middle; margin-right: 6px; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        
+        /* Chỉ bổ sung duy nhất style cho nút tìm kiếm 🔍 */
+        .search-box { margin-top: 8px; display: flex; gap: 6px; align-items: center; }
+        .btn-search-icon { width: 42px; height: 42px; background: #007bff; color: white; border: none; border-radius: 8px; font-size: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0; flex-shrink: 0; }
+        .btn-search-icon:active { background: #0056b3; }
     </style>
 </head>
 <body>
@@ -108,31 +109,36 @@
             <div class="form-group">
                 <div class="form-row">
                     <div class="col-40">
+                        <label for="loai_tim">Loại tìm kiếm</label>
                         <select id="loai_tim">
                             <option value="MKH">Mã KH</option>
                             <option value="NO">Số CTơ</option>
                         </select>
                     </div>
                     <div class="col-60">
+                        <label for="locName">Thông tin nhập</label>
                         <input type="text" id="locName" placeholder="PB060600...">
                     </div>
                 </div>
             </div>
 
             <div class="form-group" style="margin-top: 6px;">
+                <label for="jobSelect">Công việc thực hiện</label>
                 <select id="jobSelect">
                     <option value="">Đang tải công việc...</option>
                 </select>
             </div>
 
             <div class="form-group" style="margin-top: 6px;">
+                <label for="noteInput">Ghi chú thêm (nếu có)</label>
                 <textarea id="noteInput" placeholder="Nhập vị trí cụ thể hoặc mô tả thêm..."></textarea>
             </div>
 
-            <button class="btn-get" onclick="getLocationAndSave()">📌 ĐỊNH VỊ VỊ TRÍ CÔNG TƠ</button>
+            <button class="btn-get" onclick="getLocationAndSave()">📌 LẤY VỊ TRÍ VÀ LƯU VÀO CƠ SỞ DỮ LIỆU</button>
 
+            <!-- Thêm nút kính lúp kế bên ô nhập từ khóa -->
             <div class="search-box">
-                <input type="text" id="searchInput" class="search-input" placeholder="Nhập Mã KH, Tên KH, Số CTơ...">
+                <input type="text" id="searchInput" class="search-input" style="margin-top:0;" placeholder="Nhập Mã KH, Tên KH, Số CTơ...">
                 <button class="btn-search-icon" onclick="filterLocations()" title="Tìm kiếm">🔍</button>
             </div>
 
@@ -147,6 +153,7 @@
         </div>
     </div>
 
+    <!-- Modal chỉnh sửa -->
     <div id="editModal" class="modal-overlay">
         <div class="modal-box">
             <div class="modal-title">Chỉnh Sửa Thông Tin</div>
@@ -180,6 +187,7 @@
         </div>
     </div>
 
+    <!-- Modal đổi mật khẩu -->
     <div id="passModal" class="modal-overlay">
         <div class="modal-box">
             <div class="modal-title">Đổi Mật Khẩu</div>
@@ -199,7 +207,8 @@
     </div>
 
     <div id="toast" class="toast-popup"></div>
-   <script charset="UTF-8" src="dinh_vi.js?v=1.0.1"></script>
+
+    <script src="dinh_vi.js"></script>
     <script>
         function logoutUser() {
             localStorage.removeItem("cmis_user_session");
