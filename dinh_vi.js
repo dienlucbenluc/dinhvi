@@ -485,7 +485,7 @@ function setRegetLocationButton(info) {
   const btn = document.querySelector(".btn-get");
   if (!btn) return;
   btn.classList.add("btn-reget");
-  btn.innerHTML = "📍 Lấy lại tọa độ công tơ";
+  btn.innerHTML = "📍 Lấy lại tọa độ vị trí công tơ";
   isExistingLocation = true;
   existingLocationInfo = info || null;
 }
