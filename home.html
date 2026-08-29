@@ -67,14 +67,14 @@
             gap: 12px; 
         }
 
-        /* Tinh chỉnh avatar header: dùng contain và padding để hiển thị trọn vẹn hình ảnh */
+        /* Avatar Header: Trở lại cover và căn lề đỉnh (top) */
         .user-avatar-header { 
             width: 50px; 
             height: 50px; 
-            object-fit: contain; 
-            padding: 2px;
+            object-fit: cover; 
+            object-position: top center;
             border-radius: 50%;
-            background: #ffffff;
+            background: #f0f4ff;
             border: 2px solid var(--primary-color);
         }
 
@@ -279,11 +279,11 @@
             width: 52px;
             height: 52px;
             border-radius: 50%;
-            object-fit: contain;
-            padding: 2px;
+            object-fit: cover;
+            object-position: top center;
             border: 2px solid var(--primary-color);
             flex-shrink: 0;
-            background: #ffffff;
+            background: #f0f4ff;
         }
 
         .avatar-input-group {
@@ -685,6 +685,7 @@
             document.getElementById('alertModal').style.display = 'none';
         }
 
+        /* Chỉnh sửa vị trí xén ảnh sy = 0 để giữ phần đầu */
         function handleAvatarFileSelect(event) {
             const file = event.target.files[0];
             if (!file) return;
@@ -700,8 +701,8 @@
 
                     let minSide = Math.min(img.width, img.height);
                     let sx = (img.width - minSide) / 2;
-                    let sy = (img.height - minSide) / 2;
-                    
+                    let sy = 0; // Cố định cắt từ sát mép trên ảnh để không mất chóp đầu
+
                     ctx.drawImage(img, sx, sy, minSide, minSide, 0, 0, 300, 300);
 
                     base64AvatarResized = canvas.toDataURL("image/jpeg", 0.95);
