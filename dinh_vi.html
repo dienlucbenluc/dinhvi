@@ -192,6 +192,18 @@
         </div>
     </div>
 
+        <!-- Modal Xác nhận lấy lại tọa độ -->
+    <div id="confirmModal" class="modal-overlay">
+        <div class="modal-box">
+            <div class="modal-title" style="color: #dc3545;">Xác nhận</div>
+            <div class="modal-message" style="margin-bottom: 15px; font-weight: bold;">Bạn có muốn lấy lại tọa độ khách hàng này không?</div>
+            <div class="modal-buttons">
+                <button class="btn-modal-cancel" onclick="closeConfirmModal()">Hủy</button>
+                <button class="btn-modal-confirm" id="btnConfirmDelete" onclick="deleteLocation()" style="background: #dc3545;">Xóa</button>
+            </div>
+        </div>
+    </div>
+    
     <!-- Modal Xác nhận Xóa -->
     <div id="confirmModal" class="modal-overlay">
         <div class="modal-box">
