@@ -88,79 +88,6 @@
         .btn-modal-cancel { background: #e0e0e0; color: #333; }
         .btn-modal-confirm { background: #28a745; color: white; }
 
-
-        /* Modal xác nhận lấy lại tọa độ - bổ sung riêng */
-        .reget-confirm-box {
-            background: #fff;
-            width: 88%;
-            max-width: 390px;
-            border-radius: 16px;
-            padding: 22px;
-            box-shadow: 0 14px 40px rgba(0,0,0,0.25);
-            text-align: center;
-            box-sizing: border-box;
-            animation: regetModalIn 0.2s ease-out;
-        }
-        .reget-confirm-icon {
-            width: 54px;
-            height: 54px;
-            margin: 0 auto 12px;
-            border-radius: 50%;
-            background: #fff1f1;
-            color: #dc3545;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 28px;
-        }
-        .reget-confirm-title {
-            font-size: 19px;
-            font-weight: 700;
-            color: #222;
-            margin-bottom: 10px;
-        }
-        .reget-confirm-message {
-            font-size: 14px;
-            line-height: 1.55;
-            color: #555;
-            margin-bottom: 6px;
-        }
-        .reget-confirm-warning {
-            margin: 12px 0 4px;
-            padding: 10px 12px;
-            border-radius: 9px;
-            background: #fff7e6;
-            color: #8a5a00;
-            font-size: 13px;
-            line-height: 1.45;
-            text-align: left;
-        }
-        .reget-confirm-buttons {
-            display: flex;
-            gap: 10px;
-            margin-top: 18px;
-        }
-        .reget-confirm-buttons button {
-            flex: 1;
-            margin: 0;
-            padding: 11px 10px;
-            border-radius: 8px;
-            font-size: 14px;
-            font-weight: 700;
-        }
-        .btn-reget-cancel {
-            background: #e9ecef;
-            color: #333;
-        }
-        .btn-reget-confirm {
-            background: #dc3545;
-            color: #fff;
-        }
-        @keyframes regetModalIn {
-            from { opacity: 0; transform: scale(0.96) translateY(6px); }
-            to { opacity: 1; transform: scale(1) translateY(0); }
-        }
-
         .spinner {
             width: 24px;
             height: 24px;
@@ -265,26 +192,21 @@
         </div>
     </div>
 
-
-
-    <!-- Modal xác nhận lấy lại tọa độ - bổ sung riêng, không đụng confirmModal xóa cũ -->
-    <div id="regetConfirmModal" class="modal-overlay" onclick="if(event.target === this) closeRelocateConfirmModal()">
-        <div class="reget-confirm-box">
-            <div class="reget-confirm-icon">📍</div>
-            <div class="reget-confirm-title">Xác nhận lấy lại tọa độ</div>
-            <div class="reget-confirm-message">
-                Bạn có chắc chắn lấy lại tọa độ do khách hàng cũ có tọa độ không chính xác không?
+    <!-- Modal Xác nhận Lấy lại Tọa độ -->
+    <div id="regetModal" class="modal-overlay">
+        <div class="modal-box">
+            <div class="modal-title" style="color: #d9534f;">Xác nhận cập nhật</div>
+            <div class="modal-message" style="margin-bottom: 15px; font-size: 14px; color: #333; line-height: 1.4;">
+                Khách hàng đã có tọa độ trên hệ thống.<br>
+                Bạn có chắc chắn muốn <strong>cập nhật lại vị trí mới</strong> không?
             </div>
-            <div class="reget-confirm-warning">
-                ⚠️ Tọa độ hiện tại sẽ được đánh dấu là <strong>không chính xác</strong> và hệ thống sẽ lưu tọa độ GPS mới.
-            </div>
-            <div class="reget-confirm-buttons">
-                <button type="button" class="btn-reget-cancel" onclick="closeRelocateConfirmModal()">Hủy</button>
-                <button type="button" class="btn-reget-confirm" onclick="confirmRelocateLocation()">📍 Lấy lại tọa độ</button>
+            <div class="modal-buttons">
+                <button class="btn-modal-cancel" onclick="closeRegetModal()">Hủy</button>
+                <button class="btn-modal-confirm" onclick="confirmRegetLocation()" style="background: #dc3545;">Đồng ý</button>
             </div>
         </div>
     </div>
-
+    
     <!-- Modal Xác nhận Xóa -->
     <div id="confirmModal" class="modal-overlay">
         <div class="modal-box">
@@ -359,7 +281,7 @@
         </div>
     </div>
 
-    <script src="dinh_vi.js?v=1.1.5"></script>
+    <script src="dinh_vi.js?v=1.1.4"></script>
     <script>
         function openPageHome() {
             window.location.href = "login.html";
