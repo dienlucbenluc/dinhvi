@@ -30,18 +30,18 @@ document.addEventListener("DOMContentLoaded", () => {
   
   const searchInput = document.getElementById("searchInput");
   if(searchInput) {
+    // Chỉ lưu trạng thái khi gõ, không tự động lọc danh sách
     searchInput.addEventListener("input", () => {
       saveLocalSettings();
     });
 
+    // Cho phép nhấn Enter trong ô tìm kiếm để kích hoạt tìm kiếm
     searchInput.addEventListener("keypress", (e) => {
       if (e.key === "Enter") {
         searchLocations();
       }
     });
   }
-
-  
 
   ['loai_tim', 'jobSelect'].forEach(id => {
     const el = document.getElementById(id);
@@ -104,7 +104,6 @@ function loadCurrentUserAvatar() {
   .then(text => JSON.parse(text))
   .then(res => {
     if (res.status === "success" && res.avatar) {
-      // Chỉ cập nhật lại DOM và LocalStorage nếu Avatar trên server có thay đổi
       if (currentUser.avatar !== res.avatar) {
         currentUser.avatar = res.avatar;
         localStorage.setItem("cmis_user_session", JSON.stringify(currentUser));
@@ -163,6 +162,7 @@ function applyInitData(res) {
   if (savedJob) document.getElementById("jobSelect").value = savedJob;
 
   allLocations = res.locations || [];
+  filterLocations();
 }
 
 function syncLocalCache() {
@@ -255,6 +255,7 @@ function removeAccents(str) {
     .replace(/đ/g, "d").replace(/Đ/g, "D");
 }
 
+// Hàm kích hoạt tìm kiếm từ nút bấm
 function searchLocations() {
   filterLocations();
 }
@@ -263,18 +264,18 @@ function filterLocations() {
   const searchInput = document.getElementById("searchInput");
   const rawQuery = searchInput ? searchInput.value.trim() : "";
   
-  // Luôn sắp xếp toàn bộ danh sách theo thời gian nhập gần nhất
+  // Sắp xếp danh sách tổng theo thời gian nhập mới nhất
   let sortedLocations = [...allLocations].sort((a, b) => parseTimeString(b.time) - parseTimeString(a.time));
 
+  // Nếu không có từ khóa tìm kiếm, lấy 50 khách hàng có thời gian nhập gần nhất
   if (!rawQuery) {
-    // Nếu không có từ khóa tìm kiếm, lấy 50 khách hàng có thời gian nhập gần nhất
     renderList(sortedLocations.slice(0, 50));
     return;
   }
 
   const query = removeAccents(rawQuery.toLowerCase());
 
-  // Lọc tất cả khách hàng khớp từ khóa trong bảng dinh_vi
+  // Tìm tất cả khách hàng khớp thông tin trong bảng dinh_vi
   const matchedLocations = sortedLocations.filter(loc => {
     const targetText = String(loc.ma_khang || "") + " " + 
                        String(loc.ten_khang || "") + " " + 
@@ -286,7 +287,6 @@ function filterLocations() {
     return normalizedText.includes(query);
   });
 
-  // Tính điểm ưu tiên độ khớp gần đúng nhất
   function getMatchScore(loc) {
     const mk = removeAccents(String(loc.ma_khang || "").toLowerCase());
     const tk = removeAccents(String(loc.ten_khang || "").toLowerCase());
@@ -301,7 +301,7 @@ function filterLocations() {
     return 4;
   }
 
-  // Đưa khách hàng khớp gần đúng nhất lên trên cùng
+  // Đưa khách hàng gần đúng nhất lên đầu danh sách
   matchedLocations.sort((a, b) => {
     const scoreA = getMatchScore(a);
     const scoreB = getMatchScore(b);
@@ -312,8 +312,8 @@ function filterLocations() {
 
     return parseTimeString(b.time) - parseTimeString(a.time);
   });
-
-  // Lấy 50 khách hàng phù hợp nhất
+  
+  // Lấy tối đa 50 khách hàng khớp nhất để hiển thị
   renderList(matchedLocations.slice(0, 50));
 }
 
@@ -323,7 +323,7 @@ function renderList(locations) {
   
   if(!listElement) return;
   
-  // Yêu cầu 2: locationCount chỉ hiển thị tổng số khách hàng trong bảng dinh_vi (allLocations.length)
+  // Chỉ hiển thị tổng số khách hàng trong bảng dinh_vi
   if(countElement) countElement.innerText = `(${allLocations.length})`;
   
   listElement.innerHTML = "";
@@ -334,10 +334,10 @@ function renderList(locations) {
   
   const fragment = document.createDocumentFragment();
   
-  // Yêu cầu 3: Hiển thị danh sách khách hàng truyền vào (đã giới hạn tối đa 50 item ở filterLocations)
   locations.forEach(loc => {
     const li = document.createElement("li");
     
+    // Đóng các thẻ khác khi chọn dòng mới
     li.onclick = function() {
         const isAlreadySelected = this.classList.contains("selected");
         
@@ -507,6 +507,7 @@ function getLocation() {
       if (searchInput) {
         searchInput.value = res.ma_khang;
         saveLocalSettings();
+        filterLocations();
       }
       return;
     }
@@ -580,6 +581,7 @@ function getLocation() {
         allLocations.unshift(locData);
         
         syncLocalCache();
+        filterLocations();
 
         showToast(`Đã lưu vị trí công tơ: \n${res.ma_khang} - ${res.ten_khang}`);
         document.getElementById("locName").value = searchType === 'MKH' ? 'PB060600' : '';
@@ -691,6 +693,7 @@ function saveEditLocation() {
           }
         }
         syncLocalCache();
+        filterLocations();
         closeEditModal();
         showToast("Cập nhật thành công!");
       } else {
@@ -756,6 +759,7 @@ function deleteLocation() {
     if (res.status === "success") {
       allLocations = allLocations.filter(loc => String(loc.id) !== String(currentId));
       syncLocalCache();
+      filterLocations();
       closeConfirmModal();
       showToast("Xóa khách hàng thành công!");
     } else {
