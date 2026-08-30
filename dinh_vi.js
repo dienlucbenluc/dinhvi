@@ -276,58 +276,118 @@ function searchLocations() {
 function filterLocations() {
   const searchInput = document.getElementById("searchInput");
   const rawQuery = searchInput ? searchInput.value.trim() : "";
-  
-  // Sắp xếp danh sách tổng theo thời gian nhập mới nhất
-  let sortedLocations = [...allLocations].sort((a, b) => parseTimeString(b.time) - parseTimeString(a.time));
 
-  // Nếu không có từ khóa tìm kiếm, lấy 50 khách hàng có thời gian nhập gần nhất
+  // Không tìm kiếm: giữ nguyên chức năng cũ.
   if (!rawQuery) {
+    let sortedLocations = [...allLocations].sort(
+      (a, b) => parseTimeString(b.time) - parseTimeString(a.time)
+    );
     renderList(sortedLocations.slice(0, 50));
     return;
   }
 
   const query = removeAccents(rawQuery.toLowerCase());
 
-  // Tìm tất cả khách hàng khớp thông tin trong bảng dinh_vi
-  const matchedLocations = sortedLocations.filter(loc => {
-    const targetText = String(loc.ma_khang || "") + " " + 
-                       String(loc.ten_khang || "") + " " + 
-                       String(loc.so_cto || "") + " " +
-                       String(loc.ten_nvien || "") + " " +
-                       String(loc.ten_cviec || "") + " " +
-                       String(loc.note || "");
-    const normalizedText = removeAccents(targetText.toLowerCase());
-    return normalizedText.includes(query);
-  });
-
+  // Chấm điểm để chọn đúng 1 khách hàng gần đúng nhất.
   function getMatchScore(loc) {
     const mk = removeAccents(String(loc.ma_khang || "").toLowerCase());
     const tk = removeAccents(String(loc.ten_khang || "").toLowerCase());
     const sc = removeAccents(String(loc.so_cto || "").toLowerCase());
+    const nv = removeAccents(String(loc.ten_nvien || "").toLowerCase());
+    const cv = removeAccents(String(loc.ten_cviec || "").toLowerCase());
+    const note = removeAccents(String(loc.note || "").toLowerCase());
 
     if (mk === query || sc === query) return 1;
     if (mk.startsWith(query) || sc.startsWith(query) || tk.startsWith(query)) return 2;
-    
+
     const words = tk.split(/\s+/);
     if (words.some(w => w.startsWith(query))) return 3;
 
-    return 4;
+    if (nv.startsWith(query) || cv.startsWith(query) || note.startsWith(query)) return 4;
+
+    const targetText = `${mk} ${tk} ${sc} ${nv} ${cv} ${note}`;
+    if (targetText.includes(query)) return 5;
+
+    return 99;
   }
 
-  // Đưa khách hàng gần đúng nhất lên đầu danh sách
+  // Chỉ xét các khách hàng có thông tin khớp.
+  const matchedLocations = allLocations.filter(loc => getMatchScore(loc) < 99);
+
+  if (matchedLocations.length === 0) {
+    renderList([]);
+    return;
+  }
+
+  // Khách hàng khớp gần đúng nhất: chỉ lấy đúng 1 khách hàng.
   matchedLocations.sort((a, b) => {
     const scoreA = getMatchScore(a);
     const scoreB = getMatchScore(b);
 
-    if (scoreA !== scoreB) {
-      return scoreA - scoreB;
-    }
-
+    if (scoreA !== scoreB) return scoreA - scoreB;
     return parseTimeString(b.time) - parseTimeString(a.time);
   });
-  
-  // Lấy tối đa 50 khách hàng khớp nhất để hiển thị
-  renderList(matchedLocations.slice(0, 50));
+
+  const nearestCustomer = matchedLocations[0];
+
+  // Nếu khách hàng gần đúng nhất chưa có tọa độ thì chỉ hiện khách đó,
+  // vì không thể tính phạm vi 100m.
+  const centerLat = parseFloat(nearestCustomer.lat);
+  const centerLng = parseFloat(nearestCustomer.lng);
+
+  if (!Number.isFinite(centerLat) || !Number.isFinite(centerLng)) {
+    renderList([nearestCustomer]);
+    return;
+  }
+
+  // Tính khoảng cách theo đường chim bay (Haversine), đơn vị mét.
+  function distanceInMeters(lat1, lng1, lat2, lng2) {
+    const R = 6371000;
+    const toRad = value => value * Math.PI / 180;
+
+    const dLat = toRad(lat2 - lat1);
+    const dLng = toRad(lng2 - lng1);
+
+    const a =
+      Math.sin(dLat / 2) ** 2 +
+      Math.cos(toRad(lat1)) *
+      Math.cos(toRad(lat2)) *
+      Math.sin(dLng / 2) ** 2;
+
+    return 2 * R * Math.asin(Math.sqrt(a));
+  }
+
+  // Khách hàng gần đúng nhất luôn đứng đầu.
+  // Sau đó lấy tất cả khách hàng có tọa độ trong phạm vi 100m
+  // và sắp xếp tăng dần theo khoảng cách.
+  const nearbyCustomers = allLocations
+    .map(loc => {
+      const lat = parseFloat(loc.lat);
+      const lng = parseFloat(loc.lng);
+
+      if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
+
+      return {
+        loc,
+        distance: distanceInMeters(centerLat, centerLng, lat, lng)
+      };
+    })
+    .filter(item => item && item.distance <= 100)
+    .sort((a, b) => {
+      // Khách hàng tìm được luôn ở vị trí đầu tiên.
+      if (String(a.loc.id) === String(nearestCustomer.id)) return -1;
+      if (String(b.loc.id) === String(nearestCustomer.id)) return 1;
+
+      return a.distance - b.distance;
+    })
+    .map(item => item.loc);
+
+  // Tránh trường hợp khách hàng tìm được không có trong danh sách do dữ liệu tọa độ.
+  if (!nearbyCustomers.some(loc => String(loc.id) === String(nearestCustomer.id))) {
+    nearbyCustomers.unshift(nearestCustomer);
+  }
+
+  renderList(nearbyCustomers);
 }
 
 function renderList(locations) {
