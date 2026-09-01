@@ -1,9 +1,10 @@
 const API_URL = "https://script.google.com/macros/s/AKfycbyKaG42B8RFzHToMu2Gqk7y5mCQ4wqDxxB5NWftA5lOZdB_mrLkCy6GkVs7zyOgRrHd/exec";
 let currentUser = null;
 let groupedData = {};
-let customerKeys = []; // Danh sách mã KH theo thứ tự ma_sogcs -> danh_so -> ma_khang
-let currentCardIndex = 0; // Vị trí KH đang hiển thị
+let customerKeys = []; // Mã KH sắp xếp theo ma_sogcs -> danh_so -> ma_khang
+let currentCardIndex = 0; 
 let currentLocations = {};
+let isAnimating = false; // Chống vuốt quá nhanh gây lỗi animation
 
 const BCS_ORDER = ["BT", "CD", "TD", "SG", "VC", "BN", "CN", "TN", "SN", "VN"];
 
@@ -115,7 +116,7 @@ function groupAndRender(flatList) {
     groupedData[makh].items.push(item);
   });
 
-  // 1. Sắp xếp thứ tự BCS
+  // Sắp xếp BCS
   Object.keys(groupedData).forEach(makh => {
     groupedData[makh].items.sort((a, b) => {
       let idxA = BCS_ORDER.indexOf(String(a.bcs).toUpperCase().trim());
@@ -124,7 +125,7 @@ function groupAndRender(flatList) {
     });
   });
 
-  // 2. Sắp xếp danh sách KH theo: ma_sogcs -> danh_so -> ma_khang
+  // Sắp xếp danh sách KH: ma_sogcs -> danh_so -> ma_khang
   customerKeys = Object.keys(groupedData).sort((a, b) => {
     const custA = groupedData[a];
     const custB = groupedData[b];
@@ -156,8 +157,7 @@ function updateSummaryBar() {
   document.getElementById("sumChuaGhi").innerText = tongKh - daCoCS;
 }
 
-// Render duy nhất Card của KH hiện tại
-function renderCurrentCustomerCard() {
+function renderCurrentCustomerCard(slideDirection = null) {
   const container = document.getElementById("listContainer");
 
   if (customerKeys.length === 0) {
@@ -183,14 +183,19 @@ function renderCurrentCustomerCard() {
 
   const alreadyHasCS = cust.items.some(i => i.chiso_moi !== "" && i.chiso_moi !== undefined && i.chiso_moi !== null);
 
+  // Xác định class chuẩn bị cho Animation đi vào
+  let initialClass = "";
+  if (slideDirection === "left") initialClass = "slide-left-in";
+  else if (slideDirection === "right") initialClass = "slide-right-in";
+
   let html = `
-    <div class="customer-card" id="activeCustomerCard">
+    <div class="customer-card ${initialClass}" id="activeCustomerCard">
       <div class="cust-header">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
-          <span style="font-size:13px; color:#0056b3; font-weight:bold; background:#eef5fc; padding:2px 8px; border-radius:4px;">
+          <span style="font-size:13px; color:#0056b3; font-weight:bold; background:#eef5fc; padding:2px 6px; border-radius:4px;">
             STT: ${currentCardIndex + 1} / ${customerKeys.length}
           </span>
-          <span style="font-size:12px; color:#777; font-style:italic;">👈 Vuốt ngang để đổi KH 👉</span>
+          <span style="font-size:12px; color:#666; font-style:italic;">👈 Vuốt để đổi KH 👉</span>
         </div>
         <div class="cust-title">${cust.ma_khang} - ${cust.ten_khang}</div>
         <div class="cust-address"><b>Đ/C:</b> ${cust.dia_chi || ''}</div>
@@ -271,99 +276,94 @@ function renderCurrentCustomerCard() {
   `;
 
   container.innerHTML = html;
+
+  // Thực thi Animation trượt vào
+  if (slideDirection) {
+    const activeCard = document.getElementById("activeCustomerCard");
+    setTimeout(() => {
+      activeCard.classList.remove("slide-left-in", "slide-right-in");
+      setTimeout(() => { isAnimating = false; }, 250);
+    }, 20);
+  } else {
+    isAnimating = false;
+  }
 }
 
-// Xử lý Sự kiện Vuốt Kéo (Swipe Physics) có hiệu ứng chuyển động Box
+// Chuyển KH tiếp theo với hiệu ứng vuốt sang Trái
+function nextCustomer() {
+  if (isAnimating) return;
+  if (currentCardIndex >= customerKeys.length - 1) {
+    showToast("ℹ️ Đã đến khách hàng cuối cùng");
+    return;
+  }
+
+  isAnimating = true;
+  const activeCard = document.getElementById("activeCustomerCard");
+  if (activeCard) {
+    activeCard.classList.add("slide-left-out");
+    setTimeout(() => {
+      currentCardIndex++;
+      renderCurrentCustomerCard("left");
+    }, 200);
+  } else {
+    currentCardIndex++;
+    renderCurrentCustomerCard();
+  }
+}
+
+// Quay lại KH trước với hiệu ứng vuốt sang Phải
+function prevCustomer() {
+  if (isAnimating) return;
+  if (currentCardIndex <= 0) {
+    showToast("ℹ️ Đang ở khách hàng đầu tiên");
+    return;
+  }
+
+  isAnimating = true;
+  const activeCard = document.getElementById("activeCustomerCard");
+  if (activeCard) {
+    activeCard.classList.add("slide-right-out");
+    setTimeout(() => {
+      currentCardIndex--;
+      renderCurrentCustomerCard("right");
+    }, 200);
+  } else {
+    currentCardIndex--;
+    renderCurrentCustomerCard();
+  }
+}
+
+// Xử lý Sự kiện Vuốt (Swipe) màn hình
 function setupSwipeEvents() {
   const container = document.getElementById("listContainer");
   let startX = 0;
   let startY = 0;
-  let currentX = 0;
-  let isDragging = false;
 
   container.addEventListener('touchstart', (e) => {
-    // Không nhận swipe nếu bấm vào các ô nhập liệu
-    if (e.target.tagName === "INPUT" || e.target.tagName === "BUTTON") return;
-    const card = document.getElementById("activeCustomerCard");
-    if (!card) return;
-
+    if (e.target.tagName === "INPUT") return;
     startX = e.touches[0].clientX;
     startY = e.touches[0].clientY;
-    currentX = startX;
-    isDragging = true;
-    
-    // Tắt transition hiệu ứng khi tay đang kéo trực tiếp
-    card.style.transition = "none";
-  }, { passive: true });
-
-  container.addEventListener('touchmove', (e) => {
-    if (!isDragging) return;
-    const card = document.getElementById("activeCustomerCard");
-    if (!card) return;
-
-    currentX = e.touches[0].clientX;
-    let diffX = currentX - startX;
-    let diffY = e.touches[0].clientY - startY;
-
-    // Ưu tiên chuyển động nếu vuốt ngang nhiều hơn vuốt dọc
-    if (Math.abs(diffX) > Math.abs(diffY)) {
-      // Dịch chuyển Box theo ngón tay và xoay nhẹ tạo hiệu ứng sinh động
-      card.style.transform = `translateX(${diffX}px) rotate(${diffX * 0.03}deg)`;
-      card.style.opacity = `${1 - Math.abs(diffX) / 500}`;
-    }
   }, { passive: true });
 
   container.addEventListener('touchend', (e) => {
-    if (!isDragging) return;
-    isDragging = false;
+    if (!startX || !startY || isAnimating) return;
 
-    const card = document.getElementById("activeCustomerCard");
-    if (!card) return;
+    let endX = e.changedTouches[0].clientX;
+    let endY = e.changedTouches[0].clientY;
 
-    let diffX = currentX - startX;
-    
-    // Bật hiệu ứng transition mượt cho chuyển động nhả tay
-    card.style.transition = "transform 0.22s ease-out, opacity 0.22s ease-out";
+    let diffX = startX - endX;
+    let diffY = startY - endY;
 
-    if (diffX < -80) {
-      // Vuốt sang trái (Kéo Box sang bên trái -> Chuyển đến KH tiếp theo)
-      if (currentCardIndex < customerKeys.length - 1) {
-        card.style.transform = "translateX(-120%) rotate(-10deg)";
-        card.style.opacity = "0";
-        setTimeout(() => {
-          currentCardIndex++;
-          renderCurrentCustomerCard();
-        }, 200);
+    // Yêu cầu khoảng cách vuốt > 40px và nghiêng hẳn về chiều ngang
+    if (Math.abs(diffX) > Math.abs(diffY) && Math.abs(diffX) > 40) {
+      if (diffX > 0) {
+        nextCustomer(); // Vuốt sang Trái -> KH Tiếp
       } else {
-        // Nảy lại vị trí cũ nếu ở KH cuối
-        card.style.transform = "translateX(0) rotate(0deg)";
-        card.style.opacity = "1";
-        showToast("ℹ️ Đã đến khách hàng cuối cùng");
+        prevCustomer(); // Vuốt sang Phải -> KH Trước
       }
-    } else if (diffX > 80) {
-      // Vuốt sang phải (Kéo Box sang bên phải -> Quay lại KH trước)
-      if (currentCardIndex > 0) {
-        card.style.transform = "translateX(120%) rotate(10deg)";
-        card.style.opacity = "0";
-        setTimeout(() => {
-          currentCardIndex--;
-          renderCurrentCustomerCard();
-        }, 200);
-      } else {
-        // Nảy lại vị trí cũ nếu ở KH đầu tiên
-        card.style.transform = "translateX(0) rotate(0deg)";
-        card.style.opacity = "1";
-        showToast("ℹ️ Đang ở khách hàng đầu tiên");
-      }
-    } else {
-      // Khoảng cách vuốt chưa đủ -> Bật nảy về lại vị trí giữa
-      card.style.transform = "translateX(0) rotate(0deg)";
-      card.style.opacity = "1";
     }
-
     startX = 0;
     startY = 0;
-    currentX = 0;
   }, { passive: true });
 }
 
@@ -574,18 +574,9 @@ async function saveCustomerData(maKhang) {
       });
 
       updateSummaryBar();
-      // Tự động vuốt sang KH tiếp theo sau khi lưu
+      // Sau khi lưu xong tự động chuyển sang KH tiếp theo có hiệu ứng
       if (currentCardIndex < customerKeys.length - 1) {
-        const card = document.getElementById("activeCustomerCard");
-        if (card) {
-          card.style.transition = "transform 0.25s ease-out, opacity 0.25s ease-out";
-          card.style.transform = "translateX(-120%) rotate(-10deg)";
-          card.style.opacity = "0";
-        }
-        setTimeout(() => {
-          currentCardIndex++;
-          renderCurrentCustomerCard();
-        }, 220);
+        setTimeout(() => nextCustomer(), 400);
       }
     } else {
       showToast("❌ " + res.message);
