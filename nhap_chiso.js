@@ -1,7 +1,8 @@
 const API_URL = "https://script.google.com/macros/s/AKfycbyKaG42B8RFzHToMu2Gqk7y5mCQ4wqDxxB5NWftA5lOZdB_mrLkCy6GkVs7zyOgRrHd/exec";
 let currentUser = null;
 let groupedData = {};
-let activeMaKhang = null;
+let customerKeys = []; // Mảng danh sách mã KH theo thứ tự ma_sogcs -> danh_so -> ma_khang
+let currentCardIndex = 0; // Chỉ số KH đang xem
 let currentLocations = {};
 
 const BCS_ORDER = ["BT", "CD", "TD", "SG", "VC", "BN", "CN", "TN", "SN", "VN"];
@@ -13,30 +14,16 @@ document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("userDisplay").innerText = `👷 ${currentUser.ten_nvien || currentUser.ten_ndung}`;
   
   loadChiSoData();
+  setupSwipeEvents();
 });
-
-function toggleMenu(e) {
-  e.stopPropagation();
-  document.getElementById("menuDropdown").classList.toggle("show");
-}
-
-document.addEventListener("click", () => {
-  const menu = document.getElementById("menuDropdown");
-  if (menu && menu.classList.contains("show")) menu.classList.remove("show");
-});
-
-function goToHome() { window.location.href = "home.html"; }
 
 let toastTimer = null;
 function showToast(msg) {
   const t = document.getElementById("toast");
   t.innerText = msg;
   t.style.display = "block";
-  
   if (toastTimer) clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => {
-    t.style.display = "none";
-  }, 3500);
+  toastTimer = setTimeout(() => { t.style.display = "none"; }, 3500);
 }
 
 function showCustomConfirm(title, message, isDanger = false) {
@@ -54,15 +41,8 @@ function showCustomConfirm(title, message, isDanger = false) {
 
     modal.style.display = "flex";
 
-    btnConfirm.onclick = () => {
-      modal.style.display = "none";
-      resolve(true);
-    };
-
-    btnCancel.onclick = () => {
-      modal.style.display = "none";
-      resolve(false);
-    };
+    btnConfirm.onclick = () => { modal.style.display = "none"; resolve(true); };
+    btnCancel.onclick = () => { modal.style.display = "none"; resolve(false); };
   });
 }
 
@@ -71,10 +51,7 @@ function getClientCacheKey() {
 }
 
 function loadChiSoData() {
-  const container = document.getElementById("listContainer");
   let cachedList = null;
-
-  // 1. Đọc cache từ máy ra hiện ngay lập tức
   try {
     const raw = localStorage.getItem(getClientCacheKey());
     if (raw) {
@@ -86,19 +63,11 @@ function loadChiSoData() {
     }
   } catch (e) {}
 
-  if (!cachedList) {
-    container.innerHTML = "<p style='text-align:center; padding-top:20px;'>⏳ Đang tải dữ liệu lần đầu...</p>";
-  }
-
-  // 2. Kiểm tra chắc chắn có username mới gọi API lấy dữ liệu ngầm
   if (currentUser && currentUser.ten_ndung) {
     fetchSilentLatestData(currentUser.ten_ndung, !cachedList);
-  } else {
-    container.innerHTML = "<p style='color:red; text-align:center;'>❌ Lỗi phiên đăng nhập, vui lòng đăng xuất và đăng nhập lại!</p>";
   }
 }
 
-// Hàm hỗ trợ âm thầm lấy danh sách mới nhất từ server
 function fetchSilentLatestData(username, isFirstLoad = false) {
   const targetUser = username || currentUser?.ten_ndung;
   if (!targetUser) return;
@@ -106,65 +75,20 @@ function fetchSilentLatestData(username, isFirstLoad = false) {
   fetch(API_URL, {
     method: "POST",
     headers: { "Content-Type": "text/plain;charset=utf-8" },
-    body: JSON.stringify({
-      action: "GET_CHISO_DATA",
-      ten_ndung: targetUser
-    })
+    body: JSON.stringify({ action: "GET_CHISO_DATA", ten_ndung: targetUser })
   })
   .then(res => res.json())
   .then(res => {
     if (res.status === "success") {
-      // Cập nhật bộ nhớ cache trong máy
-      localStorage.setItem(getClientCacheKey(), JSON.stringify({
-        time: Date.now(),
-        list: res.list
-      }));
-      // Render lại màn hình
+      localStorage.setItem(getClientCacheKey(), JSON.stringify({ time: Date.now(), list: res.list }));
       groupAndRender(res.list);
     } else if (isFirstLoad) {
-      const container = document.getElementById("listContainer");
-      if (container) {
-        container.innerHTML = `<p style='color:red; text-align:center;'>❌ ${res.message || 'Lỗi tải dữ liệu!'}</p>`;
-      }
+      document.getElementById("listContainer").innerHTML = `<p style='color:red; text-align:center;'>❌ ${res.message || 'Lỗi tải dữ liệu!'}</p>`;
     }
   })
-  .catch(err => {
-    // Nếu đã có dữ liệu cache hiện trên màn hình rồi thì âm thầm bỏ qua lỗi mạng tạm thời, không đè lỗi lên màn hình
+  .catch(() => {
     if (isFirstLoad) {
-      const container = document.getElementById("listContainer");
-      if (container) {
-        container.innerHTML = "<p style='color:red; text-align:center;'>❌ Lỗi kết nối máy chủ, vui lòng kiểm tra mạng!</p>";
-      }
-    }
-  });
-}
-
-// Hàm hỗ trợ âm thầm lấy danh sách mới nhất từ server và cập nhật cache/UI
-function fetchSilentLatestData() {
-  fetch(API_URL, {
-    method: "POST",
-    headers: { "Content-Type": "text/plain;charset=utf-8" },
-    body: JSON.stringify({
-      action: "GET_CHISO_DATA",
-      ten_ndung: currentUser.ten_ndung
-    })
-  })
-  .then(res => res.json())
-  .then(res => {
-    if (res.status === "success") {
-      // Cập nhật bộ nhớ máy
-      localStorage.setItem(getClientCacheKey(), JSON.stringify({
-        time: Date.now(),
-        list: res.list
-      }));
-      // Render lại giao diện mới
-      groupAndRender(res.list);
-    }
-  })
-  .catch(err => {
-    const container = document.getElementById("listContainer");
-    if (container && container.innerHTML.includes("Đang tải dữ liệu lần đầu")) {
-      container.innerHTML = "<p style='color:red; text-align:center;'>❌ Lỗi tải dữ liệu, vui lòng thử lại!</p>";
+      document.getElementById("listContainer").innerHTML = "<p style='color:red; text-align:center;'>❌ Lỗi kết nối máy chủ!</p>";
     }
   });
 }
@@ -178,8 +102,8 @@ function groupAndRender(flatList) {
         ma_khang: item.ma_khang,
         ten_khang: item.ten_khang,
         dia_chi: item.dia_chi,
-        ma_sogcs: item.ma_sogcs,
-        danh_so: item.danh_so,
+        ma_sogcs: item.ma_sogcs || "",
+        danh_so: item.danh_so || "",
         so_cot: item.so_cot,
         ten_tram: item.ten_tram,
         so_cto: item.so_cto,
@@ -191,6 +115,7 @@ function groupAndRender(flatList) {
     groupedData[makh].items.push(item);
   });
 
+  // 1. Sắp xếp các mục BCS trong từng KH
   Object.keys(groupedData).forEach(makh => {
     groupedData[makh].items.sort((a, b) => {
       let idxA = BCS_ORDER.indexOf(String(a.bcs).toUpperCase().trim());
@@ -199,213 +124,302 @@ function groupAndRender(flatList) {
     });
   });
 
+  // 2. Sắp xếp danh sách KH theo thứ tự: ma_sogcs -> danh_so -> ma_khang
+  customerKeys = Object.keys(groupedData).sort((a, b) => {
+    const custA = groupedData[a];
+    const custB = groupedData[b];
+
+    const sogcsCompare = String(custA.ma_sogcs).localeCompare(String(custB.ma_sogcs), undefined, { numeric: true, sensitivity: 'base' });
+    if (sogcsCompare !== 0) return sogcsCompare;
+
+    const danhSoCompare = String(custA.danh_so).localeCompare(String(custB.danh_so), undefined, { numeric: true, sensitivity: 'base' });
+    if (danhSoCompare !== 0) return danhSoCompare;
+
+    return String(custA.ma_khang).localeCompare(String(custB.ma_khang), undefined, { numeric: true, sensitivity: 'base' });
+  });
+
   updateSummaryBar();
-  renderGroupedList(groupedData);
+  renderCurrentCustomerCard();
 }
 
 function updateSummaryBar() {
-  const keys = Object.keys(groupedData);
-  const tongKh = keys.length;
+  const tongKh = customerKeys.length;
   let daCoCS = 0;
 
-  keys.forEach(makh => {
+  customerKeys.forEach(makh => {
     const hasCS = groupedData[makh].items.some(i => i.chiso_moi !== "" && i.chiso_moi !== undefined && i.chiso_moi !== null);
     if (hasCS) daCoCS++;
   });
 
-  const chuaGhi = tongKh - daCoCS;
-
   document.getElementById("sumTongKh").innerText = tongKh;
   document.getElementById("sumDaCS").innerText = daCoCS;
-  document.getElementById("sumChuaGhi").innerText = chuaGhi;
+  document.getElementById("sumChuaGhi").innerText = tongKh - daCoCS;
+}
+
+// Render duy nhất Card của KH hiện tại (currentCardIndex)
+function renderCurrentCustomerCard() {
+  const container = document.getElementById("listContainer");
+
+  if (customerKeys.length === 0) {
+    container.innerHTML = "<p style='text-align:center; padding-top:20px; font-weight:bold;'>Không tìm thấy dữ liệu khách hàng.</p>";
+    return;
+  }
+
+  if (currentCardIndex < 0) currentCardIndex = 0;
+  if (currentCardIndex >= customerKeys.length) currentCardIndex = customerKeys.length - 1;
+
+  const makh = customerKeys[currentCardIndex];
+  const cust = groupedData[makh];
+  const firstItem = cust.items[0] || {};
+  const cotTramText = [cust.so_cot, cust.ten_tram].filter(Boolean).join(" - ");
+  const hasLocation = Boolean(firstItem.lat && firstItem.lng);
+
+  let mapLinkHtml = `<span id="map_link_${cust.ma_khang}" style="color:#dc3545; font-weight:bold;">🌏 Chưa vị trí</span>`;
+  let btnLocationText = "📍 LẤY VỊ TRÍ";
+  if (hasLocation) {
+    mapLinkHtml = `<span id="map_link_${cust.ma_khang}"><a href="http://maps.google.com/?q=${firstItem.lat},${firstItem.lng}" target="_blank" style="color:#007bff; font-weight:bold; text-decoration:none;">🌏 Xem Google Maps</a></span>`;
+    btnLocationText = "📍 SỬA VỊ TRÍ";
+  }
+
+  const alreadyHasCS = cust.items.some(i => i.chiso_moi !== "" && i.chiso_moi !== undefined && i.chiso_moi !== null);
+
+  let html = `
+    <div class="customer-card">
+      <div class="cust-header">
+        <div style="font-size:12px; color:#666; font-weight:bold; margin-bottom:2px;">
+          Khách hàng ${currentCardIndex + 1} / ${customerKeys.length}
+        </div>
+        <div class="cust-title">${cust.ma_khang} - ${cust.ten_khang}</div>
+        <div class="cust-address"><b>Đ/C:</b> ${cust.dia_chi || ''}</div>
+        
+        <div class="cust-row-group">
+          <b>Sổ:</b> ${cust.ma_sogcs} | <b>DS:</b> ${cust.danh_so} | <b>ST:</b> ${cust.so_cto} | <b>ĐT:</b> ${cust.so_dthoai || 'N/A'}
+        </div>
+
+        <div class="cust-row-group" style="margin-top: 4px;">
+          <b>Cột - Trạm:</b> ${cotTramText || 'N/A'}
+        </div>
+
+        <div class="cust-row-group" style="margin-top: 6px;">
+          <b style="color:#000;">Ghi chú:</b>
+          <input type="text" 
+                 class="input-ghichu" 
+                 id="ghi_chu_${cust.ma_khang}" 
+                 value="${cust.ghi_chu || ''}" 
+                 placeholder="Nhập ghi chú nếu có..." 
+                 onchange="groupedData['${cust.ma_khang}'].ghi_chu = this.value;">
+        </div>
+
+        <div class="cust-dynamic-info-v2" id="detail_info_${cust.ma_khang}">
+          <span>${mapLinkHtml}</span>
+          <span>SL Tháo(${firstItem.bcs}): <b>${firstItem.sluong_thao || 0}</b></span>
+          <span>SL KT: <b>${firstItem.sluong_kt || 0}</b></span>
+        </div>
+      </div>
+
+      <div class="table-responsive">
+        <table class="chiso-table">
+          <thead>
+            <tr>
+              <th style="width: 15%;">BCS</th>
+              <th style="width: 25%;">CS cũ</th>
+              <th style="width: 35%;">CS mới</th>
+              <th style="width: 25%;">Tổng SL</th>
+            </tr>
+          </thead>
+          <tbody>
+  `;
+
+  cust.items.forEach(item => {
+    const csMoiVal = (item.chiso_moi !== "" && item.chiso_moi !== undefined && item.chiso_moi !== null) ? item.chiso_moi : "";
+    const isDisabled = !hasLocation ? "disabled" : "";
+
+    html += `
+      <tr id="row_${item.rowIndex}">
+        <td class="text-center" style="padding: 6px 2px;"><span class="bcs-badge">${item.bcs}</span></td>
+        <td class="val-calc-large text-right">${item.chiso_cu}</td>
+        <td>
+          <input type="number" 
+                 class="input-cs-moi" 
+                 id="cs_moi_${item.rowIndex}" 
+                 value="${csMoiVal}" ${isDisabled}
+                 oninput="calculateRow('${cust.ma_khang}', '${item.bcs}', ${item.rowIndex}, ${item.chiso_cu || 0}, ${item.hsn}, ${item.sluong_thao || 0})">
+          <input type="hidden" id="sl_val_${item.rowIndex}" value="${item.san_luong !== "" && item.san_luong !== undefined ? item.san_luong : '-'}">
+        </td>
+        <td id="tong_sl_${item.rowIndex}" class="val-calc-large text-right">${item.tong_sluong !== "" && item.tong_sluong !== undefined ? item.tong_sluong : '-'}</td>
+      </tr>
+    `;
+  });
+
+  const saveDisabledAttr = !hasLocation ? "disabled" : "";
+  const cancelDisabledAttr = !alreadyHasCS ? "disabled" : "";
+
+  html += `
+          </tbody>
+        </table>
+      </div>
+
+      <div class="nav-btn-group">
+        <button class="btn-nav" onclick="prevCustomer()" ${currentCardIndex === 0 ? 'disabled' : ''}>◀ KH TRƯỚC</button>
+        <button class="btn-nav" onclick="nextCustomer()" ${currentCardIndex === customerKeys.length - 1 ? 'disabled' : ''}>KH TIẾP ▶</button>
+      </div>
+
+      <div class="card-btn-group">
+        <button class="btn-card btn-card-location" onclick="getLocation('${cust.ma_khang}')">${btnLocationText}</button>
+        <button class="btn-card btn-card-save" id="btn_save_${cust.ma_khang}" ${saveDisabledAttr} onclick="saveCustomerData('${cust.ma_khang}')">LƯU</button>
+        <button class="btn-card btn-card-cancel" id="btn_cancel_${cust.ma_khang}" ${cancelDisabledAttr} onclick="cancelCustomerData('${cust.ma_khang}')">HỦY CS</button>
+      </div>
+    </div>
+  `;
+
+  container.innerHTML = html;
+}
+
+function prevCustomer() {
+  if (currentCardIndex > 0) {
+    currentCardIndex--;
+    renderCurrentCustomerCard();
+  }
+}
+
+function nextCustomer() {
+  if (currentCardIndex < customerKeys.length - 1) {
+    currentCardIndex++;
+    renderCurrentCustomerCard();
+  }
+}
+
+// Xử lý Vuốt / Swipe trái phải để đổi Khách hàng
+function setupSwipeEvents() {
+  const container = document.getElementById("listContainer");
+  let startX = 0;
+  let startY = 0;
+
+  container.addEventListener('touchstart', (e) => {
+    startX = e.touches[0].clientX;
+    startY = e.touches[0].clientY;
+  }, { passive: true });
+
+  container.addEventListener('touchend', (e) => {
+    if (!startX || !startY) return;
+
+    let endX = e.changedTouches[0].clientX;
+    let endY = e.changedTouches[0].clientY;
+
+    let diffX = startX - endX;
+    let diffY = startY - endY;
+
+    // Vuốt ngang chủ đạo (tránh nhầm với cuộn dọc)
+    if (Math.abs(diffX) > Math.abs(diffY) && Math.abs(diffX) > 50) {
+      if (diffX > 0) {
+        nextCustomer(); // Vuốt sang trái -> Xem KH tiếp theo
+      } else {
+        prevCustomer(); // Vuốt sang phải -> Xem KH trước
+      }
+    }
+    startX = 0;
+    startY = 0;
+  }, { passive: true });
+}
+
+function calculateRow(maKhang, bcs, rowIndex, csCu, hsn, sluongThao) {
+  const inputEl = document.getElementById(`cs_moi_${rowIndex}`);
+  const val = inputEl ? inputEl.value.trim() : "";
+
+  const slHiddenEl = document.getElementById(`sl_val_${rowIndex}`);
+  const tongSlCell = document.getElementById(`tong_sl_${rowIndex}`);
+
+  if (val === "" || isNaN(Number(val))) {
+    if (slHiddenEl) slHiddenEl.value = "-";
+    if (tongSlCell) tongSlCell.innerText = "-";
+    checkCancelButtonStatus(maKhang);
+    return;
+  }
+
+  const csMoi = Number(val);
+  const csCuVal = Number(csCu) || 0;
+  const hsnVal = Number(hsn) || 1;
+  const slThao = Number(sluongThao) || 0;
+
+  const sanLuong = Math.round((csMoi - csCuVal) * hsnVal);
+  const tongSluong = sanLuong + slThao;
+
+  if (slHiddenEl) slHiddenEl.value = sanLuong;
+  if (tongSlCell) tongSlCell.innerText = tongSluong;
+
+  checkCancelButtonStatus(maKhang);
+}
+
+function checkCancelButtonStatus(maKhang) {
+  const cust = groupedData[maKhang];
+  if (!cust) return;
+
+  let hasNewCS = false;
+  cust.items.forEach(item => {
+    const inputEl = document.getElementById(`cs_moi_${item.rowIndex}`);
+    if (inputEl && inputEl.value !== "") hasNewCS = true;
+  });
+
+  const btnCancel = document.getElementById(`btn_cancel_${maKhang}`);
+  if (btnCancel) btnCancel.disabled = !hasNewCS;
 }
 
 function filterChuaGhi() {
   document.getElementById("searchInput").value = "";
-  const filteredGroups = {};
+  const unrecordedKeys = [];
 
-  Object.keys(groupedData).forEach(makh => {
+  customerKeys.forEach(makh => {
     const cust = groupedData[makh];
     const hasCS = cust.items.some(i => i.chiso_moi !== "" && i.chiso_moi !== undefined && i.chiso_moi !== null);
-    if (!hasCS) {
-      filteredGroups[makh] = cust;
-    }
+    if (!hasCS) unrecordedKeys.push(makh);
   });
 
-  renderGroupedList(filteredGroups);
-}
-
-function selectCustomer(maKhang) {
-  activeMaKhang = maKhang;
-  document.querySelectorAll('.customer-card.active').forEach(card => card.classList.remove('active'));
-  const targetCard = document.getElementById(`card_${maKhang}`);
-  if (targetCard) targetCard.classList.add('active');
-}
-
-function updateRowDetail(maKhang, bcs, sanLuong, sluongThao, sluongKt) {
-  selectCustomer(maKhang);
-  const detailEl = document.getElementById(`detail_info_${maKhang}`);
-  if (detailEl) {
-    const mapSpan = document.getElementById(`map_link_${maKhang}`);
-    const mapHtml = mapSpan ? mapSpan.outerHTML : '';
-    detailEl.innerHTML = `
-      <span>${mapHtml}</span>
-      <span>SL Tháo(<b>${bcs}</b>): <b>${sluongThao}</b></span>
-      <span>SL KT: <b>${sluongKt}</b></span>
-    `;
+  if (unrecordedKeys.length > 0) {
+    customerKeys = unrecordedKeys;
+    currentCardIndex = 0;
+    renderCurrentCustomerCard();
+  } else {
+    showToast("🎉 Tất cả khách hàng đã được ghi!");
   }
 }
 
-function renderGroupedList(groups) {
-  const container = document.getElementById("listContainer");
-  const keys = Object.keys(groups);
-
-  if (keys.length === 0) {
-    container.innerHTML = "<p style='text-align:center; padding-top:20px;'>Không có dữ liệu khách hàng.</p>";
+function filterData() {
+  const q = document.getElementById("searchInput").value.toLowerCase().trim();
+  
+  if (!q) {
+    loadChiSoData();
     return;
   }
 
-  container.innerHTML = "";
-  
-  const CHUNK_SIZE = 30;
-  let currentIndex = 0;
+  const filtered = [];
+  Object.keys(groupedData).forEach(makh => {
+    const cust = groupedData[makh];
+    const match = 
+      String(cust.ma_khang || "").toLowerCase().includes(q) ||
+      String(cust.ten_khang || "").toLowerCase().includes(q) ||
+      String(cust.dia_chi || "").toLowerCase().includes(q) ||
+      String(cust.so_cot || "").toLowerCase().includes(q) ||
+      String(cust.ten_tram || "").toLowerCase().includes(q) ||
+      String(cust.so_cto || "").toLowerCase().includes(q) ||
+      String(cust.ma_sogcs || "").toLowerCase().includes(q) ||
+      String(cust.danh_so || "").toLowerCase().includes(q) ||
+      String(cust.so_dthoai || "").toLowerCase().includes(q) ||
+      String(cust.ghi_chu || "").toLowerCase().includes(q);
 
-  function renderChunk() {
-    const nextKeys = keys.slice(currentIndex, currentIndex + CHUNK_SIZE);
-    if (nextKeys.length === 0) return;
+    if (match) filtered.push(makh);
+  });
 
-    let html = "";
-    nextKeys.forEach(makh => {
-      const cust = groups[makh];
-      const isActive = (makh === activeMaKhang) ? "active" : "";
-      const firstItem = cust.items[0] || {};
-      const cotTramText = [cust.so_cot, cust.ten_tram].filter(Boolean).join(" - ");
-      const hasLocation = Boolean(firstItem.lat && firstItem.lng);
-      
-      let mapLinkHtml = `<span id="map_link_${cust.ma_khang}" style="color:#dc3545; font-weight:bold;">🌏 Chưa có tọa độ</span>`;
-      let btnLocationText = "LẤY ĐỊNH VỊ";
-      if (hasLocation) {
-        mapLinkHtml = `<span id="map_link_${cust.ma_khang}"><a href="https://www.google.com/maps?q=${firstItem.lat},${firstItem.lng}" target="_blank" style="color:#007bff; font-weight:bold; text-decoration:none;">🌏 Xem Google Maps</a></span>`;
-        btnLocationText = "SỬA ĐỊNH VỊ";
-      }
-
-      const alreadyHasCS = cust.items.some(i => i.chiso_moi !== "" && i.chiso_moi !== undefined && i.chiso_moi !== null);
-
-      html += `
-        <div class="customer-card ${isActive}" id="card_${cust.ma_khang}" onclick="selectCustomer('${cust.ma_khang}')">
-          <div class="cust-header">
-            <div class="cust-title">${cust.ma_khang} - ${cust.ten_khang}</div>
-            <div class="cust-address">Địa chỉ: ${cust.dia_chi || ''}</div>
-            
-            <div class="cust-row-group">
-              <span style="width: 100%; font-size: 11.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
-                Sổ:<b>${cust.ma_sogcs || ''}</b>  DS:<b>${cust.danh_so || ''}</b>  NO:<b>${cust.so_cto || ''}</b>  ĐT:<b>${cust.so_dthoai || ''}</b>
-              </span>
-            </div>
-
-            <div class="cust-row-group">
-              <span class="flex-1">Cột-Trạm: <b>${cotTramText || ''}</b></span>
-            </div>
-
-            <div class="cust-row-group" style="margin-top: 3px;">
-              <span style="padding-left:0; color:#000; min-width:55px;">Ghi chú:</span>
-              <input type="text" 
-                     class="input-ghichu" 
-                     id="ghi_chu_${cust.ma_khang}" 
-                     value="${cust.ghi_chu || ''}" 
-                     placeholder="Nhập, sửa ghi chú nếu có..." 
-                     style="font-style: italic; font-weight: normal;"
-                     onclick="event.stopPropagation(); selectCustomer('${cust.ma_khang}');"
-                     onchange="groupedData['${cust.ma_khang}'].ghi_chu = this.value;">
-            </div>
-
-            <div class="cust-dynamic-info-v2" id="detail_info_${cust.ma_khang}">
-              <span>${mapLinkHtml}</span>
-              <span>SL Tháo(<b>${firstItem.bcs}</b>): <b>${firstItem.sluong_thao || 0}</b></span>
-              <span>SL KT: <b>${firstItem.sluong_kt || 0}</b></span>
-            </div>
-          </div>
-
-          <div class="table-responsive">
-            <table class="chiso-table">
-              <thead>
-                <tr>
-                  <th style="width: 12%;">BCS</th>
-                  <th style="width: 18%;">CS cũ</th>
-                  <th style="width: 26%;">CS mới</th>
-                  <th style="width: 18%;">Tổng SL</th>
-                  <th style="width: 13%;">C.Lệch</th>
-                  <th style="width: 13%;">Tỷ lệ</th>
-                </tr>
-              </thead>
-              <tbody>
-      `;
-
-      cust.items.forEach(item => {
-        const csMoiVal = (item.chiso_moi !== "" && item.chiso_moi !== undefined && item.chiso_moi !== null) ? item.chiso_moi : "";
-        const isDisabled = !hasLocation ? "disabled" : "";
-
-        html += `
-          <tr id="row_${item.rowIndex}" onclick="event.stopPropagation(); updateRowDetail('${cust.ma_khang}', '${item.bcs}', document.getElementById('sl_val_${item.rowIndex}').value, ${item.sluong_thao}, ${item.sluong_kt});">
-            <td class="text-center" style="padding: 4px 2px;"><span class="bcs-badge">${item.bcs}</span></td>
-            <td class="val-calc-large text-right">${item.chiso_cu}</td>
-            <td class="td-input-container">
-              <input type="number" 
-                     class="input-cs-moi" 
-                     id="cs_moi_${item.rowIndex}" 
-                     value="${csMoiVal}" ${isDisabled}
-                     onclick="event.stopPropagation(); updateRowDetail('${cust.ma_khang}', '${item.bcs}', document.getElementById('sl_val_${item.rowIndex}').value, ${item.sluong_thao}, ${item.sluong_kt});"
-                     oninput="calculateRow('${cust.ma_khang}', '${item.bcs}', ${item.rowIndex}, ${item.chiso_cu || 0}, ${item.hsn}, ${item.sluong_thao || 0}, ${item.sluong_kt || 0})">
-              <input type="hidden" id="sl_val_${item.rowIndex}" value="${item.san_luong !== "" && item.san_luong !== undefined ? item.san_luong : '-'}">
-            </td>
-            <td id="tong_sl_${item.rowIndex}" class="val-calc-large text-right">${item.tong_sluong !== "" && item.tong_sluong !== undefined ? item.tong_sluong : '-'}</td>
-            <td id="clech_${item.rowIndex}" class="val-highlight text-right">${item.chenh_lech !== "" && item.chenh_lech !== undefined ? item.chenh_lech : '-'}</td>
-            <td id="tyle_${item.rowIndex}" class="val-highlight text-right">${item.tyle_clech !== "" && item.tyle_clech !== undefined ? item.tyle_clech : '-'}</td>
-          </tr>
-        `;
-      });
-
-      const saveDisabledAttr = !hasLocation ? "disabled" : "";
-      const cancelDisabledAttr = !alreadyHasCS ? "disabled" : "";
-
-      html += `
-              </tbody>
-            </table>
-          </div>
-
-          <div class="card-btn-group">
-            <button class="btn-card btn-card-location" onclick="event.stopPropagation(); getLocation('${cust.ma_khang}')">${btnLocationText}</button>
-            <button class="btn-card btn-card-save" id="btn_save_${cust.ma_khang}" ${saveDisabledAttr} onclick="event.stopPropagation(); saveCustomerData('${cust.ma_khang}')">LƯU</button>
-            <button class="btn-card btn-card-cancel" id="btn_cancel_${cust.ma_khang}" ${cancelDisabledAttr} onclick="event.stopPropagation(); cancelCustomerData('${cust.ma_khang}')">HỦY</button>
-          </div>
-        </div>
-      `;
-    });
-
-    const tempDiv = document.createElement("div");
-    tempDiv.innerHTML = html;
-    while (tempDiv.firstChild) {
-      container.appendChild(tempDiv.firstChild);
-    }
-
-    currentIndex += CHUNK_SIZE;
-    if (currentIndex < keys.length) {
-      setTimeout(renderChunk, 0);
-    }
-  }
-
-  renderChunk();
+  customerKeys = filtered;
+  currentCardIndex = 0;
+  renderCurrentCustomerCard();
 }
 
 async function getLocation(maKhang) {
-  selectCustomer(maKhang);
   const cust = groupedData[maKhang];
   const firstItem = cust ? cust.items[0] : {};
 
-  const hasCoords = (firstItem && firstItem.lat && firstItem.lng) || currentLocations[maKhang];
-
-  if (hasCoords) {
-    const confirmAgain = await showCustomConfirm("LẤY TỌA ĐỘ GPS", `Bạn có muốn lấy lại tọa độ mới cho mã khách hàng ${maKhang} này không?`);
+  if (firstItem.lat && firstItem.lng) {
+    const confirmAgain = await showCustomConfirm("LẤY VỊ TRÍ", `Tọa độ cũ đã có. Bạn có muốn cập nhật lại vị trí mới cho KH ${maKhang}?`);
     if (!confirmAgain) return;
   }
 
@@ -428,7 +442,6 @@ async function getLocation(maKhang) {
           lng: lng
         }));
 
-        showToast(`⏳ Đang lưu tọa độ GPS...`);
         fetch(API_URL, {
           method: "POST",
           headers: { "Content-Type": "text/plain;charset=utf-8" },
@@ -442,150 +455,20 @@ async function getLocation(maKhang) {
         .then(res => res.json())
         .then(res => {
           if (res.status === "success") {
-            showToast("📍 Đã lấy & lưu tọa độ thành công!");
-            
+            showToast("📍 Lấy & lưu tọa độ thành công!");
             cust.items.forEach(it => { it.lat = lat; it.lng = lng; });
-            enableInputsAndSaveBtn(maKhang);
-            
-            const mapSpan = document.getElementById(`map_link_${maKhang}`);
-            if (mapSpan) {
-              mapSpan.innerHTML = `<a href="https://www.google.com/maps?q=${lat},${lng}" target="_blank" style="color:#007bff; font-weight:bold; text-decoration:none;">🌏 Xem Google Maps</a>`;
-            }
-
-            // Đồng bộ âm thầm lại danh sách
-            fetchSilentLatestData();
+            renderCurrentCustomerCard();
           } else {
             showToast("❌ Lỗi lưu định vị: " + res.message);
           }
         })
         .catch(() => showToast("❌ Lỗi kết nối máy chủ!"));
       },
-      (error) => { showToast("❌ Không thể lấy GPS! Bật vị trí thiết bị."); },
+      () => showToast("❌ Không thể lấy GPS! Hãy bật vị trí thiết bị."),
       { enableHighAccuracy: true, timeout: 10000 }
     );
   } else {
     showToast("❌ Thiết bị không hỗ trợ GPS!");
-  }
-}
-
-function enableInputsAndSaveBtn(maKhang) {
-  const card = document.getElementById(`card_${maKhang}`);
-  if (!card) return;
-
-  card.querySelectorAll('.input-cs-moi').forEach(input => input.disabled = false);
-  
-  const btnSave = document.getElementById(`btn_save_${maKhang}`);
-  if (btnSave) btnSave.disabled = false;
-}
-
-function checkCancelButtonStatus(maKhang) {
-  const cust = groupedData[maKhang];
-  if (!cust) return;
-
-  let hasNewCS = false;
-  cust.items.forEach(item => {
-    const inputEl = document.getElementById(`cs_moi_${item.rowIndex}`);
-    if (inputEl && inputEl.value !== "") {
-      hasNewCS = true;
-    }
-  });
-
-  const btnCancel = document.getElementById(`btn_cancel_${maKhang}`);
-  if (btnCancel) {
-    btnCancel.disabled = !hasNewCS;
-  }
-}
-
-function calculateRow(maKhang, bcs, rowIndex, csCu, hsn, sluongThao, sluongKt) {
-  const inputEl = document.getElementById(`cs_moi_${rowIndex}`);
-  const val = inputEl ? inputEl.value.trim() : "";
-
-  const slHiddenEl = document.getElementById(`sl_val_${rowIndex}`);
-  const tongSlCell = document.getElementById(`tong_sl_${rowIndex}`);
-  const clechCell = document.getElementById(`clech_${rowIndex}`);
-  const tyleCell = document.getElementById(`tyle_${rowIndex}`);
-
-  if (val === "" || isNaN(Number(val))) {
-    if (slHiddenEl) slHiddenEl.value = "-";
-    if (tongSlCell) tongSlCell.innerText = "-";
-    if (clechCell) clechCell.innerText = "-";
-    if (tyleCell) tyleCell.innerText = "-";
-    updateRowDetail(maKhang, bcs, "-", sluongThao, sluongKt);
-    checkCancelButtonStatus(maKhang);
-    return;
-  }
-
-  const csMoi = Number(val);
-  const csCuVal = Number(csCu) || 0;
-  const hsnVal = Number(hsn) || 1;
-  const slThao = Number(sluongThao) || 0;
-  const slKt = Number(sluongKt) || 0;
-
-  const sanLuong = Math.round((csMoi - csCuVal) * hsnVal);
-  const tongSluong = sanLuong + slThao;
-  const chenhLech = tongSluong - slKt;
-
-  let tyleClech = "-";
-  if (slKt !== 0) {
-    const rawTyle = ((tongSluong - slKt) / slKt) * 100;
-    const prefix = rawTyle > 0 ? "+" : "";
-    tyleClech = prefix + rawTyle.toFixed(2) + "%";
-  } else if (tongSluong > 0) {
-    tyleClech = "+100%";
-  } else {
-    tyleClech = "0%";
-  }
-
-  if (slHiddenEl) slHiddenEl.value = sanLuong;
-  if (tongSlCell) tongSlCell.innerText = tongSluong;
-  if (clechCell) clechCell.innerText = chenhLech;
-  if (tyleCell) tyleCell.innerText = tyleClech;
-
-  updateRowDetail(maKhang, bcs, sanLuong, slThao, slKt);
-  checkCancelButtonStatus(maKhang);
-}
-
-function filterData() {
-  const q = document.getElementById("searchInput").value.toLowerCase().trim();
-  
-  if (!q) {
-    document.querySelectorAll('.customer-card.active').forEach(card => card.classList.remove('active'));
-    activeMaKhang = null;
-    return;
-  }
-
-  let foundMaKhang = null;
-
-  Object.keys(groupedData).forEach(makh => {
-    if (foundMaKhang) return;
-
-    const cust = groupedData[makh];
-    const ghiChuInput = document.getElementById(`ghi_chu_${makh}`);
-    const currentGhiChu = ghiChuInput ? ghiChuInput.value : (cust.ghi_chu || "");
-
-    const match = 
-      String(cust.ma_khang || "").toLowerCase().includes(q) ||
-      String(cust.ten_khang || "").toLowerCase().includes(q) ||
-      String(cust.dia_chi || "").toLowerCase().includes(q) ||
-      String(cust.so_cot || "").toLowerCase().includes(q) ||
-      String(cust.ten_tram || "").toLowerCase().includes(q) ||
-      String(cust.so_cto || "").toLowerCase().includes(q) ||
-      String(cust.ma_sogcs || "").toLowerCase().includes(q) ||
-      String(cust.danh_so || "").toLowerCase().includes(q) ||
-      String(cust.so_dthoai || "").toLowerCase().includes(q) ||
-      String(currentGhiChu).toLowerCase().includes(q);
-
-    if (match) {
-      foundMaKhang = makh;
-    }
-  });
-
-  if (foundMaKhang) {
-    selectCustomer(foundMaKhang);
-    const targetCard = document.getElementById(`card_${foundMaKhang}`);
-    if (targetCard) {
-      targetCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    }
   }
 }
 
@@ -596,44 +479,7 @@ async function saveCustomerData(maKhang) {
   const ghiChuInput = document.getElementById(`ghi_chu_${maKhang}`);
   const newGhiChu = ghiChuInput ? ghiChuInput.value.trim() : (cust.ghi_chu || "");
 
-  let warningMsgs = [];
-  cust.items.forEach(item => {
-    const inputEl = document.getElementById(`cs_moi_${item.rowIndex}`);
-    if (inputEl && inputEl.value !== "") {
-      const csMoi = Number(inputEl.value);
-      const hsnVal = Number(item.hsn) || 1;
-      const slThao = Number(item.sluong_thao) || 0;
-      const slKt = Number(item.sluong_kt) || 0;
-
-      const sanLuong = Math.round((csMoi - item.chiso_cu) * hsnVal);
-      const tongSluong = sanLuong + slThao;
-
-      if (slKt === 0) {
-        if (tongSluong > 0) {
-          warningMsgs.push(`* ${item.bcs}: Sản lượng kỳ trước bằng 0, kỳ này phát sinh +100% (${tongSluong} kWh).`);
-        }
-      } else {
-        const percentChange = ((tongSluong - slKt) / slKt) * 100;
-        if (percentChange > 50) {
-          warningMsgs.push(`* ${item.bcs}: Slượng tăng ${percentChange.toFixed(1)}% so với kỳ trước.`);
-        } else if (percentChange < -50) {
-          warningMsgs.push(`* ${item.bcs}: Slượng giảm ${Math.abs(percentChange).toFixed(1)}% so với kỳ trước.`);
-        }
-      }
-    }
-  });
-
-  let isWarning = warningMsgs.length > 0;
-  let confirmMessage = isWarning 
-    ? warningMsgs.join("\n") + "\n⚡Kiểm tra chỉ số trên công tơ kỹ lại.\n📂 Bạn vẫn muốn xác nhận ghi dữ liệu?" 
-    : "Xác nhận ghi dữ liệu chỉ số và ghi chú?";
-
-  const confirmSave = await showCustomConfirm(
-    isWarning ? "CẢNH BÁO SẢN LƯỢNG" : "XÁC NHẬN GHI DỮ LIỆU",
-    confirmMessage,
-    isWarning
-  );
-
+  const confirmSave = await showCustomConfirm("XÁC NHẬN GHI DỮ LIỆU", "Lưu chỉ số và ghi chú cho khách hàng này?");
   if (!confirmSave) return;
 
   const loc = currentLocations[maKhang] || {};
@@ -656,7 +502,7 @@ async function saveCustomerData(maKhang) {
     }
   });
 
-  showToast(`⚔ Thành Đô, Lâm An, Đại Lý ta tìm nàng... Gặp em, giữa Dương Châu chiều mưa.. `);
+  showToast(`⏳ Đang lưu dữ liệu...`);
   
   fetch(API_URL, {
     method: "POST",
@@ -672,8 +518,6 @@ async function saveCustomerData(maKhang) {
   .then(res => {
     if (res.status === "success") {
       showToast("✅ " + res.message);
-
-      // 1. CẬP NHẬT TỨC THÌ LÊN MÀN HÌNH MÁY
       cust.ghi_chu = newGhiChu;
       cust.items.forEach(item => {
         const inputEl = document.getElementById(`cs_moi_${item.rowIndex}`);
@@ -681,16 +525,14 @@ async function saveCustomerData(maKhang) {
           item.chiso_moi = Number(inputEl.value);
           item.san_luong = document.getElementById(`sl_val_${item.rowIndex}`).value;
           item.tong_sluong = document.getElementById(`tong_sl_${item.rowIndex}`).innerText;
-          item.chenh_lech = document.getElementById(`clech_${item.rowIndex}`).innerText;
-          item.tyle_clech = document.getElementById(`tyle_${item.rowIndex}`).innerText;
         }
       });
 
       updateSummaryBar();
-      checkCancelButtonStatus(maKhang);
-
-      // 2. ÂM THẦM TẢI LẠI DANH SÁCH MỚI NHẤT TỪ SERVER ĐỂ ĐỒNG BỘ CHẮC CHẮN
-      fetchSilentLatestData();
+      // Tự động chuyển sang KH tiếp theo sau khi lưu thành công
+      if (currentCardIndex < customerKeys.length - 1) {
+        setTimeout(() => nextCustomer(), 600);
+      }
     } else {
       showToast("❌ " + res.message);
     }
@@ -702,17 +544,12 @@ async function cancelCustomerData(maKhang) {
   const cust = groupedData[maKhang];
   if (!cust) return;
 
-  const confirmCancel = await showCustomConfirm(
-    "XÁC NHẬN HỦY", 
-    `Bạn có chắc chắn muốn HỦY chỉ số đã nhập của khách hàng ${maKhang}? (Ghi chú sẽ giữ nguyên)`,
-    true
-  );
-
+  const confirmCancel = await showCustomConfirm("HỦY CHỈ SỐ", `Xác nhận HỦY chỉ số đã nhập của KH ${maKhang}?`, true);
   if (!confirmCancel) return;
 
   const rowIndices = cust.items.map(item => item.rowIndex);
 
-  showToast(`⏳ Đang hủy chỉ số KH ${maKhang}...`);
+  showToast(`⏳ Đang hủy chỉ số...`);
   fetch(API_URL, {
     method: "POST",
     headers: { "Content-Type": "text/plain;charset=utf-8" },
@@ -731,52 +568,13 @@ async function cancelCustomerData(maKhang) {
         item.chiso_moi = "";
         item.san_luong = "-";
         item.tong_sluong = "-";
-        item.chenh_lech = "-";
-        item.tyle_clech = "-";
-
-        const csMoiInput = document.getElementById(`cs_moi_${item.rowIndex}`);
-        if (csMoiInput) csMoiInput.value = "";
-
-        const slHiddenEl = document.getElementById(`sl_val_${item.rowIndex}`);
-        if (slHiddenEl) slHiddenEl.value = "-";
-
-        const tongSlCell = document.getElementById(`tong_sl_${item.rowIndex}`);
-        if (tongSlCell) tongSlCell.innerText = "-";
-
-        const clechCell = document.getElementById(`clech_${item.rowIndex}`);
-        if (clechCell) clechCell.innerText = "-";
-
-        const tyleCell = document.getElementById(`tyle_${item.rowIndex}`);
-        if (tyleCell) tyleCell.innerText = "-";
       });
 
-      const btnCancel = document.getElementById(`btn_cancel_${maKhang}`);
-      if (btnCancel) btnCancel.disabled = true;
-
       updateSummaryBar();
-
-      // Đồng bộ âm thầm lại dữ liệu mới nhất
-      fetchSilentLatestData();
+      renderCurrentCustomerCard();
     } else {
       showToast("❌ " + res.message);
     }
   })
-  .catch(() => showToast("❌ Lỗi kết nối hệ thống khi hủy!"));
-}
-
-function handleLogout() {
-  const logoutModal = document.getElementById('logoutModal');
-  if (logoutModal) logoutModal.style.display = 'flex';
-}
-
-function closeLogoutModal() {
-  const logoutModal = document.getElementById('logoutModal');
-  if (logoutModal) logoutModal.style.display = 'none';
-}
-
-// Xử lý đăng xuất: Xóa luôn Cache chỉ số để khi đăng nhập lại phải tải mới toàn bộ
-function confirmLogout() {
-  localStorage.removeItem("cmis_user_session");
-  localStorage.removeItem(getClientCacheKey());
-  window.location.href = "login.html";
+  .catch(() => showToast("❌ Lỗi kết nối khi hủy!"));
 }
