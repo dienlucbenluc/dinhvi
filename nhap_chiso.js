@@ -1,547 +1,262 @@
-const API_URL = "https://script.google.com/macros/s/AKfycbyKaG42B8RFzHToMu2Gqk7y5mCQ4wqDxxB5NWftA5lOZdB_mrLkCy6GkVs7zyOgRrHd/exec";
-let currentUser = null;
-let groupedData = {};
-let customerKeys = []; // Mã KH sắp xếp theo ma_sogcs -> danh_so -> ma_khang
-let currentCardIndex = 0; 
-let isAnimating = false; // Chống vuốt quá nhanh gây lỗi animation
-
-const BCS_ORDER = ["BT", "CD", "TD", "SG", "VC", "BN", "CN", "TN", "SN", "VN"];
-
-document.addEventListener("DOMContentLoaded", () => {
-  const sessionStr = localStorage.getItem("cmis_user_session");
-  if (!sessionStr) { window.location.href = "login.html"; return; }
-  currentUser = JSON.parse(sessionStr);
-  document.getElementById("userDisplay").innerText = `👷 ${currentUser.ten_nvien || currentUser.ten_ndung}`;
-  
-  loadChiSoData();
-  setupSwipeEvents();
-});
-
-let toastTimer = null;
-function showToast(msg) {
-  const t = document.getElementById("toast");
-  t.innerText = msg;
-  t.style.display = "block";
-  if (toastTimer) clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => { t.style.display = "none"; }, 3500);
-}
-
-function showCustomConfirm(title, message, isDanger = false) {
-  return new Promise((resolve) => {
-    const modal = document.getElementById("customConfirmModal");
-    const titleEl = document.getElementById("confirmModalTitle");
-    const msgEl = document.getElementById("confirmModalMessage");
-    const btnConfirm = document.getElementById("btnModalConfirm");
-    const btnCancel = document.getElementById("btnModalCancel");
-
-    titleEl.innerText = title;
-    titleEl.style.color = isDanger ? "#dc3545" : "#007bff";
-    msgEl.innerText = message;
-    btnConfirm.style.background = isDanger ? "#dc3545" : "#28a745";
-
-    modal.style.display = "flex";
-
-    btnConfirm.onclick = () => { modal.style.display = "none"; resolve(true); };
-    btnCancel.onclick = () => { modal.style.display = "none"; resolve(false); };
-  });
-}
-
-function getClientCacheKey() {
-  return "cmis_chiso_cache_" + String(currentUser?.ten_ndung || "").trim().toLowerCase();
-}
-
-function loadChiSoData() {
-  let cachedList = null;
-  try {
-    const raw = localStorage.getItem(getClientCacheKey());
-    if (raw) {
-      const obj = JSON.parse(raw);
-      if (obj && Array.isArray(obj.list) && obj.list.length > 0) {
-        cachedList = obj.list;
-        groupAndRender(cachedList);
-      }
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Nhập chỉ số khách hàng</title>
+  <style>
+    * { box-sizing: border-box; }
+    html, body { height: 100%; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background: #f0f2f5; color: #333; overflow: hidden; }
+    
+    .sticky-top-container {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      background: #fff;
+      z-index: 1000;
+      padding: 8px 10px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
     }
-  } catch (e) {}
 
-  if (currentUser && currentUser.ten_ndung) {
-    fetchSilentLatestData(currentUser.ten_ndung, !cachedList);
-  }
-}
+    .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; position: relative; }
+    .header-left { display: flex; align-items: center; gap: 8px; }
+    .header-right { display: flex; align-items: center; gap: 8px; position: relative; }
 
-function fetchSilentLatestData(username, isFirstLoad = false) {
-  const targetUser = username || currentUser?.ten_ndung;
-  if (!targetUser) return;
-
-  fetch(API_URL, {
-    method: "POST",
-    headers: { "Content-Type": "text/plain;charset=utf-8" },
-    body: JSON.stringify({ action: "GET_CHISO_DATA", ten_ndung: targetUser })
-  })
-  .then(res => res.json())
-  .then(res => {
-    if (res.status === "success") {
-      localStorage.setItem(getClientCacheKey(), JSON.stringify({ time: Date.now(), list: res.list }));
-      groupAndRender(res.list);
-    } else if (isFirstLoad) {
-      document.getElementById("listContainer").innerHTML = `<p style='color:red; text-align:center;'>❌ ${res.message || 'Lỗi tải dữ liệu!'}</p>`;
+    .btn-menu { 
+      background: #f0f2f5; 
+      border: 1px solid #ccc; 
+      border-radius: 4px; 
+      padding: 6px 10px; 
+      font-size: 18px; 
+      cursor: pointer; 
+      line-height: 1;
     }
-  })
-  .catch(() => {
-    if (isFirstLoad) {
-      document.getElementById("listContainer").innerHTML = "<p style='color:red; text-align:center;'>❌ Lỗi kết nối máy chủ!</p>";
+    .btn-menu:active { background: #e2e6ea; }
+
+    .title { font-size: 16px; font-weight: bold; color: #0056b3; }
+    .user-info { font-weight: 600; font-size: 13px; color: #28a745; }
+
+    .search-box input { width: 100%; padding: 8px 10px; border-radius: 5px; border: 1px solid #ccc; font-size: 14px; outline: none; }
+    .search-box input:focus { border-color: #0056b3; }
+
+    .summary-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 6px;
+      padding: 6px 8px;
+      background: #eef5fc;
+      border-radius: 5px;
+      font-size: 13px;
+      color: #004085;
+      font-weight: 600;
+      line-height: 1.2;
     }
-  });
-}
-
-function groupAndRender(flatList) {
-  groupedData = {};
-  flatList.forEach(item => {
-    const makh = item.ma_khang;
-    if (!groupedData[makh]) {
-      groupedData[makh] = {
-        ma_khang: item.ma_khang,
-        ten_khang: item.ten_khang,
-        dia_chi: item.dia_chi,
-        ma_sogcs: item.ma_sogcs || "",
-        danh_so: item.danh_so || "",
-        so_cot: item.so_cot,
-        ten_tram: item.ten_tram,
-        so_cto: item.so_cto,
-        so_dthoai: item.so_dthoai || "",
-        ghi_chu: item.ghi_chu || "",
-        items: []
-      };
+    .summary-bar span { white-space: nowrap; }
+    .link-filter-chuaghi {
+      color: #d9534f;
+      text-decoration: underline;
+      cursor: pointer;
+      font-weight: bold;
     }
-    groupedData[makh].items.push(item);
-  });
 
-  // Sắp xếp BCS
-  Object.keys(groupedData).forEach(makh => {
-    groupedData[makh].items.sort((a, b) => {
-      let idxA = BCS_ORDER.indexOf(String(a.bcs).toUpperCase().trim());
-      let idxB = BCS_ORDER.indexOf(String(b.bcs).toUpperCase().trim());
-      return (idxA === -1 ? 99 : idxA) - (idxB === -1 ? 99 : idxB);
-    });
-  });
+    #listContainer {
+      position: absolute;
+      top: 110px;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      padding: 10px;
+      overflow-y: auto;
+      touch-action: pan-y;
+    }
 
-  // Sắp xếp danh sách KH: ma_sogcs -> danh_so -> ma_khang
-  customerKeys = Object.keys(groupedData).sort((a, b) => {
-    const custA = groupedData[a];
-    const custB = groupedData[b];
+    .customer-card { 
+      background: #fff; 
+      border-radius: 10px; 
+      padding: 12px; 
+      border: 2px solid #0056b3; 
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      user-select: none;
+      transition: transform 0.25s ease-out, opacity 0.25s ease-out;
+      will-change: transform, opacity;
+    }
 
-    const sogcsCompare = String(custA.ma_sogcs).localeCompare(String(custB.ma_sogcs), undefined, { numeric: true, sensitivity: 'base' });
-    if (sogcsCompare !== 0) return sogcsCompare;
+    .slide-left-out { transform: translateX(-120%); opacity: 0; }
+    .slide-right-out { transform: translateX(120%); opacity: 0; }
+    .slide-left-in { transform: translateX(100%); opacity: 0; }
+    .slide-right-in { transform: translateX(-100%); opacity: 0; }
 
-    const danhSoCompare = String(custA.danh_so).localeCompare(String(custB.danh_so), undefined, { numeric: true, sensitivity: 'base' });
-    if (danhSoCompare !== 0) return danhSoCompare;
+    .cust-header { border-bottom: none; padding-bottom: 4px; margin-bottom: 6px; }
+    
+    .cust-title { 
+      font-weight: bold; 
+      color: #0056b3; 
+      font-size: 18px; 
+      margin-bottom: 4px; 
+      line-height: 1.3;
+    }
+    
+    .cust-address { 
+      font-size: 15px; 
+      color: #222; 
+      margin: 4px 0; 
+      word-break: break-word;
+      line-height: 1.3;
+      font-weight: 500;
+    }
 
-    return String(custA.ma_khang).localeCompare(String(custB.ma_khang), undefined, { numeric: true, sensitivity: 'base' });
-  });
+    .cust-row-group { 
+      display: flex; 
+      flex-wrap: wrap; 
+      gap: 6px; 
+      margin-top: 5px; 
+      align-items: center;
+      font-size: 14px;
+    }
 
-  updateSummaryBar();
-  renderCurrentCustomerCard();
-}
+    .input-ghichu {
+      width: 100%;
+      border: 1px solid #ced4da;
+      border-radius: 4px;
+      padding: 6px 8px;
+      font-size: 14px;
+      color: #d9534f;
+      font-weight: bold;
+      outline: none;
+      background-color: #fff;
+    }
+    .input-ghichu:focus { border-color: #007bff; }
 
-function updateSummaryBar() {
-  const tongKh = customerKeys.length;
-  let daCoCS = 0;
+    .cust-dynamic-info-v2 {
+      background: #f8f9fa;
+      padding: 8px;
+      border-radius: 5px;
+      font-size: 14px;
+      color: #004085;
+      font-weight: bold;
+      margin-top: 8px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 4px;
+    }
 
-  customerKeys.forEach(makh => {
-    const hasCS = groupedData[makh].items.some(i => i.chiso_moi !== "" && i.chiso_moi !== undefined && i.chiso_moi !== null);
-    if (hasCS) daCoCS++;
-  });
+    .table-responsive { overflow-x: auto; margin-top: 10px; }
+    table.chiso-table { width: 100%; border-collapse: collapse; font-size: 15px; }
+    table.chiso-table th { background: #e9ecef; color: #111; padding: 8px 4px; border: 1px solid #ccc; font-size: 15px; font-weight: bold; text-align: center; }
+    table.chiso-table td { border: 1px solid #ddd; padding: 0; vertical-align: middle; }
+    
+    .text-right { text-align: right !important; padding-right: 8px !important; }
+    .text-center { text-align: center !important; }
 
-  document.getElementById("sumTongKh").innerText = tongKh;
-  document.getElementById("sumDaCS").innerText = daCoCS;
-  document.getElementById("sumChuaGhi").innerText = tongKh - daCoCS;
-}
+    .val-calc-large { 
+      font-size: 17px !important; 
+      font-weight: bold !important; 
+      color: #111;
+      padding: 6px 0;
+    }
 
-function renderCurrentCustomerCard(slideDirection = null) {
-  const container = document.getElementById("listContainer");
+    .bcs-badge { font-weight: bold; padding: 4px 8px; border-radius: 4px; background: #e2e3e5; color: #111; font-size: 14px; }
+    
+    input.input-cs-moi { 
+      width: 100%; 
+      height: 42px;
+      padding: 4px 8px; 
+      background-color: #F0FFFF; 
+      border: none; 
+      text-align: right; 
+      font-weight: bold; 
+      font-size: 18px; 
+      color: #0056b3;
+      outline: none; 
+    }
+    input.input-cs-moi:focus { background-color: #ffffff; border: 2px solid #007bff; }
 
-  if (customerKeys.length === 0) {
-    container.innerHTML = "<p style='text-align:center; padding-top:20px; font-weight:bold;'>Không tìm thấy dữ liệu khách hàng.</p>";
-    return;
-  }
+    .card-btn-group { 
+      display: flex; 
+      gap: 8px; 
+      margin-top: 12px; 
+      padding-top: 10px; 
+      border-top: 1px dashed #28a745; 
+    }
 
-  if (currentCardIndex < 0) currentCardIndex = 0;
-  if (currentCardIndex >= customerKeys.length) currentCardIndex = customerKeys.length - 1;
+    .btn-card { flex: 1; padding: 12px 8px; border: none; border-radius: 6px; font-weight: bold; font-size: 14px; cursor: pointer; color: white; }
+    .btn-card-save { background: #28a745; }
+    .btn-card-save:disabled { background: #a5d6a7; cursor: not-allowed; opacity: 0.6; }
+    .btn-card-cancel { background: #dc3545; }
+    .btn-card-cancel:disabled { background: #ef9a9a; cursor: not-allowed; opacity: 0.6; }
 
-  const makh = customerKeys[currentCardIndex];
-  const cust = groupedData[makh];
-  const firstItem = cust.items[0] || {};
-  const cotTramText = [cust.so_cot, cust.ten_tram].filter(Boolean).join(" - ");
+    #toast { 
+      position: fixed; 
+      top: 15px; 
+      right: 15px; 
+      max-width: 320px;
+      background: rgba(33, 37, 41, 0.92); 
+      color: #fff; 
+      padding: 10px 15px; 
+      border-radius: 8px; 
+      font-size: 14px; 
+      display: none; 
+      z-index: 10001; 
+      box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+    }
 
-  const alreadyHasCS = cust.items.some(i => i.chiso_moi !== "" && i.chiso_moi !== undefined && i.chiso_moi !== null);
+    .modal-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0, 0, 0, 0.4); display: none; align-items: center; justify-content: center; z-index: 10000; }
+    .modal-box { background: #ffffff; width: 88%; max-width: 360px; border-radius: 12px; padding: 18px 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); }
+    .modal-title { font-size: 16px; font-weight: bold; color: #007bff; margin-bottom: 10px; text-align: center; }
+    .modal-message { font-size: 14px; color: #333; line-height: 1.5; white-space: pre-line; }
+    .modal-buttons { display: flex; gap: 10px; margin-top: 15px; }
+    .modal-buttons button { flex: 1; padding: 9px; font-size: 13px; font-weight: bold; border-radius: 6px; border: none; cursor: pointer; }
+    .btn-modal-cancel { background: #e0e0e0; color: #333; }
+    .btn-modal-confirm { background: #28a745; color: white; }
+  </style>
+</head>
+<body>
 
-  // Xác định class chuẩn bị cho Animation đi vào
-  let initialClass = "";
-  if (slideDirection === "left") initialClass = "slide-left-in";
-  else if (slideDirection === "right") initialClass = "slide-right-in";
-
-  let html = `
-    <div class="customer-card ${initialClass}" id="activeCustomerCard">
-      <div class="cust-header">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
-          <span style="font-size:13px; color:#0056b3; font-weight:bold; background:#eef5fc; padding:2px 6px; border-radius:4px;">
-            STT: ${currentCardIndex + 1} / ${customerKeys.length}
-          </span>
-          <span style="font-size:12px; color:#666; font-style:italic;">👈 Vuốt để đổi KH 👉</span>
-        </div>
-        <div class="cust-title">${cust.ma_khang} - ${cust.ten_khang}</div>
-        <div class="cust-address"><b>Đ/C:</b> ${cust.dia_chi || ''}</div>
-        
-        <div class="cust-row-group">
-          <b>Sổ:</b> ${cust.ma_sogcs} | <b>DS:</b> ${cust.danh_so} | <b>ST:</b> ${cust.so_cto} | <b>ĐT:</b> ${cust.so_dthoai || 'N/A'}
-        </div>
-
-        <div class="cust-row-group" style="margin-top: 4px;">
-          <b>Cột - Trạm:</b> ${cotTramText || 'N/A'}
-        </div>
-
-        <div class="cust-row-group" style="margin-top: 6px;">
-          <b style="color:#000;">Ghi chú:</b>
-          <input type="text" 
-                 class="input-ghichu" 
-                 id="ghi_chu_${cust.ma_khang}" 
-                 value="${cust.ghi_chu || ''}" 
-                 placeholder="Nhập ghi chú nếu có..." 
-                 onchange="groupedData['${cust.ma_khang}'].ghi_chu = this.value;">
-        </div>
-
-        <div class="cust-dynamic-info-v2" id="detail_info_${cust.ma_khang}">
-          <span>SL Tháo(${firstItem.bcs}): <b>${firstItem.sluong_thao || 0}</b></span>
-          <span>SL KT: <b>${firstItem.sluong_kt || 0}</b></span>
-        </div>
+  <div class="sticky-top-container">
+    <div class="header">
+      <div class="header-left">
+         <div class="title">⚡ GHI CHỈ SỐ</div>
       </div>
-
-      <div class="table-responsive">
-        <table class="chiso-table">
-          <thead>
-            <tr>
-              <th style="width: 15%;">BCS</th>
-              <th style="width: 25%;">CS cũ</th>
-              <th style="width: 35%;">CS mới</th>
-              <th style="width: 25%;">Tổng SL</th>
-            </tr>
-          </thead>
-          <tbody>
-  `;
-
-  cust.items.forEach(item => {
-    const csMoiVal = (item.chiso_moi !== "" && item.chiso_moi !== undefined && item.chiso_moi !== null) ? item.chiso_moi : "";
-
-    html += `
-      <tr id="row_${item.rowIndex}">
-        <td class="text-center" style="padding: 6px 2px;"><span class="bcs-badge">${item.bcs}</span></td>
-        <td class="val-calc-large text-right">${item.chiso_cu}</td>
-        <td>
-          <input type="number" 
-                 class="input-cs-moi" 
-                 id="cs_moi_${item.rowIndex}" 
-                 value="${csMoiVal}"
-                 oninput="calculateRow('${cust.ma_khang}', '${item.bcs}', ${item.rowIndex}, ${item.chiso_cu || 0}, ${item.hsn}, ${item.sluong_thao || 0})">
-          <input type="hidden" id="sl_val_${item.rowIndex}" value="${item.san_luong !== "" && item.san_luong !== undefined ? item.san_luong : '-'}">
-        </td>
-        <td id="tong_sl_${item.rowIndex}" class="val-calc-large text-right">${item.tong_sluong !== "" && item.tong_sluong !== undefined ? item.tong_sluong : '-'}</td>
-      </tr>
-    `;
-  });
-
-  const cancelDisabledAttr = !alreadyHasCS ? "disabled" : "";
-
-  html += `
-          </tbody>
-        </table>
-      </div>
-
-      <div class="card-btn-group">
-        <button class="btn-card btn-card-save" id="btn_save_${cust.ma_khang}" onclick="saveCustomerData('${cust.ma_khang}')">LƯU CS</button>
-        <button class="btn-card btn-card-cancel" id="btn_cancel_${cust.ma_khang}" ${cancelDisabledAttr} onclick="cancelCustomerData('${cust.ma_khang}')">HỦY CS</button>
+      <div class="header-right">
+        <div class="user-info" id="userDisplay">👷 ...</div>     
+        <button class="btn-menu" onclick="window.location.href='home.html'">☰</button>
       </div>
     </div>
-  `;
+    
+    <div class="search-box">
+      <input type="text" id="searchInput" placeholder="🔍 Tìm Mã, Tên, Đ/C, Cột, Trạm, Sổ, SĐT..." oninput="filterData()">
+    </div>
+    
+    <div class="summary-bar">
+      <span>Tổng: <b id="sumTongKh">0</b></span>
+      <span>Đã ghi: <b id="sumDaCS" style="color:#28a745;">0</b></span>
+      <span>Chưa ghi: <b id="sumChuaGhi" style="color:#d9534f;">0</b></span>
+      <span class="link-filter-chuaghi" onclick="filterChuaGhi()">Chưa ghi</span>
+    </div>
+  </div>
 
-  container.innerHTML = html;
+  <div id="listContainer">
+    <div style="text-align:center; padding-top:40px; color:#0056b3; font-weight:bold;">
+      ⏳ Đang tải dữ liệu khách hàng...
+    </div>
+  </div>
 
-  if (slideDirection) {
-    const activeCard = document.getElementById("activeCustomerCard");
-    setTimeout(() => {
-      activeCard.classList.remove("slide-left-in", "slide-right-in");
-      setTimeout(() => { isAnimating = false; }, 250);
-    }, 20);
-  } else {
-    isAnimating = false;
-  }
-}
+  <div id="toast"></div>
 
-function nextCustomer() {
-  if (isAnimating) return;
-  if (currentCardIndex >= customerKeys.length - 1) {
-    showToast("ℹ️ Đã đến khách hàng cuối cùng");
-    return;
-  }
+  <div id="customConfirmModal" class="modal-overlay">
+    <div class="modal-box">
+      <div class="modal-title" id="confirmModalTitle">XÁC NHẬN</div>
+      <div class="modal-message" id="confirmModalMessage">Nội dung thông báo...</div>
+      <div class="modal-buttons">
+        <button class="btn-modal-cancel" id="btnModalCancel">Hủy</button>
+        <button class="btn-modal-confirm" id="btnModalConfirm">Xác nhận</button>
+      </div>
+    </div>
+  </div>
 
-  isAnimating = true;
-  const activeCard = document.getElementById("activeCustomerCard");
-  if (activeCard) {
-    activeCard.classList.add("slide-left-out");
-    setTimeout(() => {
-      currentCardIndex++;
-      renderCurrentCustomerCard("left");
-    }, 200);
-  } else {
-    currentCardIndex++;
-    renderCurrentCustomerCard();
-  }
-}
-
-function prevCustomer() {
-  if (isAnimating) return;
-  if (currentCardIndex <= 0) {
-    showToast("ℹ️ Đang ở khách hàng đầu tiên");
-    return;
-  }
-
-  isAnimating = true;
-  const activeCard = document.getElementById("activeCustomerCard");
-  if (activeCard) {
-    activeCard.classList.add("slide-right-out");
-    setTimeout(() => {
-      currentCardIndex--;
-      renderCurrentCustomerCard("right");
-    }, 200);
-  } else {
-    currentCardIndex--;
-    renderCurrentCustomerCard();
-  }
-}
-
-function setupSwipeEvents() {
-  const container = document.getElementById("listContainer");
-  let startX = 0;
-  let startY = 0;
-
-  container.addEventListener('touchstart', (e) => {
-    if (e.target.tagName === "INPUT") return;
-    startX = e.touches[0].clientX;
-    startY = e.touches[0].clientY;
-  }, { passive: true });
-
-  container.addEventListener('touchend', (e) => {
-    if (!startX || !startY || isAnimating) return;
-
-    let endX = e.changedTouches[0].clientX;
-    let endY = e.changedTouches[0].clientY;
-
-    let diffX = startX - endX;
-    let diffY = startY - endY;
-
-    if (Math.abs(diffX) > Math.abs(diffY) && Math.abs(diffX) > 40) {
-      if (diffX > 0) {
-        nextCustomer();
-      } else {
-        prevCustomer();
-      }
-    }
-    startX = 0;
-    startY = 0;
-  }, { passive: true });
-}
-
-function calculateRow(maKhang, bcs, rowIndex, csCu, hsn, sluongThao) {
-  const inputEl = document.getElementById(`cs_moi_${rowIndex}`);
-  const val = inputEl ? inputEl.value.trim() : "";
-
-  const slHiddenEl = document.getElementById(`sl_val_${rowIndex}`);
-  const tongSlCell = document.getElementById(`tong_sl_${rowIndex}`);
-
-  if (val === "" || isNaN(Number(val))) {
-    if (slHiddenEl) slHiddenEl.value = "-";
-    if (tongSlCell) tongSlCell.innerText = "-";
-    checkCancelButtonStatus(maKhang);
-    return;
-  }
-
-  const csMoi = Number(val);
-  const csCuVal = Number(csCu) || 0;
-  const hsnVal = Number(hsn) || 1;
-  const slThao = Number(sluongThao) || 0;
-
-  const sanLuong = Math.round((csMoi - csCuVal) * hsnVal);
-  const tongSluong = sanLuong + slThao;
-
-  if (slHiddenEl) slHiddenEl.value = sanLuong;
-  if (tongSlCell) tongSlCell.innerText = tongSluong;
-
-  checkCancelButtonStatus(maKhang);
-}
-
-function checkCancelButtonStatus(maKhang) {
-  const cust = groupedData[maKhang];
-  if (!cust) return;
-
-  let hasNewCS = false;
-  cust.items.forEach(item => {
-    const inputEl = document.getElementById(`cs_moi_${item.rowIndex}`);
-    if (inputEl && inputEl.value !== "") hasNewCS = true;
-  });
-
-  const btnCancel = document.getElementById(`btn_cancel_${maKhang}`);
-  if (btnCancel) btnCancel.disabled = !hasNewCS;
-}
-
-function filterChuaGhi() {
-  document.getElementById("searchInput").value = "";
-  const unrecordedKeys = [];
-
-  customerKeys.forEach(makh => {
-    const cust = groupedData[makh];
-    const hasCS = cust.items.some(i => i.chiso_moi !== "" && i.chiso_moi !== undefined && i.chiso_moi !== null);
-    if (!hasCS) unrecordedKeys.push(makh);
-  });
-
-  if (unrecordedKeys.length > 0) {
-    customerKeys = unrecordedKeys;
-    currentCardIndex = 0;
-    renderCurrentCustomerCard();
-  } else {
-    showToast("🎉 Tất cả khách hàng đã được ghi!");
-  }
-}
-
-function filterData() {
-  const q = document.getElementById("searchInput").value.toLowerCase().trim();
-  
-  if (!q) {
-    loadChiSoData();
-    return;
-  }
-
-  const filtered = [];
-  Object.keys(groupedData).forEach(makh => {
-    const cust = groupedData[makh];
-    const match = 
-      String(cust.ma_khang || "").toLowerCase().includes(q) ||
-      String(cust.ten_khang || "").toLowerCase().includes(q) ||
-      String(cust.dia_chi || "").toLowerCase().includes(q) ||
-      String(cust.so_cot || "").toLowerCase().includes(q) ||
-      String(cust.ten_tram || "").toLowerCase().includes(q) ||
-      String(cust.so_cto || "").toLowerCase().includes(q) ||
-      String(cust.ma_sogcs || "").toLowerCase().includes(q) ||
-      String(cust.danh_so || "").toLowerCase().includes(q) ||
-      String(cust.so_dthoai || "").toLowerCase().includes(q) ||
-      String(cust.ghi_chu || "").toLowerCase().includes(q);
-
-    if (match) filtered.push(makh);
-  });
-
-  customerKeys = filtered;
-  currentCardIndex = 0;
-  renderCurrentCustomerCard();
-}
-
-async function saveCustomerData(maKhang) {
-  const cust = groupedData[maKhang];
-  if (!cust) return;
-
-  const ghiChuInput = document.getElementById(`ghi_chu_${maKhang}`);
-  const newGhiChu = ghiChuInput ? ghiChuInput.value.trim() : (cust.ghi_chu || "");
-
-  const confirmSave = await showCustomConfirm("XÁC NHẬN GHI DỮ LIỆU", "Lưu chỉ số và ghi chú cho khách hàng này?");
-  if (!confirmSave) return;
-
-  const payload = [];
-
-  cust.items.forEach(item => {
-    const inputEl = document.getElementById(`cs_moi_${item.rowIndex}`);
-    if (inputEl) {
-      payload.push({
-        rowIndex: item.rowIndex,
-        chiso_cu: item.chiso_cu,
-        chiso_moi: inputEl.value !== "" ? Number(inputEl.value) : "",
-        ghi_chu: newGhiChu,
-        hsn: item.hsn,
-        sluong_thao: item.sluong_thao,
-        sluong_kt: item.sluong_kt,
-        lat: item.lat || "",
-        lng: item.lng || ""
-      });
-    }
-  });
-
-  showToast(`⏳ Đang lưu dữ liệu...`);
-  
-  fetch(API_URL, {
-    method: "POST",
-    headers: { "Content-Type": "text/plain;charset=utf-8" },
-    body: JSON.stringify({
-      action: "SAVE_CHISO",
-      ten_ndung: currentUser.ten_ndung,
-      ten_nvien: currentUser.ten_nvien,
-      items: payload
-    })
-  })
-  .then(res => res.json())
-  .then(res => {
-    if (res.status === "success") {
-      showToast("✅ " + res.message);
-      cust.ghi_chu = newGhiChu;
-      cust.items.forEach(item => {
-        const inputEl = document.getElementById(`cs_moi_${item.rowIndex}`);
-        if (inputEl && inputEl.value !== "") {
-          item.chiso_moi = Number(inputEl.value);
-          item.san_luong = document.getElementById(`sl_val_${item.rowIndex}`).value;
-          item.tong_sluong = document.getElementById(`tong_sl_${item.rowIndex}`).innerText;
-        }
-      });
-
-      updateSummaryBar();
-      if (currentCardIndex < customerKeys.length - 1) {
-        setTimeout(() => nextCustomer(), 400);
-      }
-    } else {
-      showToast("❌ " + res.message);
-    }
-  })
-  .catch(() => showToast("❌ Lỗi kết nối hệ thống khi lưu!"));
-}
-
-async function cancelCustomerData(maKhang) {
-  const cust = groupedData[maKhang];
-  if (!cust) return;
-
-  const confirmCancel = await showCustomConfirm("HỦY CHỈ SỐ", `Xác nhận HỦY chỉ số đã nhập của KH ${maKhang}?`, true);
-  if (!confirmCancel) return;
-
-  const rowIndices = cust.items.map(item => item.rowIndex);
-
-  showToast(`⏳ Đang hủy chỉ số...`);
-  fetch(API_URL, {
-    method: "POST",
-    headers: { "Content-Type": "text/plain;charset=utf-8" },
-    body: JSON.stringify({
-      action: "CANCEL_CHISO",
-      ten_ndung: currentUser.ten_ndung,
-      rowIndices: rowIndices
-    })
-  })
-  .then(res => res.json())
-  .then(res => {
-    if (res.status === "success") {
-      showToast("✅ " + res.message);
-
-      cust.items.forEach(item => {
-        item.chiso_moi = "";
-        item.san_luong = "-";
-        item.tong_sluong = "-";
-      });
-
-      updateSummaryBar();
-      renderCurrentCustomerCard();
-    } else {
-      showToast("❌ " + res.message);
-    }
-  })
-  .catch(() => showToast("❌ Lỗi kết nối khi hủy!"));
-}
+  <script charset="UTF-8" src="nhap_chiso.js?v=4.2.0"></script>
+</body>
+</html>
