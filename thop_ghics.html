@@ -191,7 +191,7 @@ const API_URL = "https://script.google.com/macros/s/AKfycbyKaG42B8RFzHToMu2Gqk7y
       const nvMap = {};
 
       flatList.forEach(item => {
-        const tenNv = (item.ten_ndung || item.ten_nvien || "Chưa phân công").trim();
+        const tenNv = (item.ten_nvien || "Chưa phân công").trim();
         const maKh = String(item.ma_khang || "").trim();
 
         if (!maKh) return;
