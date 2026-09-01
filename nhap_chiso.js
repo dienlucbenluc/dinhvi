@@ -193,10 +193,10 @@ function renderCurrentCustomerCard(slideDirection = null) {
           <span style="font-size:13px; color:#0056b3; font-weight:bold; background:#eef5fc; padding:2px 6px; border-radius:4px;">
             STT: ${currentCardIndex + 1} / ${customerKeys.length}
           </span>
-          <span style="font-size:12px; color:#666; font-style:italic;">⬅️ Vuốt để đổi KH ➡️</span>
+          <span style="font-size:12px; color:#666;">⬅️ Vuốt để đổi KH ➡️</span>
         </div>
-        <div class="cust-title">${cust.ma_khang} -  ${cust.ma_sogcs} - ${cust.danh_so} || ''</div>
-        <div class="cust-title"> ${cust.ten_khang} || ''</div>
+        <div class="cust-title">${cust.ma_khang} -  ${cust.ma_sogcs} - ${cust.danh_so || ''}</div>
+        <div class="cust-tenKH"> ${cust.ten_khang || ''}</div>
         <div class="cust-address"><b>Đ/C:</b> ${cust.dia_chi || ''}</div>
         <div class="cust-row-group">
           <b>Số CTơ:</b> ${cust.so_cto} - <b>ĐT:</b> ${cust.so_dthoai || 'N/A'}
