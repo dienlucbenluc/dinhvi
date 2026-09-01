@@ -115,7 +115,7 @@ function groupAndRender(flatList) {
     groupedData[makh].items.push(item);
   });
 
-  // 1. Sắp xếp các mục BCS trong từng KH
+  // 1. Sắp xếp thứ tự BCS
   Object.keys(groupedData).forEach(makh => {
     groupedData[makh].items.sort((a, b) => {
       let idxA = BCS_ORDER.indexOf(String(a.bcs).toUpperCase().trim());
@@ -124,7 +124,7 @@ function groupAndRender(flatList) {
     });
   });
 
-  // 2. Sắp xếp danh sách KH theo thứ tự: ma_sogcs -> danh_so -> ma_khang
+  // 2. Sắp xếp danh sách KH theo: ma_sogcs -> danh_so -> ma_khang
   customerKeys = Object.keys(groupedData).sort((a, b) => {
     const custA = groupedData[a];
     const custB = groupedData[b];
@@ -156,7 +156,7 @@ function updateSummaryBar() {
   document.getElementById("sumChuaGhi").innerText = tongKh - daCoCS;
 }
 
-// Render duy nhất Card của KH hiện tại (currentCardIndex)
+// Render duy nhất Card của KH tại vị trí currentCardIndex
 function renderCurrentCustomerCard() {
   const container = document.getElementById("listContainer");
 
@@ -184,10 +184,13 @@ function renderCurrentCustomerCard() {
   const alreadyHasCS = cust.items.some(i => i.chiso_moi !== "" && i.chiso_moi !== undefined && i.chiso_moi !== null);
 
   let html = `
-    <div class="customer-card">
+    <div class="customer-card" id="activeCustomerCard">
       <div class="cust-header">
-        <div style="font-size:12px; color:#666; font-weight:bold; margin-bottom:2px;">
-          Khách hàng ${currentCardIndex + 1} / ${customerKeys.length}
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+          <span style="font-size:13px; color:#0056b3; font-weight:bold; background:#eef5fc; padding:2px 6px; border-radius:4px;">
+            STT: ${currentCardIndex + 1} / ${customerKeys.length}
+          </span>
+          <span style="font-size:12px; color:#666; italic;">👈 Vuốt để đổi KH 👉</span>
         </div>
         <div class="cust-title">${cust.ma_khang} - ${cust.ten_khang}</div>
         <div class="cust-address"><b>Đ/C:</b> ${cust.dia_chi || ''}</div>
@@ -259,14 +262,9 @@ function renderCurrentCustomerCard() {
         </table>
       </div>
 
-      <div class="nav-btn-group">
-        <button class="btn-nav" onclick="prevCustomer()" ${currentCardIndex === 0 ? 'disabled' : ''}>◀ KH TRƯỚC</button>
-        <button class="btn-nav" onclick="nextCustomer()" ${currentCardIndex === customerKeys.length - 1 ? 'disabled' : ''}>KH TIẾP ▶</button>
-      </div>
-
       <div class="card-btn-group">
         <button class="btn-card btn-card-location" onclick="getLocation('${cust.ma_khang}')">${btnLocationText}</button>
-        <button class="btn-card btn-card-save" id="btn_save_${cust.ma_khang}" ${saveDisabledAttr} onclick="saveCustomerData('${cust.ma_khang}')">LƯU</button>
+        <button class="btn-card btn-card-save" id="btn_save_${cust.ma_khang}" ${saveDisabledAttr} onclick="saveCustomerData('${cust.ma_khang}')">LƯU CS</button>
         <button class="btn-card btn-card-cancel" id="btn_cancel_${cust.ma_khang}" ${cancelDisabledAttr} onclick="cancelCustomerData('${cust.ma_khang}')">HỦY CS</button>
       </div>
     </div>
@@ -279,6 +277,8 @@ function prevCustomer() {
   if (currentCardIndex > 0) {
     currentCardIndex--;
     renderCurrentCustomerCard();
+  } else {
+    showToast("ℹ️ Đang ở khách hàng đầu tiên");
   }
 }
 
@@ -286,16 +286,20 @@ function nextCustomer() {
   if (currentCardIndex < customerKeys.length - 1) {
     currentCardIndex++;
     renderCurrentCustomerCard();
+  } else {
+    showToast("ℹ️ Đã đến khách hàng cuối cùng");
   }
 }
 
-// Xử lý Vuốt / Swipe trái phải để đổi Khách hàng
+// Xử lý Sự kiện Vuốt (Swipe) trên màn hình thiết bị
 function setupSwipeEvents() {
   const container = document.getElementById("listContainer");
   let startX = 0;
   let startY = 0;
 
   container.addEventListener('touchstart', (e) => {
+    // Nếu người dùng đang vuốt trên ô input thì không chuyển bài
+    if (e.target.tagName === "INPUT") return;
     startX = e.touches[0].clientX;
     startY = e.touches[0].clientY;
   }, { passive: true });
@@ -309,12 +313,12 @@ function setupSwipeEvents() {
     let diffX = startX - endX;
     let diffY = startY - endY;
 
-    // Vuốt ngang chủ đạo (tránh nhầm với cuộn dọc)
-    if (Math.abs(diffX) > Math.abs(diffY) && Math.abs(diffX) > 50) {
+    // Yêu cầu khoảng cách vuốt tối thiểu 40px và vuốt ngang là chính
+    if (Math.abs(diffX) > Math.abs(diffY) && Math.abs(diffX) > 40) {
       if (diffX > 0) {
-        nextCustomer(); // Vuốt sang trái -> Xem KH tiếp theo
+        nextCustomer(); // Kéo từ phải qua trái -> Khách hàng tiếp theo
       } else {
-        prevCustomer(); // Vuốt sang phải -> Xem KH trước
+        prevCustomer(); // Kéo từ trái qua phải -> Khách hàng trước đó
       }
     }
     startX = 0;
@@ -529,9 +533,9 @@ async function saveCustomerData(maKhang) {
       });
 
       updateSummaryBar();
-      // Tự động chuyển sang KH tiếp theo sau khi lưu thành công
+      // Tự động chuyển sang KH tiếp theo ngay sau khi lưu
       if (currentCardIndex < customerKeys.length - 1) {
-        setTimeout(() => nextCustomer(), 600);
+        setTimeout(() => nextCustomer(), 500);
       }
     } else {
       showToast("❌ " + res.message);
