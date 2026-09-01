@@ -136,46 +136,55 @@ const API_URL = "https://script.google.com/macros/s/AKfycbyKaG42B8RFzHToMu2Gqk7y
       loadTongHopData();
     });
 
-   function loadTongHopData() {
+function loadTongHopData() {
   const loadingEl = document.getElementById("loadingText");
   const tableWrapper = document.getElementById("tableWrapper");
 
-  // Lấy thông tin user đăng nhập từ Session
+  // 1. Kiểm tra Session đăng nhập
   const sessionStr = localStorage.getItem("cmis_user_session");
-  const currentUser = sessionStr ? JSON.parse(sessionStr) : {};
+  const currentUser = sessionStr ? JSON.parse(sessionStr) : null;
+
+  if (!currentUser || !currentUser.ten_ndung) {
+    loadingEl.innerHTML = "<p style='color:red;'> Vui lòng đăng nhập lại trước khi xem báo cáo!</p>";
+    return;
+  }
 
   fetch(API_URL, {
     method: "POST",
     headers: { "Content-Type": "text/plain" },
     body: JSON.stringify({ 
       action: "GET_CHISO_DATA", 
-      ten_ndung: currentUser.ten_ndung || "", // Bổ sung ten_ndung
-      ten_nvien: ""                           // Giữ nguyên "" để lấy tất cả
+      ten_ndung: currentUser.ten_ndung,
+      is_tong_hop: true // Gửi thêm cờ này lên Server
     }),
     redirect: "follow"
   })
   .then(async res => {
-        const text = await res.text();
-        try {
-          return JSON.parse(text);
-        } catch (e) {
-          throw new Error("Phản hồi từ server không phải JSON: " + text.substring(0, 80));
-        }
-      })
-      .then(res => {
-        if (res.status === "success" && Array.isArray(res.list)) {
-          processAndRenderReport(res.list);
-          loadingEl.style.display = "none";
-          tableWrapper.style.display = "block";
-        } else {
-          loadingEl.innerHTML = "<p style='color:red;'>Lỗi: " + (res.message || "Dữ liệu không hợp lệ") + "</p>";
-        }
-      })
-      .catch(err => {
-        console.error("Fetch Error:", err);
-        loadingEl.innerHTML = `<p style='color:red;'>Lỗi kết nối: ${err.message}</p>`;
-      });
+    const text = await res.text();
+    try {
+      return JSON.parse(text);
+    } catch (e) {
+      throw new Error("Phản hồi từ server không phải JSON: " + text.substring(0, 80));
     }
+  })
+  .then(res => {
+    if (res.status === "success" && Array.isArray(res.list)) {
+      if (res.list.length === 0) {
+        loadingEl.innerHTML = "<p style='color:orange;'> Không có dữ liệu để hiển thị.</p>";
+        return;
+      }
+      processAndRenderReport(res.list);
+      loadingEl.style.display = "none";
+      tableWrapper.style.display = "block";
+    } else {
+      loadingEl.innerHTML = "<p style='color:red;'>Lỗi: " + (res.message || "Dữ liệu không hợp lệ") + "</p>";
+    }
+  })
+  .catch(err => {
+    console.error("Fetch Error:", err);
+    loadingEl.innerHTML = `<p style='color:red;'>Lỗi kết nối: ${err.message}</p>`;
+  });
+}
 
     function processAndRenderReport(flatList) {
       // Cấu trúc map: { ten_nvien: { khGiao: Set(), khGhiDuoc: Set() } }
