@@ -80,8 +80,15 @@
       border: 2px solid #0056b3; 
       box-shadow: 0 4px 12px rgba(0,0,0,0.1);
       user-select: none;
-      transition: transform 0.2s ease, opacity 0.2s ease;
+      transition: transform 0.25s ease-out, opacity 0.25s ease-out;
+      will-change: transform, opacity;
     }
+
+    /* Đổi Class để kích hoạt hiệu ứng Trượt vuốt */
+    .slide-left-out { transform: translateX(-120%); opacity: 0; }
+    .slide-right-out { transform: translateX(120%); opacity: 0; }
+    .slide-left-in { transform: translateX(100%); opacity: 0; }
+    .slide-right-in { transform: translateX(-100%); opacity: 0; }
 
     .cust-header { border-bottom: none; padding-bottom: 4px; margin-bottom: 6px; }
     
@@ -254,6 +261,6 @@
     </div>
   </div>
 
-  <script charset="UTF-8" src="nhap_chiso.js?v=4.1.0"></script>
+  <script charset="UTF-8" src="nhap_chiso.js?v=4.2.0"></script>
 </body>
 </html>
