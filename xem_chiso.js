@@ -26,8 +26,8 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 function getDsNhanVien() {
-  const ss = SpreadsheetApp.openById(SPREADSHEET_ID_NVIEN);
-  const sheetNV = ss.getSheetByName("nhan_vien");
+  const nv = SpreadsheetApp.openById(SPREADSHEET_ID_NVIEN);
+  const sheetNV = nv.getSheetByName("nhan_vien");
   
   if (!sheetNV || sheetNV.getLastRow() < 2) {
     return responseJSON({ status: "success", list: [] });
