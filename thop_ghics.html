@@ -186,84 +186,84 @@ const API_URL = "https://script.google.com/macros/s/AKfycbyKaG42B8RFzHToMu2Gqk7y
   });
 }
 
-    function processAndRenderReport(flatList) {
-      // Cấu trúc map: { ten_nvien: { khGiao: Set(), khGhiDuoc: Set() } }
-      const nvMap = {};
+function processAndRenderReport(flatList) {
+  // Cấu trúc map: { ten_nvien: { khGiao: Set(), khGhiDuoc: Set() } }
+  const nvMap = {};
 
-      flatList.forEach(item => {
-        const tenNv = (item.ten_nvien || item.ten_nvien || "Chưa phân công").trim();
-        const maKh = String(item.ma_khang || "").trim();
+  flatList.forEach(item => {
+    // ƯU TIÊN LẤY ten_nvien (Tên đầy đủ) TRƯỚC, NẾU KHÔNG CÓ MỚI DÙNG ten_ndung
+    const tenNv = (item.ten_nvien || item.ten_ndung || "Chưa phân công").trim();
+    const maKh = String(item.ma_khang || "").trim();
 
-        if (!maKh) return;
+    if (!maKh) return;
 
-        if (!nvMap[tenNv]) {
-          nvMap[tenNv] = {
-            khGiao: new Set(),
-            khGhiDuoc: new Set()
-          };
-        }
-
-        // TỔNG GIAO = count(distinct ma_khang)
-        nvMap[tenNv].khGiao.add(maKh);
-
-        // ĐIỀU KIỆN GHI ĐƯỢC: Có chỉ số mới VÀ Có tọa độ
-        const csMoi = item.chiso_moi;
-        const lat = item.lat;
-        const lng = item.lng;
-
-        const hasCS = (csMoi !== "" && csMoi !== null && csMoi !== undefined);
-        const hasToaDo = (lat !== "" && lat !== null && lat !== undefined) && 
-                         (lng !== "" && lng !== null && lng !== undefined);
-
-        if (hasCS && hasToaDo) {
-          nvMap[tenNv].khGhiDuoc.add(maKh);
-        }
-      });
-
-      const tbody = document.getElementById("reportTbody");
-      const tfoot = document.getElementById("reportTfoot");
-
-      tbody.innerHTML = "";
-      tfoot.innerHTML = "";
-
-      let stt = 1;
-      let sumTongGiao = 0;
-      let sumGhiDuoc = 0;
-      let sumChuaGhi = 0;
-
-      const sortedNhanVien = Object.keys(nvMap).sort((a, b) => a.localeCompare(b, 'vi'));
-
-      sortedNhanVien.forEach(tenNv => {
-        const tongGiao = nvMap[tenNv].khGiao.size;
-        const ghiDuoc = nvMap[tenNv].khGhiDuoc.size;
-        // CHƯA GHI = Tổng giao - Ghi được
-        const chuaGhi = tongGiao - ghiDuoc;
-
-        sumTongGiao += tongGiao;
-        sumGhiDuoc += ghiDuoc;
-        sumChuaGhi += chuaGhi;
-
-        const tr = document.createElement("tr");
-        tr.innerHTML = `
-          <td class="text-center">${stt++}</td>
-          <td class="text-left" style="font-weight: 600;">${tenNv}</td>
-          <td class="text-right val-tong">${tongGiao.toLocaleString('vi-VN')}</td>
-          <td class="text-right val-da-ghi">${ghiDuoc.toLocaleString('vi-VN')}</td>
-          <td class="text-right val-chua-ghi">${chuaGhi.toLocaleString('vi-VN')}</td>
-        `;
-        tbody.appendChild(tr);
-      });
-
-      // Hàng Tổng Cộng
-      tfoot.innerHTML = `
-        <tr class="row-total">
-          <td colspan="2" class="text-center">TỔNG CỘNG</td>
-          <td class="text-right val-tong">${sumTongGiao.toLocaleString('vi-VN')}</td>
-          <td class="text-right val-da-ghi">${sumGhiDuoc.toLocaleString('vi-VN')}</td>
-          <td class="text-right val-chua-ghi">${sumChuaGhi.toLocaleString('vi-VN')}</td>
-        </tr>
-      `;
+    if (!nvMap[tenNv]) {
+      nvMap[tenNv] = {
+        khGiao: new Set(),
+        khGhiDuoc: new Set()
+      };
     }
+
+    // TỔNG GIAO = count(distinct ma_khang)
+    nvMap[tenNv].khGiao.add(maKh);
+
+    // ĐIỀU KIỆN GHI ĐƯỢC: Có chỉ số mới VÀ Có tọa độ
+    const csMoi = item.chiso_moi;
+    const lat = item.lat;
+    const lng = item.lng;
+
+    const hasCS = (csMoi !== "" && csMoi !== null && csMoi !== undefined);
+    const hasToaDo = (lat !== "" && lat !== null && lat !== undefined) && 
+                     (lng !== "" && lng !== null && lng !== undefined);
+
+    if (hasCS && hasToaDo) {
+      nvMap[tenNv].khGhiDuoc.add(maKh);
+    }
+  });
+
+  const tbody = document.getElementById("reportTbody");
+  const tfoot = document.getElementById("reportTfoot");
+
+  tbody.innerHTML = "";
+  tfoot.innerHTML = "";
+
+  let stt = 1;
+  let sumTongGiao = 0;
+  let sumGhiDuoc = 0;
+  let sumChuaGhi = 0;
+
+  const sortedNhanVien = Object.keys(nvMap).sort((a, b) => a.localeCompare(b, 'vi'));
+
+  sortedNhanVien.forEach(tenNv => {
+    const tongGiao = nvMap[tenNv].khGiao.size;
+    const ghiDuoc = nvMap[tenNv].khGhiDuoc.size;
+    const chuaGhi = tongGiao - ghiDuoc;
+
+    sumTongGiao += tongGiao;
+    sumGhiDuoc += ghiDuoc;
+    sumChuaGhi += chuaGhi;
+
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td class="text-center">${stt++}</td>
+      <td class="text-left" style="font-weight: 600;">${tenNv}</td>
+      <td class="text-right val-tong">${tongGiao.toLocaleString('vi-VN')}</td>
+      <td class="text-right val-da-ghi">${ghiDuoc.toLocaleString('vi-VN')}</td>
+      <td class="text-right val-chua-ghi">${chuaGhi.toLocaleString('vi-VN')}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+
+  // Hàng Tổng Cộng
+  tfoot.innerHTML = `
+    <tr class="row-total">
+      <td colspan="2" class="text-center">TỔNG CỘNG</td>
+      <td class="text-right val-tong">${sumTongGiao.toLocaleString('vi-VN')}</td>
+      <td class="text-right val-da-ghi">${sumGhiDuoc.toLocaleString('vi-VN')}</td>
+      <td class="text-right val-chua-ghi">${sumChuaGhi.toLocaleString('vi-VN')}</td>
+    </tr>
+  `;
+}
   </script>
 </body>
 </html>
