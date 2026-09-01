@@ -3,7 +3,6 @@ let currentUser = null;
 let groupedData = {};
 let customerKeys = []; // Mã KH sắp xếp theo ma_sogcs -> danh_so -> ma_khang
 let currentCardIndex = 0; 
-let currentLocations = {};
 let isAnimating = false; // Chống vuốt quá nhanh gây lỗi animation
 
 const BCS_ORDER = ["BT", "CD", "TD", "SG", "VC", "BN", "CN", "TN", "SN", "VN"];
@@ -172,14 +171,6 @@ function renderCurrentCustomerCard(slideDirection = null) {
   const cust = groupedData[makh];
   const firstItem = cust.items[0] || {};
   const cotTramText = [cust.so_cot, cust.ten_tram].filter(Boolean).join(" - ");
-  const hasLocation = Boolean(firstItem.lat && firstItem.lng);
-
-  let mapLinkHtml = `<span id="map_link_${cust.ma_khang}" style="color:#dc3545; font-weight:bold;">🌏 Chưa vị trí</span>`;
-  let btnLocationText = "📍 LẤY VỊ TRÍ";
-  if (hasLocation) {
-    mapLinkHtml = `<span id="map_link_${cust.ma_khang}"><a href="http://maps.google.com/?q=${firstItem.lat},${firstItem.lng}" target="_blank" style="color:#007bff; font-weight:bold; text-decoration:none;">🌏 Xem Google Maps</a></span>`;
-    btnLocationText = "📍 SỬA VỊ TRÍ";
-  }
 
   const alreadyHasCS = cust.items.some(i => i.chiso_moi !== "" && i.chiso_moi !== undefined && i.chiso_moi !== null);
 
@@ -219,7 +210,6 @@ function renderCurrentCustomerCard(slideDirection = null) {
         </div>
 
         <div class="cust-dynamic-info-v2" id="detail_info_${cust.ma_khang}">
-          <span>${mapLinkHtml}</span>
           <span>SL Tháo(${firstItem.bcs}): <b>${firstItem.sluong_thao || 0}</b></span>
           <span>SL KT: <b>${firstItem.sluong_kt || 0}</b></span>
         </div>
@@ -240,7 +230,6 @@ function renderCurrentCustomerCard(slideDirection = null) {
 
   cust.items.forEach(item => {
     const csMoiVal = (item.chiso_moi !== "" && item.chiso_moi !== undefined && item.chiso_moi !== null) ? item.chiso_moi : "";
-    const isDisabled = !hasLocation ? "disabled" : "";
 
     html += `
       <tr id="row_${item.rowIndex}">
@@ -250,7 +239,7 @@ function renderCurrentCustomerCard(slideDirection = null) {
           <input type="number" 
                  class="input-cs-moi" 
                  id="cs_moi_${item.rowIndex}" 
-                 value="${csMoiVal}" ${isDisabled}
+                 value="${csMoiVal}"
                  oninput="calculateRow('${cust.ma_khang}', '${item.bcs}', ${item.rowIndex}, ${item.chiso_cu || 0}, ${item.hsn}, ${item.sluong_thao || 0})">
           <input type="hidden" id="sl_val_${item.rowIndex}" value="${item.san_luong !== "" && item.san_luong !== undefined ? item.san_luong : '-'}">
         </td>
@@ -259,7 +248,6 @@ function renderCurrentCustomerCard(slideDirection = null) {
     `;
   });
 
-  const saveDisabledAttr = !hasLocation ? "disabled" : "";
   const cancelDisabledAttr = !alreadyHasCS ? "disabled" : "";
 
   html += `
@@ -268,8 +256,7 @@ function renderCurrentCustomerCard(slideDirection = null) {
       </div>
 
       <div class="card-btn-group">
-        <button class="btn-card btn-card-location" onclick="getLocation('${cust.ma_khang}')">${btnLocationText}</button>
-        <button class="btn-card btn-card-save" id="btn_save_${cust.ma_khang}" ${saveDisabledAttr} onclick="saveCustomerData('${cust.ma_khang}')">LƯU CS</button>
+        <button class="btn-card btn-card-save" id="btn_save_${cust.ma_khang}" onclick="saveCustomerData('${cust.ma_khang}')">LƯU CS</button>
         <button class="btn-card btn-card-cancel" id="btn_cancel_${cust.ma_khang}" ${cancelDisabledAttr} onclick="cancelCustomerData('${cust.ma_khang}')">HỦY CS</button>
       </div>
     </div>
@@ -277,7 +264,6 @@ function renderCurrentCustomerCard(slideDirection = null) {
 
   container.innerHTML = html;
 
-  // Thực thi Animation trượt vào
   if (slideDirection) {
     const activeCard = document.getElementById("activeCustomerCard");
     setTimeout(() => {
@@ -289,7 +275,6 @@ function renderCurrentCustomerCard(slideDirection = null) {
   }
 }
 
-// Chuyển KH tiếp theo với hiệu ứng vuốt sang Trái
 function nextCustomer() {
   if (isAnimating) return;
   if (currentCardIndex >= customerKeys.length - 1) {
@@ -311,7 +296,6 @@ function nextCustomer() {
   }
 }
 
-// Quay lại KH trước với hiệu ứng vuốt sang Phải
 function prevCustomer() {
   if (isAnimating) return;
   if (currentCardIndex <= 0) {
@@ -333,7 +317,6 @@ function prevCustomer() {
   }
 }
 
-// Xử lý Sự kiện Vuốt (Swipe) màn hình
 function setupSwipeEvents() {
   const container = document.getElementById("listContainer");
   let startX = 0;
@@ -354,12 +337,11 @@ function setupSwipeEvents() {
     let diffX = startX - endX;
     let diffY = startY - endY;
 
-    // Yêu cầu khoảng cách vuốt > 40px và nghiêng hẳn về chiều ngang
     if (Math.abs(diffX) > Math.abs(diffY) && Math.abs(diffX) > 40) {
       if (diffX > 0) {
-        nextCustomer(); // Vuốt sang Trái -> KH Tiếp
+        nextCustomer();
       } else {
-        prevCustomer(); // Vuốt sang Phải -> KH Trước
+        prevCustomer();
       }
     }
     startX = 0;
@@ -459,64 +441,6 @@ function filterData() {
   renderCurrentCustomerCard();
 }
 
-async function getLocation(maKhang) {
-  const cust = groupedData[maKhang];
-  const firstItem = cust ? cust.items[0] : {};
-
-  if (firstItem.lat && firstItem.lng) {
-    const confirmAgain = await showCustomConfirm("LẤY VỊ TRÍ", `Tọa độ cũ đã có. Bạn có muốn cập nhật lại vị trí mới cho KH ${maKhang}?`);
-    if (!confirmAgain) return;
-  }
-
-  if (navigator.geolocation) {
-    showToast(`⏳ Đang lấy vị trí GPS...`);
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        const lat = position.coords.latitude;
-        const lng = position.coords.longitude;
-        currentLocations[maKhang] = { lat, lng };
-
-        const currentGhiChu = document.getElementById(`ghi_chu_${maKhang}`) ? document.getElementById(`ghi_chu_${maKhang}`).value : cust.ghi_chu;
-
-        const payload = cust.items.map(item => ({
-          rowIndex: item.rowIndex,
-          chiso_cu: item.chiso_cu,
-          chiso_moi: "",
-          ghi_chu: currentGhiChu,
-          lat: lat,
-          lng: lng
-        }));
-
-        fetch(API_URL, {
-          method: "POST",
-          headers: { "Content-Type": "text/plain;charset=utf-8" },
-          body: JSON.stringify({
-            action: "SAVE_CHISO",
-            ten_ndung: currentUser.ten_ndung,
-            ten_nvien: currentUser.ten_nvien,
-            items: payload
-          })
-        })
-        .then(res => res.json())
-        .then(res => {
-          if (res.status === "success") {
-            showToast("📍 Lấy & lưu tọa độ thành công!");
-            cust.items.forEach(it => { it.lat = lat; it.lng = lng; });
-            renderCurrentCustomerCard();
-          } else {
-            showToast("❌ Lỗi lưu định vị: " + res.message);
-          }
-        })
-        .catch(() => showToast("❌ Lỗi kết nối máy chủ!"));
-      },
-      () => showToast("❌ Không thể lấy GPS! Hãy bật vị trí thiết bị."),
-      { enableHighAccuracy: true, timeout: 10000 }
-    );
-  } else {
-    showToast("❌ Thiết bị không hỗ trợ GPS!");
-  }
-}
-
 async function saveCustomerData(maKhang) {
   const cust = groupedData[maKhang];
   if (!cust) return;
@@ -527,7 +451,6 @@ async function saveCustomerData(maKhang) {
   const confirmSave = await showCustomConfirm("XÁC NHẬN GHI DỮ LIỆU", "Lưu chỉ số và ghi chú cho khách hàng này?");
   if (!confirmSave) return;
 
-  const loc = currentLocations[maKhang] || {};
   const payload = [];
 
   cust.items.forEach(item => {
@@ -541,8 +464,8 @@ async function saveCustomerData(maKhang) {
         hsn: item.hsn,
         sluong_thao: item.sluong_thao,
         sluong_kt: item.sluong_kt,
-        lat: loc.lat || item.lat || "",
-        lng: loc.lng || item.lng || ""
+        lat: item.lat || "",
+        lng: item.lng || ""
       });
     }
   });
@@ -574,7 +497,6 @@ async function saveCustomerData(maKhang) {
       });
 
       updateSummaryBar();
-      // Sau khi lưu xong tự động chuyển sang KH tiếp theo có hiệu ứng
       if (currentCardIndex < customerKeys.length - 1) {
         setTimeout(() => nextCustomer(), 400);
       }
