@@ -75,11 +75,12 @@
     /* Card hiển thị 1 KH duy nhất */
     .customer-card { 
       background: #fff; 
-      border-radius: 8px; 
+      border-radius: 10px; 
       padding: 12px; 
       border: 2px solid #0056b3; 
       box-shadow: 0 4px 12px rgba(0,0,0,0.1);
       user-select: none;
+      transition: transform 0.2s ease, opacity 0.2s ease;
     }
 
     .cust-header { border-bottom: none; padding-bottom: 4px; margin-bottom: 6px; }
@@ -87,13 +88,13 @@
     .cust-title { 
       font-weight: bold; 
       color: #0056b3; 
-      font-size: 17px; 
+      font-size: 18px; 
       margin-bottom: 4px; 
       line-height: 1.3;
     }
     
     .cust-address { 
-      font-size: 14px; 
+      font-size: 15px; 
       color: #222; 
       margin: 4px 0; 
       word-break: break-word;
@@ -105,9 +106,9 @@
       display: flex; 
       flex-wrap: wrap; 
       gap: 6px; 
-      margin-top: 4px; 
+      margin-top: 5px; 
       align-items: center;
-      font-size: 13.5px;
+      font-size: 14px;
     }
 
     .input-ghichu {
@@ -115,7 +116,7 @@
       border: 1px solid #ced4da;
       border-radius: 4px;
       padding: 6px 8px;
-      font-size: 13.5px;
+      font-size: 14px;
       color: #d9534f;
       font-weight: bold;
       outline: none;
@@ -125,79 +126,59 @@
 
     .cust-dynamic-info-v2 {
       background: #f8f9fa;
-      padding: 6px 8px;
-      border-radius: 4px;
-      font-size: 13.5px;
+      padding: 8px;
+      border-radius: 5px;
+      font-size: 14px;
       color: #004085;
       font-weight: bold;
-      margin-top: 6px;
+      margin-top: 8px;
       display: flex;
       justify-content: space-between;
       align-items: center;
       gap: 4px;
     }
 
-    .table-responsive { overflow-x: auto; margin-top: 8px; }
-    table.chiso-table { width: 100%; border-collapse: collapse; font-size: 14px; }
-    table.chiso-table th { background: #e9ecef; color: #111; padding: 8px 4px; border: 1px solid #ccc; font-size: 14px; font-weight: bold; text-align: center; }
+    .table-responsive { overflow-x: auto; margin-top: 10px; }
+    table.chiso-table { width: 100%; border-collapse: collapse; font-size: 15px; }
+    table.chiso-table th { background: #e9ecef; color: #111; padding: 8px 4px; border: 1px solid #ccc; font-size: 15px; font-weight: bold; text-align: center; }
     table.chiso-table td { border: 1px solid #ddd; padding: 0; vertical-align: middle; }
     
     .text-right { text-align: right !important; padding-right: 8px !important; }
     .text-center { text-align: center !important; }
 
     .val-calc-large { 
-      font-size: 16px !important; 
+      font-size: 17px !important; 
       font-weight: bold !important; 
       color: #111;
       padding: 6px 0;
     }
 
-    .bcs-badge { font-weight: bold; padding: 4px 6px; border-radius: 4px; background: #e2e3e5; color: #111; font-size: 13px; }
+    .bcs-badge { font-weight: bold; padding: 4px 8px; border-radius: 4px; background: #e2e3e5; color: #111; font-size: 14px; }
     
     input.input-cs-moi { 
       width: 100%; 
-      height: 38px;
+      height: 42px;
       padding: 4px 8px; 
       background-color: #F0FFFF; 
       border: none; 
       text-align: right; 
       font-weight: bold; 
-      font-size: 16px; 
+      font-size: 18px; 
       color: #0056b3;
       outline: none; 
     }
     input.input-cs-moi:disabled { background-color: #e9ecef; cursor: not-allowed; }
     input.input-cs-moi:focus { background-color: #ffffff; border: 2px solid #007bff; }
 
-    /* Nút điều hướng Chuyển Khách Hàng */
-    .nav-btn-group {
-      display: flex;
-      justify-content: space-between;
-      gap: 10px;
-      margin-top: 10px;
-    }
-    .btn-nav {
-      flex: 1;
-      padding: 8px;
-      border: 1px solid #0056b3;
-      background: #eef5fc;
-      color: #0056b3;
-      font-weight: bold;
-      font-size: 13px;
-      border-radius: 5px;
-      cursor: pointer;
-    }
-    .btn-nav:disabled { opacity: 0.4; cursor: not-allowed; }
-
     .card-btn-group { 
       display: flex; 
       gap: 8px; 
-      margin-top: 10px; 
-      padding-top: 8px; 
+      margin-top: 12px; 
+      padding-top: 10px; 
       border-top: 1px dashed #28a745; 
     }
 
-    .btn-card { flex: 1; padding: 10px; border: none; border-radius: 5px; font-weight: bold; font-size: 13px; cursor: pointer; color: white; }
+    .btn-card { flex: 1; padding: 12px 8px; border: none; border-radius: 6px; font-weight: bold; font-size: 14px; cursor: pointer; color: white; }
     .btn-card-location { background: #007bff; }
     .btn-card-save { background: #28a745; }
     .btn-card-save:disabled { background: #a5d6a7; cursor: not-allowed; opacity: 0.6; }
@@ -213,7 +194,7 @@
       color: #fff; 
       padding: 10px 15px; 
       border-radius: 8px; 
-      font-size: 13.5px; 
+      font-size: 14px; 
       display: none; 
       z-index: 10001; 
       box-shadow: 0 4px 12px rgba(0,0,0,0.25);
@@ -273,6 +254,6 @@
     </div>
   </div>
 
-  <script charset="UTF-8" src="nhap_chiso.js?v=4.0.0"></script>
+  <script charset="UTF-8" src="nhap_chiso.js?v=4.1.0"></script>
 </body>
 </html>
