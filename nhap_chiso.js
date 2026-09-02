@@ -230,7 +230,7 @@ function renderCurrentCustomerCard(slideDirection = null) {
               <th style="width: 15%;">BCS</th>
               <th style="width: 25%;">CS cũ</th>
               <th style="width: 35%;">CS mới</th>
-              <th style="width: 25%;">Tổng SL</th>
+              <th style="width: 25%;">Tổng kW</th>
             </tr>
           </thead>
           <tbody>
