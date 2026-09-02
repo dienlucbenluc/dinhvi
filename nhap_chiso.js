@@ -202,10 +202,10 @@ function renderCurrentCustomerCard(slideDirection = null) {
          Mã sổ: ${cust.ma_sogcs} - Danh số: ${cust.danh_so || ''}
         </div>
       <div class="cust-row-group">
-         Số ĐT: ${cust.so_dthoai || ''} - <span>${mapLinkHtml}</span>
+         Số ĐT: ${cust.so_dthoai || ''} - <span style="float: right;">${mapLinkHtml}</span>
         </div>
         <div class="cust-row-group" style="margin-top: 4px;">
-          <b>Cột - Trạm:</b> ${cotTramText || 'N/A'}
+          Cột - Trạm: ${cotTramText || ''}
         </div>
 
         <div class="cust-row-group" style="margin-top: 6px;">
