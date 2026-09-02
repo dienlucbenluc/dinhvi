@@ -460,6 +460,28 @@ function filterChuaGhi() {
   }
 }
 
+function showAllData() {
+  document.getElementById("searchInput").value = "";
+  
+  // Khôi phục mảng customerKeys đầy đủ
+  customerKeys = Object.keys(groupedData).sort((a, b) => {
+    const custA = groupedData[a];
+    const custB = groupedData[b];
+
+    const sogcsCompare = String(custA.ma_sogcs).localeCompare(String(custB.ma_sogcs), undefined, { numeric: true, sensitivity: 'base' });
+    if (sogcsCompare !== 0) return sogcsCompare;
+
+    const danhSoCompare = String(custA.danh_so).localeCompare(String(custB.danh_so), undefined, { numeric: true, sensitivity: 'base' });
+    if (danhSoCompare !== 0) return danhSoCompare;
+
+    return String(custA.ma_khang).localeCompare(String(custB.ma_khang), undefined, { numeric: true, sensitivity: 'base' });
+  });
+
+  currentCardIndex = 0;
+  renderCurrentCustomerCard();
+  showToast("📋 Hiển thị tất cả khách hàng");
+}
+
 // Bấm nút Tìm / Enter mới tìm và CHỈ DỜI CON TRỎ đến vị trí khách hàng đó (danh sách không thay đổi)
 function filterData() {
   const q = document.getElementById("searchInput").value.toLowerCase().trim();
