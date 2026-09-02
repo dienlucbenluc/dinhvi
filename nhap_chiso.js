@@ -201,13 +201,13 @@ function renderCurrentCustomerCard(slideDirection = null) {
         <div class="cust-row-group">
          Mã sổ: ${cust.ma_sogcs} - Danh số: ${cust.danh_so || ''}
         </div>
-        <div class="cust-dynamic-info-v3">
-         Số ĐT: ${cust.so_dthoai || ''} - <span style="float: right;">${mapLinkHtml}</span>
-        </div>
+
         <div class="cust-row-group" style="margin-top: 4px;">
           Cột - Trạm: ${cotTramText || ''}
         </div>
-
+        <div class="cust-dynamic-info-v3">
+         Số ĐT: ${cust.so_dthoai || ''} - <span style="float: right;">${mapLinkHtml}</span>
+        </div>
         <div class="cust-row-group" style="margin-top: 6px;">
           <input type="text" 
                  class="input-ghichu" 
