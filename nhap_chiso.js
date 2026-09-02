@@ -218,7 +218,7 @@ function renderCurrentCustomerCard(slideDirection = null) {
         </div>
 
         <div class="cust-dynamic-info-v2" id="detail_info_${cust.ma_khang}">
-          <span>kW tháo: (${firstItem.bcs}): <b>${firstItem.sluong_thao || 0}</b></span>
+          <span>kW tháo <span id="bcs_thao_label_${cust.ma_khang}">(${firstItem.bcs})</span>: <b id="kw_thao_val_${cust.ma_khang}">${firstItem.sluong_thao || 0}</b></span>
           <span>kW kỳ trước <span id="bcs_label_${cust.ma_khang}">(${firstItem.bcs})</span>: <b id="kw_kt_val_${cust.ma_khang}">${firstItem.sluong_kt || 0}</b></span>
         </div>
       </div>
@@ -248,7 +248,7 @@ function renderCurrentCustomerCard(slideDirection = null) {
                  class="input-cs-moi" 
                  id="cs_moi_${item.rowIndex}" 
                  value="${csMoiVal}"
-                 onfocus="updateKwKtDisplay('${cust.ma_khang}', '${item.bcs}', ${item.sluong_kt || 0})"
+                 onfocus="updateKwKtDisplay('${cust.ma_khang}', '${item.bcs}', ${item.sluong_kt || 0}, ${item.sluong_thao || 0})"
                  onchange="calculateRow('${cust.ma_khang}', '${item.bcs}', ${item.rowIndex}, ${item.chiso_cu || 0}, ${item.hsn}, ${item.sluong_thao || 0}, ${item.sluong_kt || 0})">
           <input type="hidden" id="sl_val_${item.rowIndex}" value="${item.san_luong !== "" && item.san_luong !== undefined ? item.san_luong : '-'}">
         </td>
@@ -284,12 +284,19 @@ function renderCurrentCustomerCard(slideDirection = null) {
   }
 }
 
-// Cập nhật kW kỳ trước đúng theo BCS khi focus/click vào ô nhập CS
-function updateKwKtDisplay(maKhang, bcs, sluongKt) {
+// Cập nhật cả kW kỳ trước & kW tháo đúng theo BCS khi focus/click vào ô nhập CS
+function updateKwKtDisplay(maKhang, bcs, sluongKt, sluongThao) {
+  // Cập nhật kW kỳ trước
   const labelEl = document.getElementById(`bcs_label_${maKhang}`);
   const valEl = document.getElementById(`kw_kt_val_${maKhang}`);
   if (labelEl) labelEl.innerText = `(${bcs})`;
   if (valEl) valEl.innerText = sluongKt || 0;
+
+  // Cập nhật kW tháo
+  const labelThaoEl = document.getElementById(`bcs_thao_label_${maKhang}`);
+  const valThaoEl = document.getElementById(`kw_thao_val_${maKhang}`);
+  if (labelThaoEl) labelThaoEl.innerText = `(${bcs})`;
+  if (valThaoEl) valThaoEl.innerText = sluongThao || 0;
 }
 
 function nextCustomer() {
