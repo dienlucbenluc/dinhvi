@@ -195,11 +195,14 @@ function renderCurrentCustomerCard(slideDirection = null) {
           </span>
           <span style="font-size:12px; color:#666;">⬅️ Vuốt để đổi KH ➡️</span>
         </div>
-        <div class="cust-title">${cust.ma_khang} - <b>Số CTơ:</b>${cust.so_cto}</div>
+        <div class="cust-title">Mã KH: ${cust.ma_khang} - <b>Số CTơ:</b>${cust.so_cto}</div>
         <div class="cust-tenKH">Tên KH: ${cust.ten_khang || ''}</div>
         <div class="cust-address"><b>Đ/C:</b> ${cust.dia_chi || ''}</div>
         <div class="cust-row-group">
-          Sổ: ${cust.ma_sogcs}-DSố: ${cust.danh_so || ''}-<b>ĐT: </b>${cust.so_dthoai || ''}-<span>${mapLinkHtml}</span>
+         Mã sổ: ${cust.ma_sogcs} - Danh số: ${cust.danh_so || ''}
+        </div>
+      <div class="cust-row-group">
+         Số ĐT: ${cust.so_dthoai || ''} - <span>${mapLinkHtml}</span>
         </div>
         <div class="cust-row-group" style="margin-top: 4px;">
           <b>Cột - Trạm:</b> ${cotTramText || 'N/A'}
