@@ -206,7 +206,7 @@ function renderCurrentCustomerCard(slideDirection = null) {
           Cột - Trạm: ${cotTramText || ''}
         </div>
         <div class="cust-dynamic-info-v3">
-         Số ĐT: ${cust.so_dthoai || ''} - <span style="float: right;">${mapLinkHtml}</span>
+         Số ĐT: ${cust.so_dthoai || ''}  <span style="float: right;">${mapLinkHtml}</span>
         </div>
         <div class="cust-row-group" style="margin-top: 6px;">
           <input type="text" 
