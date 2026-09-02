@@ -131,13 +131,19 @@
       line-height: 1.3;
     }
 
-    .cust-tenKH { 
-      font-weight: bold; 
-      color: #0056b3; 
-      font-size: 15px; 
-      margin-bottom: 4px; 
-      line-height: 1.3;
-    }
+.cust-tenKH { 
+  font-weight: bold; 
+  color: #0056b3; 
+  font-size: 15px; 
+  margin-bottom: 4px; 
+  line-height: 1.3;
+
+  /* Giới hạn 2 dòng và thêm dấu ... */
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
     
     .cust-address { 
       font-size: 12px; 
