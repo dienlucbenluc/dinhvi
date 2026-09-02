@@ -258,6 +258,7 @@ function renderCurrentCustomerCard(slideDirection = null) {
   });
 
   const cancelDisabledAttr = !alreadyHasCS ? "disabled" : "";
+  const saveDisabledAttr = !hasLocation ? "disabled" : "";
 
   html += `
           </tbody>
@@ -265,7 +266,7 @@ function renderCurrentCustomerCard(slideDirection = null) {
       </div>
 
       <div class="card-btn-group">
-        <button class="btn-card btn-card-save" id="btn_save_${cust.ma_khang}" onclick="saveCustomerData('${cust.ma_khang}')">LƯU CS</button>
+        <button class="btn-card btn-card-save" id="btn_save_${cust.ma_khang}" ${saveDisabledAttr} onclick="saveCustomerData('${cust.ma_khang}')">LƯU CS</button>
         <button class="btn-card btn-card-cancel" id="btn_cancel_${cust.ma_khang}" ${cancelDisabledAttr} onclick="cancelCustomerData('${cust.ma_khang}')">HỦY CS</button>
       </div>
     </div>
