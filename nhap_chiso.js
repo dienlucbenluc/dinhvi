@@ -286,13 +286,11 @@ function renderCurrentCustomerCard(slideDirection = null) {
 
 // Cập nhật cả kW kỳ trước & kW tháo đúng theo BCS khi focus/click vào ô nhập CS
 function updateKwKtDisplay(maKhang, bcs, sluongKt, sluongThao) {
-  // Cập nhật kW kỳ trước
   const labelEl = document.getElementById(`bcs_label_${maKhang}`);
   const valEl = document.getElementById(`kw_kt_val_${maKhang}`);
   if (labelEl) labelEl.innerText = `(${bcs})`;
   if (valEl) valEl.innerText = sluongKt || 0;
 
-  // Cập nhật kW tháo
   const labelThaoEl = document.getElementById(`bcs_thao_label_${maKhang}`);
   const valThaoEl = document.getElementById(`kw_thao_val_${maKhang}`);
   if (labelThaoEl) labelThaoEl.innerText = `(${bcs})`;
@@ -413,17 +411,27 @@ async function calculateRow(maKhang, bcs, rowIndex, csCu, hsn, sluongThao, sluon
   if (slHiddenEl) slHiddenEl.value = sanLuong;
   if (tongSlCell) tongSlCell.innerText = tongSluong;
 
-  // Cảnh báo chênh lệch sản lượng > 50% hoặc < -50% so với sluong_kt của BCS này
+  // Cảnh báo chênh lệch sản lượng > 50% hoặc < -50%
   const sluongKtVal = Number(sluongKt) || 0;
   if (sluongKtVal > 0) {
     const diffPercent = ((tongSluong - sluongKtVal) / sluongKtVal) * 100;
     if (diffPercent > 50 || diffPercent < -50) {
       const phanTramText = diffPercent > 0 ? `tăng +${diffPercent.toFixed(1)}%` : `giảm ${diffPercent.toFixed(1)}%`;
-      await showCustomConfirm(
+      
+      const confirmAlert = await showCustomConfirm(
         "⚠️ CẢNH BÁO BẤT THƯỜNG", 
-        `Tổng sản lượng BCS (${bcs}) kỳ này (${tongSluong} kW) ${phanTramText} so với kỳ trước (${sluongKtVal} kW).\nBạn có chắc chắn chỉ số này là chính xác?`, 
+        `Tổng sản lượng BCS (${bcs}) kỳ này (${tongSluong} kW) ${phanTramText} so với kỳ trước (${sluongKtVal} kW).\n\nBạn có xác nhận lưu chỉ số này không?`, 
         true
       );
+
+      // NẾU XÁC NHẬN CẢNH BÁO -> LƯU CS LUÔN (BỎ QUA BƯỚC HỎI LẠI)
+      if (confirmAlert) {
+        saveCustomerData(maKhang, true);
+        return;
+      } else {
+        checkCancelButtonStatus(maKhang);
+        return;
+      }
     }
   }
 
@@ -494,7 +502,7 @@ function filterData() {
   renderCurrentCustomerCard();
 }
 
-async function saveCustomerData(maKhang) {
+async function saveCustomerData(maKhang, skipConfirm = false) {
   const cust = groupedData[maKhang];
   if (!cust) return;
 
@@ -524,8 +532,11 @@ async function saveCustomerData(maKhang) {
   const ghiChuInput = document.getElementById(`ghi_chu_${maKhang}`);
   const newGhiChu = ghiChuInput ? ghiChuInput.value.trim() : (cust.ghi_chu || "");
 
-  const confirmSave = await showCustomConfirm("XÁC NHẬN GHI DỮ LIỆU", "Lưu chỉ số và ghi chú cho khách hàng này?");
-  if (!confirmSave) return;
+  // Bỏ qua bước hỏi lại nếu người dùng đã bấm xác nhận ở bảng Cảnh báo bất thường trước đó
+  if (!skipConfirm) {
+    const confirmSave = await showCustomConfirm("XÁC NHẬN GHI DỮ LIỆU", "Lưu chỉ số và ghi chú cho khách hàng này?");
+    if (!confirmSave) return;
+  }
 
   const payload = [];
 
