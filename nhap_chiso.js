@@ -392,17 +392,18 @@ async function calculateRow(maKhang, bcs, rowIndex, csCu, hsn, sluongThao, sluon
   const hsnVal = Number(hsn) || 1;
   const slThao = Number(sluongThao) || 0;
 
-  // 3. Nếu CS mới < CS cũ thì cảnh báo và trả về giá trị rỗng (null)
+  // Nếu CS mới < CS cũ thì cảnh báo, xóa trắng ô và focus lại
   if (csMoi < csCuVal) {
     await showCustomConfirm(
       "⚠️ CẢNH BÁO CHỈ SỐ LỖI", 
-      `Chỉ số mới (${csMoi}) nhỏ hơn chỉ số cũ (${csCuVal})!\nVui lòng kiểm tra lại.`, 
+      `Chỉ số mới (${csMoi}) nhỏ hơn chỉ số cũ (${csCuVal})!\nVui lòng kiểm tra và nhập lại.`, 
       true
     );
     inputEl.value = "";
     if (slHiddenEl) slHiddenEl.value = "-";
     if (tongSlCell) tongSlCell.innerText = "-";
     checkCancelButtonStatus(maKhang);
+    setTimeout(() => inputEl.focus(), 100);
     return;
   }
 
@@ -412,7 +413,7 @@ async function calculateRow(maKhang, bcs, rowIndex, csCu, hsn, sluongThao, sluon
   if (slHiddenEl) slHiddenEl.value = sanLuong;
   if (tongSlCell) tongSlCell.innerText = tongSluong;
 
-  // 2. Cảnh báo chênh lệch sản lượng > 50% hoặc < -50% so với sluong_kt của BCS này
+  // Cảnh báo chênh lệch sản lượng > 50% hoặc < -50% so với sluong_kt của BCS này
   const sluongKtVal = Number(sluongKt) || 0;
   if (sluongKtVal > 0) {
     const diffPercent = ((tongSluong - sluongKtVal) / sluongKtVal) * 100;
@@ -496,6 +497,29 @@ function filterData() {
 async function saveCustomerData(maKhang) {
   const cust = groupedData[maKhang];
   if (!cust) return;
+
+  // Kiểm tra tính hợp lệ của tất cả các ô chỉ số mới
+  let emptyItem = null;
+  cust.items.forEach(item => {
+    const inputEl = document.getElementById(`cs_moi_${item.rowIndex}`);
+    const val = inputEl ? inputEl.value.trim() : "";
+    if (!emptyItem && (val === "" || isNaN(Number(val)))) {
+      emptyItem = { item, inputEl };
+    }
+  });
+
+  // Nếu phát hiện ô chỉ số mới trống (null) -> Cảnh báo và chuyển focus về ô đó
+  if (emptyItem) {
+    await showCustomConfirm(
+      "⚠️ CHƯA NHẬP CHỈ SỐ", 
+      `Chưa nhập đầy đủ chỉ số mới cho BCS (${emptyItem.item.bcs})!\nVui lòng kiểm tra lại trước khi lưu.`, 
+      true
+    );
+    if (emptyItem.inputEl) {
+      setTimeout(() => emptyItem.inputEl.focus(), 100);
+    }
+    return;
+  }
 
   const ghiChuInput = document.getElementById(`ghi_chu_${maKhang}`);
   const newGhiChu = ghiChuInput ? ghiChuInput.value.trim() : (cust.ghi_chu || "");
