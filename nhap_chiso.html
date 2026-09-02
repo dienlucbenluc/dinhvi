@@ -271,8 +271,8 @@
     </div>
     
     <div class="search-box">
-      <input type="text" id="searchInput" placeholder="Mã, Tên, Đ/C, Cột, Trạm, Sổ, SĐT..." onkeydown="if(event.key==='Enter') searchCustomer();">
-      <button class="btn-search" onclick="searchCustomer()">🔍</button>
+      <input type="text" id="searchInput" placeholder="Mã, Tên, Đ/C, Cột, Trạm, Sổ, SĐT..." onkeydown="if(event.key==='Enter') filterData();">
+      <button class="btn-search" onclick="filterData()">🔍</button>
     </div>
     
     <div class="summary-bar">
@@ -302,6 +302,7 @@
     </div>
   </div>
 
-  <script charset="UTF-8" src="nhap_chiso.js?v=4.2.0"></script>
+  <!-- Tăng version file js lên v=4.2.1 để buộc điện thoại xóa cache cũ -->
+  <script charset="UTF-8" src="nhap_chiso.js?v=4.2.1"></script>
 </body>
 </html>
