@@ -506,7 +506,7 @@ function filterData() {
   if (targetIndex !== -1) {
     currentCardIndex = targetIndex;
     renderCurrentCustomerCard();
-    showToast(`📍 Đến KH: ${groupedData[customerKeys[targetIndex]].ten_khang || customerKeys[targetIndex]}`);
+    //showToast(`📍 Đến KH: ${groupedData[customerKeys[targetIndex]].ten_khang || customerKeys[targetIndex]}`);
   } else {
     showToast("❌ Không tìm thấy khách hàng phù hợp!");
   }
