@@ -382,7 +382,6 @@ async function calculateRow(maKhang, bcs, rowIndex, csCu, hsn, sluongThao, sluon
   const hsnVal = Number(hsn) || 1;
   const slThao = Number(sluongThao) || 0;
 
-  // Nếu CS mới < CS cũ thì cảnh báo, xóa trắng ô và focus lại
   if (csMoi < csCuVal) {
     await showCustomConfirm(
       "⚠️ CẢNH BÁO CHỈ SỐ LỖI", 
@@ -403,7 +402,6 @@ async function calculateRow(maKhang, bcs, rowIndex, csCu, hsn, sluongThao, sluon
   if (slHiddenEl) slHiddenEl.value = sanLuong;
   if (tongSlCell) tongSlCell.innerText = tongSluong;
 
-  // Cảnh báo chênh lệch sản lượng > 50% hoặc < -50%
   const sluongKtVal = Number(sluongKt) || 0;
   if (sluongKtVal > 0) {
     const diffPercent = ((tongSluong - sluongKtVal) / sluongKtVal) * 100;
@@ -416,4 +414,204 @@ async function calculateRow(maKhang, bcs, rowIndex, csCu, hsn, sluongThao, sluon
         true
       );
 
-      // NẾU XÁC NHẬN CẢNH B
+      if (confirmAlert) {
+        saveCustomerData(maKhang, true);
+        return;
+      } else {
+        checkCancelButtonStatus(maKhang);
+        return;
+      }
+    }
+  }
+
+  checkCancelButtonStatus(maKhang);
+}
+
+function checkCancelButtonStatus(maKhang) {
+  const cust = groupedData[maKhang];
+  if (!cust) return;
+
+  let hasNewCS = false;
+  cust.items.forEach(item => {
+    const inputEl = document.getElementById(`cs_moi_${item.rowIndex}`);
+    if (inputEl && inputEl.value !== "") hasNewCS = true;
+  });
+
+  const btnCancel = document.getElementById(`btn_cancel_${maKhang}`);
+  if (btnCancel) btnCancel.disabled = !hasNewCS;
+}
+
+function filterChuaGhi() {
+  document.getElementById("searchInput").value = "";
+  const unrecordedKeys = [];
+
+  customerKeys.forEach(makh => {
+    const cust = groupedData[makh];
+    const hasCS = cust.items.some(i => i.chiso_moi !== "" && i.chiso_moi !== undefined && i.chiso_moi !== null);
+    if (!hasCS) unrecordedKeys.push(makh);
+  });
+
+  if (unrecordedKeys.length > 0) {
+    customerKeys = unrecordedKeys;
+    currentCardIndex = 0;
+    renderCurrentCustomerCard();
+  } else {
+    showToast("🎉 Tất cả khách hàng đã được ghi!");
+  }
+}
+
+// Bấm nút Tìm / Enter mới tìm và CHỈ DỜI CON TRỎ đến vị trí khách hàng đó (danh sách không thay đổi)
+function filterData() {
+  const q = document.getElementById("searchInput").value.toLowerCase().trim();
+  if (!q) return;
+
+  const targetIndex = customerKeys.findIndex(makh => {
+    const cust = groupedData[makh];
+    return (
+      String(cust.ma_khang || "").toLowerCase().includes(q) ||
+      String(cust.ten_khang || "").toLowerCase().includes(q) ||
+      String(cust.dia_chi || "").toLowerCase().includes(q) ||
+      String(cust.so_cot || "").toLowerCase().includes(q) ||
+      String(cust.ten_tram || "").toLowerCase().includes(q) ||
+      String(cust.so_cto || "").toLowerCase().includes(q) ||
+      String(cust.ma_sogcs || "").toLowerCase().includes(q) ||
+      String(cust.danh_so || "").toLowerCase().includes(q) ||
+      String(cust.so_dthoai || "").toLowerCase().includes(q) ||
+      String(cust.ghi_chu || "").toLowerCase().includes(q)
+    );
+  });
+
+  if (targetIndex !== -1) {
+    currentCardIndex = targetIndex;
+    renderCurrentCustomerCard();
+    showToast(`📍 Đến KH: ${groupedData[customerKeys[targetIndex]].ten_khang || customerKeys[targetIndex]}`);
+  } else {
+    showToast("❌ Không tìm thấy khách hàng phù hợp!");
+  }
+}
+
+async function saveCustomerData(maKhang, skipConfirm = false) {
+  const cust = groupedData[maKhang];
+  if (!cust) return;
+
+  let emptyItem = null;
+  cust.items.forEach(item => {
+    const inputEl = document.getElementById(`cs_moi_${item.rowIndex}`);
+    const val = inputEl ? inputEl.value.trim() : "";
+    if (!emptyItem && (val === "" || isNaN(Number(val)))) {
+      emptyItem = { item, inputEl };
+    }
+  });
+
+  if (emptyItem) {
+    await showCustomConfirm(
+      "⚠️ CHƯA NHẬP CHỈ SỐ", 
+      `Chưa nhập đầy đủ chỉ số mới cho BCS (${emptyItem.item.bcs})!\nVui lòng kiểm tra lại trước khi lưu.`, 
+      true
+    );
+    if (emptyItem.inputEl) {
+      setTimeout(() => emptyItem.inputEl.focus(), 100);
+    }
+    return;
+  }
+
+  const ghiChuInput = document.getElementById(`ghi_chu_${maKhang}`);
+  const newGhiChu = ghiChuInput ? ghiChuInput.value.trim() : (cust.ghi_chu || "");
+
+  if (!skipConfirm) {
+    const confirmSave = await showCustomConfirm("XÁC NHẬN GHI DỮ LIỆU", "Lưu chỉ số và ghi chú cho khách hàng này?");
+    if (!confirmSave) return;
+  }
+
+  const payload = [];
+
+  cust.items.forEach(item => {
+    const inputEl = document.getElementById(`cs_moi_${item.rowIndex}`);
+    if (inputEl) {
+      payload.push({
+        rowIndex: item.rowIndex,
+        chiso_cu: item.chiso_cu,
+        chiso_moi: inputEl.value !== "" ? Number(inputEl.value) : "",
+        ghi_chu: newGhiChu,
+        hsn: item.hsn,
+        sluong_thao: item.sluong_thao,
+        sluong_kt: item.sluong_kt,
+        lat: item.lat || "",
+        lng: item.lng || ""
+      });
+    }
+  });
+
+  showToast(`⏳ Đang lưu dữ liệu...`);
+  
+  fetch(API_URL, {
+    method: "POST",
+    headers: { "Content-Type": "text/plain;charset=utf-8" },
+    body: JSON.stringify({
+      action: "SAVE_CHISO",
+      ten_ndung: currentUser.ten_ndung,
+      ten_nvien: currentUser.ten_nvien,
+      items: payload
+    })
+  })
+  .then(res => res.json())
+  .then(res => {
+    if (res.status === "success") {
+      showToast("✅ " + res.message);
+      cust.ghi_chu = newGhiChu;
+      cust.items.forEach(item => {
+        const inputEl = document.getElementById(`cs_moi_${item.rowIndex}`);
+        if (inputEl && inputEl.value !== "") {
+          item.chiso_moi = Number(inputEl.value);
+          item.san_luong = document.getElementById(`sl_val_${item.rowIndex}`).value;
+          item.tong_sluong = document.getElementById(`tong_sl_${item.rowIndex}`).innerText;
+        }
+      });
+
+      updateSummaryBar();
+      setTimeout(() => nextCustomer(), 400);
+    } else {
+      showToast("❌ " + res.message);
+    }
+  })
+  .catch(() => showToast("❌ Lỗi kết nối hệ thống khi lưu!"));
+}
+
+async function cancelCustomerData(maKhang) {
+  const cust = groupedData[maKhang];
+  if (!cust) return;
+
+  const confirmCancel = await showCustomConfirm("HỦY CHỈ SỐ", `Xác nhận HỦY chỉ số đã nhập của KH ${maKhang}?`, true);
+  if (!confirmCancel) return;
+
+  const rowIndices = cust.items.map(item => item.rowIndex);
+
+  showToast(`⏳ Đang hủy chỉ số...`);
+  fetch(API_URL, {
+    method: "POST",
+    headers: { "Content-Type": "text/plain;charset=utf-8" },
+    body: JSON.stringify({
+      action: "CANCEL_CHISO",
+      ten_ndung: currentUser.ten_ndung,
+      rowIndices: rowIndices
+    })
+  })
+  .then(res => res.json())
+  .then(res => {
+    if (res.status === "success") {
+      showToast("✅ " + res.message);
+
+      cust.items.forEach(item => {
+        item.chiso_moi = "";
+        item.san_luong = "-";
+        item.tong_sluong = "-";
+      });
+
+      updateSummaryBar();
+      renderCurrentCustomerCard();
+    } else {
+      showToast("❌ " + res.message);
+    }
+  })
+  .catch(() => showToast("❌ Lỗi kết nối khi hủy!"));
+}
