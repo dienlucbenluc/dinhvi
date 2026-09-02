@@ -284,8 +284,8 @@
     
     <div class="summary-bar">
       <span>Tổng: <b id="sumTongKh">0</b></span>
-      <span>Đã ghi: <b id="sumDaCS" style="color:#28a745;">0</b></span>
-      <span>Chưa ghi: <b id="sumChuaGhi" style="color:#d9534f;">0</b></span>
+      <span style="cursor:pointer;" onclick="filterDaCS()">Đã ghi: <b id="sumDaCS" style="color:#28a745;">0</b></span>
+      <span style="cursor:pointer;" onclick="filterChuaGhi()">Chưa ghi: <b id="sumChuaGhi" style="color:#d9534f;">0</b></span>
       <span class="link-filter-chuaghi" onclick="filterChuaGhi()">Chưa ghi</span>
       <span class="link-filter-action" onclick="showAllData()">Tất cả</span>      
     </div>
@@ -310,6 +310,6 @@
     </div>
   </div>
 
-  <script charset="UTF-8" src="nhap_chiso.js?v=4.2.4"></script>
+  <script charset="UTF-8" src="nhap_chiso.js?v=4.2.5"></script>
 </body>
 </html>
