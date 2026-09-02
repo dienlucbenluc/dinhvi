@@ -195,7 +195,7 @@ function renderCurrentCustomerCard(slideDirection = null) {
           </span>
           <span style="font-size:12px; color:#666;">⬅️ Vuốt để đổi KH ➡️</span>
         </div>
-        <div class="cust-title">${cust.ma_khang} -  ${cust.ma_sogcs} - ${cust.danh_so || ''}</div>
+        <div class="cust-title">${cust.ma_khang} - Sổ:${cust.ma_sogcs} - DSố:${cust.danh_so || ''}</div>
         <div class="cust-tenKH"> ${cust.ten_khang || ''}</div>
         <div class="cust-address"><b>Đ/C:</b> ${cust.dia_chi || ''}</div>
         <div class="cust-row-group">
