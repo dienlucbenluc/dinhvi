@@ -172,9 +172,9 @@ function renderCurrentCustomerCard(slideDirection = null) {
   const firstItem = cust.items[0] || {};
   const cotTramText = [cust.so_cot, cust.ten_tram].filter(Boolean).join(" - ");
 
-  // Giữ lại đường link Google Maps nếu khách hàng đã có sẵn tọa độ trong Sheet
+  // Giữ lại đường link Google Maps nếu khách hàng đã có sẵn tọa độ trong Sheet, ngược lại hiện nút lấy tọa độ
   const hasLocation = Boolean(firstItem.lat && firstItem.lng);
-  let mapLinkHtml = `<span id="map_link_${cust.ma_khang}" style="color:#dc3545; font-weight:bold;">🌏 Chưa vị trí</span>`;
+  let mapLinkHtml = `<button onclick="getLocationAndSave('${cust.ma_khang}')" style="background:#17a2b8; color:#fff; border:none; border-radius:4px; padding:2px 8px; font-size:12px; font-weight:bold; cursor:pointer;">📍 Lấy định vị</button>`;
   if (hasLocation) {
     mapLinkHtml = `<span id="map_link_${cust.ma_khang}"><a href="http://maps.google.com/?q=${firstItem.lat},${firstItem.lng}" target="_blank" style="color:#007bff; font-weight:bold; text-decoration:none;">🌏 Xem Google Maps</a></span>`;
   }
@@ -282,6 +282,59 @@ function renderCurrentCustomerCard(slideDirection = null) {
   } else {
     isAnimating = false;
   }
+}
+
+// Hàm lấy vị trí định vị và cập nhật tọa độ lên bảng chi_so
+function getLocationAndSave(maKhang) {
+  if (!navigator.geolocation) {
+    showToast("❌ Trình duyệt không hỗ trợ định vị GPS!");
+    return;
+  }
+
+  showToast("⏳ Đang lấy vị trí GPS...");
+
+  navigator.geolocation.getCurrentPosition(
+    (position) => {
+      const lat = position.coords.latitude;
+      const lng = position.coords.longitude;
+
+      showToast("⏳ Đang cập nhật tọa độ lên server...");
+
+      fetch(API_URL, {
+        method: "POST",
+        headers: { "Content-Type": "text/plain;charset=utf-8" },
+        body: JSON.stringify({
+          action: "UPDATE_LOCATION",
+          ma_khang: maKhang,
+          lat: lat,
+          lng: lng,
+          ten_ndung: currentUser.ten_ndung
+        })
+      })
+      .then(res => res.json())
+      .then(res => {
+        if (res.status === "success") {
+          showToast("✅ " + res.message);
+          if (groupedData[maKhang]) {
+            groupedData[maKhang].items.forEach(item => {
+              item.lat = lat;
+              item.lng = lng;
+            });
+          }
+          // Xóa cache local để load lại dữ liệu mới
+          localStorage.removeItem(getClientCacheKey());
+          fetchSilentLatestData(currentUser.ten_ndung, false);
+        } else {
+          showToast("❌ " + res.message);
+        }
+      })
+      .catch(() => showToast("❌ Lỗi kết nối server khi lưu tọa độ!"));
+    },
+    (error) => {
+      showToast("❌ Lỗi định vị GPS. Vui lòng bật vị trí!");
+    },
+    { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+  );
 }
 
 // Cập nhật cả kW kỳ trước & kW tháo đúng theo BCS khi focus/click vào ô nhập CS
@@ -441,11 +494,31 @@ function checkCancelButtonStatus(maKhang) {
   if (btnCancel) btnCancel.disabled = !hasNewCS;
 }
 
+function filterDaCS() {
+  document.getElementById("searchInput").value = "";
+  const recordedKeys = [];
+
+  Object.keys(groupedData).forEach(makh => {
+    const cust = groupedData[makh];
+    const hasCS = cust.items.some(i => i.chiso_moi !== "" && i.chiso_moi !== undefined && i.chiso_moi !== null);
+    if (hasCS) recordedKeys.push(makh);
+  });
+
+  if (recordedKeys.length > 0) {
+    customerKeys = recordedKeys;
+    currentCardIndex = 0;
+    updateSummaryBar();
+    renderCurrentCustomerCard();
+  } else {
+    showToast("⚠️ Chưa có khách hàng nào được ghi chỉ số!");
+  }
+}
+
 function filterChuaGhi() {
   document.getElementById("searchInput").value = "";
   const unrecordedKeys = [];
 
-  customerKeys.forEach(makh => {
+  Object.keys(groupedData).forEach(makh => {
     const cust = groupedData[makh];
     const hasCS = cust.items.some(i => i.chiso_moi !== "" && i.chiso_moi !== undefined && i.chiso_moi !== null);
     if (!hasCS) unrecordedKeys.push(makh);
@@ -454,6 +527,7 @@ function filterChuaGhi() {
   if (unrecordedKeys.length > 0) {
     customerKeys = unrecordedKeys;
     currentCardIndex = 0;
+    updateSummaryBar();
     renderCurrentCustomerCard();
   } else {
     showToast("🎉 Tất cả khách hàng đã được ghi!");
@@ -478,6 +552,7 @@ function showAllData() {
   });
 
   currentCardIndex = 0;
+  updateSummaryBar();
   renderCurrentCustomerCard();
   showToast("📋 Hiển thị tất cả khách hàng");
 }
@@ -506,7 +581,6 @@ function filterData() {
   if (targetIndex !== -1) {
     currentCardIndex = targetIndex;
     renderCurrentCustomerCard();
-    //showToast(`📍 Đến KH: ${groupedData[customerKeys[targetIndex]].ten_khang || customerKeys[targetIndex]}`);
   } else {
     showToast("❌ Không tìm thấy khách hàng phù hợp!");
   }
