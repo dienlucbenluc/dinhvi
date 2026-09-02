@@ -164,8 +164,8 @@ function renderCurrentCustomerCard(slideDirection = null) {
     return;
   }
 
-  if (currentCardIndex < 0) currentCardIndex = 0;
-  if (currentCardIndex >= customerKeys.length) currentCardIndex = customerKeys.length - 1;
+  if (currentCardIndex < 0) currentCardIndex = customerKeys.length - 1;
+  if (currentCardIndex >= customerKeys.length) currentCardIndex = 0;
 
   const makh = customerKeys[currentCardIndex];
   const cust = groupedData[makh];
@@ -299,42 +299,34 @@ function updateKwKtDisplay(maKhang, bcs, sluongKt, sluongThao) {
 
 function nextCustomer() {
   if (isAnimating) return;
-  if (currentCardIndex >= customerKeys.length - 1) {
-    showToast("ℹ️ Đã đến khách hàng cuối cùng");
-    return;
-  }
 
   isAnimating = true;
   const activeCard = document.getElementById("activeCustomerCard");
   if (activeCard) {
     activeCard.classList.add("slide-left-out");
     setTimeout(() => {
-      currentCardIndex++;
+      currentCardIndex = (currentCardIndex >= customerKeys.length - 1) ? 0 : currentCardIndex + 1;
       renderCurrentCustomerCard("left");
     }, 200);
   } else {
-    currentCardIndex++;
+    currentCardIndex = (currentCardIndex >= customerKeys.length - 1) ? 0 : currentCardIndex + 1;
     renderCurrentCustomerCard();
   }
 }
 
 function prevCustomer() {
   if (isAnimating) return;
-  if (currentCardIndex <= 0) {
-    showToast("ℹ️ Đang ở khách hàng đầu tiên");
-    return;
-  }
 
   isAnimating = true;
   const activeCard = document.getElementById("activeCustomerCard");
   if (activeCard) {
     activeCard.classList.add("slide-right-out");
     setTimeout(() => {
-      currentCardIndex--;
+      currentCardIndex = (currentCardIndex <= 0) ? customerKeys.length - 1 : currentCardIndex - 1;
       renderCurrentCustomerCard("right");
     }, 200);
   } else {
-    currentCardIndex--;
+    currentCardIndex = (currentCardIndex <= 0) ? customerKeys.length - 1 : currentCardIndex - 1;
     renderCurrentCustomerCard();
   }
 }
@@ -584,9 +576,7 @@ async function saveCustomerData(maKhang, skipConfirm = false) {
       });
 
       updateSummaryBar();
-      if (currentCardIndex < customerKeys.length - 1) {
-        setTimeout(() => nextCustomer(), 400);
-      }
+      setTimeout(() => nextCustomer(), 400);
     } else {
       showToast("❌ " + res.message);
     }
