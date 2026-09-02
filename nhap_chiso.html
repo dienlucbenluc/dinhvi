@@ -79,6 +79,13 @@
       line-height: 1.2;
     }
     .summary-bar span { white-space: nowrap; }
+
+    .link-filter-action {
+      color: #0056b3;
+      text-decoration: underline;
+      cursor: pointer;
+      font-weight: bold;
+    }
     .link-filter-chuaghi {
       color: #d9534f;
       text-decoration: underline;
@@ -279,6 +286,7 @@
       <span>Tổng: <b id="sumTongKh">0</b></span>
       <span>Đã ghi: <b id="sumDaCS" style="color:#28a745;">0</b></span>
       <span>Chưa ghi: <b id="sumChuaGhi" style="color:#d9534f;">0</b></span>
+      <span class="link-filter-action" onclick="showAllData()">Tất cả</span>
       <span class="link-filter-chuaghi" onclick="filterChuaGhi()">Chưa ghi</span>
     </div>
   </div>
@@ -302,7 +310,6 @@
     </div>
   </div>
 
-  <!-- Tăng version file js lên v=4.2.1 để buộc điện thoại xóa cache cũ -->
-  <script charset="UTF-8" src="nhap_chiso.js?v=4.2.1"></script>
+  <script charset="UTF-8" src="nhap_chiso.js?v=4.2.2"></script>
 </body>
 </html>
