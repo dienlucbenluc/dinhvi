@@ -1,7 +1,8 @@
 const API_URL = "https://script.google.com/macros/s/AKfycbyKaG42B8RFzHToMu2Gqk7y5mCQ4wqDxxB5NWftA5lOZdB_mrLkCy6GkVs7zyOgRrHd/exec";
 let currentUser = null;
 let groupedData = {};
-let customerKeys = []; // Mã KH sắp xếp theo ma_sogcs -> danh_so -> ma_khang
+let allCustomerKeys = []; // Lưu danh sách đầy đủ ban đầu
+let customerKeys = []; // Danh sách đang được hiển thị (có thể qua bộ lọc)
 let currentCardIndex = 0; 
 let isAnimating = false; // Chống vuốt quá nhanh gây lỗi animation
 
@@ -125,7 +126,7 @@ function groupAndRender(flatList) {
   });
 
   // Sắp xếp danh sách KH: ma_sogcs -> danh_so -> ma_khang
-  customerKeys = Object.keys(groupedData).sort((a, b) => {
+  allCustomerKeys = Object.keys(groupedData).sort((a, b) => {
     const custA = groupedData[a];
     const custB = groupedData[b];
 
@@ -138,15 +139,17 @@ function groupAndRender(flatList) {
     return String(custA.ma_khang).localeCompare(String(custB.ma_khang), undefined, { numeric: true, sensitivity: 'base' });
   });
 
+  customerKeys = [...allCustomerKeys];
+
   updateSummaryBar();
   renderCurrentCustomerCard();
 }
 
 function updateSummaryBar() {
-  const tongKh = customerKeys.length;
+  const tongKh = allCustomerKeys.length;
   let daCoCS = 0;
 
-  customerKeys.forEach(makh => {
+  allCustomerKeys.forEach(makh => {
     const hasCS = groupedData[makh].items.some(i => i.chiso_moi !== "" && i.chiso_moi !== undefined && i.chiso_moi !== null);
     if (hasCS) daCoCS++;
   });
@@ -206,7 +209,7 @@ function renderCurrentCustomerCard(slideDirection = null) {
           Cột - Trạm: ${cotTramText || ''}
         </div>
         <div class="cust-dynamic-info-v3">
-         Số ĐT: ${cust.so_dthoai || ''}  <span style="float: right;">${mapLinkHtml}</span>
+         Số ĐT: ${cust.so_dthoai || ''} - <span style="float: right;">${mapLinkHtml}</span>
         </div>
         <div class="cust-row-group" style="margin-top: 6px;">
           <input type="text" 
@@ -230,7 +233,7 @@ function renderCurrentCustomerCard(slideDirection = null) {
               <th style="width: 15%;">BCS</th>
               <th style="width: 25%;">CS cũ</th>
               <th style="width: 35%;">CS mới</th>
-              <th style="width: 25%;">Tổng kW</th>
+              <th style="width: 25%;">Tổng SL</th>
             </tr>
           </thead>
           <tbody>
@@ -284,7 +287,6 @@ function renderCurrentCustomerCard(slideDirection = null) {
   }
 }
 
-// Cập nhật cả kW kỳ trước & kW tháo đúng theo BCS khi focus/click vào ô nhập CS
 function updateKwKtDisplay(maKhang, bcs, sluongKt, sluongThao) {
   const labelEl = document.getElementById(`bcs_label_${maKhang}`);
   const valEl = document.getElementById(`kw_kt_val_${maKhang}`);
@@ -382,7 +384,6 @@ async function calculateRow(maKhang, bcs, rowIndex, csCu, hsn, sluongThao, sluon
   const hsnVal = Number(hsn) || 1;
   const slThao = Number(sluongThao) || 0;
 
-  // Nếu CS mới < CS cũ thì cảnh báo, xóa trắng ô và focus lại
   if (csMoi < csCuVal) {
     await showCustomConfirm(
       "⚠️ CẢNH BÁO CHỈ SỐ LỖI", 
@@ -403,7 +404,6 @@ async function calculateRow(maKhang, bcs, rowIndex, csCu, hsn, sluongThao, sluon
   if (slHiddenEl) slHiddenEl.value = sanLuong;
   if (tongSlCell) tongSlCell.innerText = tongSluong;
 
-  // Cảnh báo chênh lệch sản lượng > 50% hoặc < -50%
   const sluongKtVal = Number(sluongKt) || 0;
   if (sluongKtVal > 0) {
     const diffPercent = ((tongSluong - sluongKtVal) / sluongKtVal) * 100;
@@ -416,7 +416,6 @@ async function calculateRow(maKhang, bcs, rowIndex, csCu, hsn, sluongThao, sluon
         true
       );
 
-      // NẾU XÁC NHẬN CẢNH BÁO -> LƯU CS LUÔN (BỎ QUA BƯỚC HỎI LẠI)
       if (confirmAlert) {
         saveCustomerData(maKhang, true);
         return;
@@ -448,7 +447,7 @@ function filterChuaGhi() {
   document.getElementById("searchInput").value = "";
   const unrecordedKeys = [];
 
-  customerKeys.forEach(makh => {
+  allCustomerKeys.forEach(makh => {
     const cust = groupedData[makh];
     const hasCS = cust.items.some(i => i.chiso_moi !== "" && i.chiso_moi !== undefined && i.chiso_moi !== null);
     if (!hasCS) unrecordedKeys.push(makh);
@@ -463,16 +462,25 @@ function filterChuaGhi() {
   }
 }
 
+function filterTatCa() {
+  document.getElementById("searchInput").value = "";
+  customerKeys = [...allCustomerKeys];
+  currentCardIndex = 0;
+  renderCurrentCustomerCard();
+}
+
 function filterData() {
   const q = document.getElementById("searchInput").value.toLowerCase().trim();
   
   if (!q) {
-    loadChiSoData();
+    customerKeys = [...allCustomerKeys];
+    currentCardIndex = 0;
+    renderCurrentCustomerCard();
     return;
   }
 
   const filtered = [];
-  Object.keys(groupedData).forEach(makh => {
+  allCustomerKeys.forEach(makh => {
     const cust = groupedData[makh];
     const match = 
       String(cust.ma_khang || "").toLowerCase().includes(q) ||
@@ -498,7 +506,6 @@ async function saveCustomerData(maKhang, skipConfirm = false) {
   const cust = groupedData[maKhang];
   if (!cust) return;
 
-  // Kiểm tra tính hợp lệ của tất cả các ô chỉ số mới
   let emptyItem = null;
   cust.items.forEach(item => {
     const inputEl = document.getElementById(`cs_moi_${item.rowIndex}`);
@@ -508,7 +515,6 @@ async function saveCustomerData(maKhang, skipConfirm = false) {
     }
   });
 
-  // Nếu phát hiện ô chỉ số mới trống (null) -> Cảnh báo và chuyển focus về ô đó
   if (emptyItem) {
     await showCustomConfirm(
       "⚠️ CHƯA NHẬP CHỈ SỐ", 
@@ -524,7 +530,6 @@ async function saveCustomerData(maKhang, skipConfirm = false) {
   const ghiChuInput = document.getElementById(`ghi_chu_${maKhang}`);
   const newGhiChu = ghiChuInput ? ghiChuInput.value.trim() : (cust.ghi_chu || "");
 
-  // Bỏ qua bước hỏi lại nếu người dùng đã bấm xác nhận ở bảng Cảnh báo bất thường trước đó
   if (!skipConfirm) {
     const confirmSave = await showCustomConfirm("XÁC NHẬN GHI DỮ LIỆU", "Lưu chỉ số và ghi chú cho khách hàng này?");
     if (!confirmSave) return;
