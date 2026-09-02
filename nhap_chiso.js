@@ -195,13 +195,13 @@ function renderCurrentCustomerCard(slideDirection = null) {
           </span>
           <span style="font-size:12px; color:#666;">⬅️ Vuốt để đổi KH ➡️</span>
         </div>
-        <div class="cust-title">Mã KH: ${cust.ma_khang} - <b>Số CTơ:</b>${cust.so_cto}</div>
+        <div class="cust-title">Mã KH: ${cust.ma_khang} - <b>Số CTơ:</b> ${cust.so_cto}</div>
         <div class="cust-tenKH">Tên KH: ${cust.ten_khang || ''}</div>
-        <div class="cust-address"><b>Đ/C:</b> ${cust.dia_chi || ''}</div>
+        <div class="cust-address" title="${cust.dia_chi || ''}"><b>Đ/C:</b> ${cust.dia_chi || ''}</div>
         <div class="cust-row-group">
          Mã sổ: ${cust.ma_sogcs} - Danh số: ${cust.danh_so || ''}
         </div>
-      <div class="cust-row-group">
+        <div class="cust-dynamic-info-v2">
          Số ĐT: ${cust.so_dthoai || ''} - <span style="float: right;">${mapLinkHtml}</span>
         </div>
         <div class="cust-row-group" style="margin-top: 4px;">
@@ -218,7 +218,6 @@ function renderCurrentCustomerCard(slideDirection = null) {
         </div>
 
         <div class="cust-dynamic-info-v2" id="detail_info_${cust.ma_khang}">
-          
           <span>SL Tháo(${firstItem.bcs}): <b>${firstItem.sluong_thao || 0}</b></span>
           <span>SL KT: <b>${firstItem.sluong_kt || 0}</b></span>
         </div>
