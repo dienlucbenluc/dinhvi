@@ -37,8 +37,33 @@
     .title { font-size: 16px; font-weight: bold; color: #0056b3; }
     .user-info { font-weight: 600; font-size: 13px; color: #28a745; }
 
-    .search-box input { width: 100%; padding: 8px 10px; border-radius: 5px; border: 1px solid #ccc; font-size: 14px; outline: none; }
+    .search-box {
+      display: flex;
+      gap: 6px;
+    }
+    .search-box input { 
+      flex: 1; 
+      padding: 8px 10px; 
+      border-radius: 5px; 
+      border: 1px solid #ccc; 
+      font-size: 14px; 
+      outline: none; 
+    }
     .search-box input:focus { border-color: #0056b3; }
+
+    .btn-search {
+      background: #0056b3;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      padding: 0 14px;
+      font-size: 16px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .btn-search:active { background: #004085; }
 
     .summary-bar {
       display: flex;
@@ -59,13 +84,6 @@
       text-decoration: underline;
       cursor: pointer;
       font-weight: bold;
-    }
-    .link-filter-tatca {
-      color: #0056b3;
-      text-decoration: underline;
-      cursor: pointer;
-      font-weight: bold;
-      margin-left: 4px;
     }
 
     #listContainer {
@@ -138,12 +156,11 @@
       border: 1px solid #ced4da;
       border-radius: 4px;
       padding: 6px 8px;
-      font-size: 14px;
-      color: #d9534f;
-      font-weight: bold;
+      font-size: 13px;
       outline: none;
       background-color: #fff;
     }
+    
     .input-ghichu:focus { border-color: #007bff; }
 
     .cust-dynamic-info-v2 {
@@ -160,7 +177,7 @@
       gap: 4px;
     }
 
-    .cust-dynamic-info-v3 {
+     .cust-dynamic-info-v3 {
       border-radius: 5px;
       font-size: 13px;
       margin: 4px 0; 
@@ -254,17 +271,15 @@
     </div>
     
     <div class="search-box">
-      <input type="text" id="searchInput" placeholder="🔍 Tìm Mã, Tên, Đ/C, Cột, Trạm, Sổ, SĐT..." oninput="filterData()">
+      <input type="text" id="searchInput" placeholder="Mã, Tên, Đ/C, Cột, Trạm, Sổ, SĐT..." onkeydown="if(event.key==='Enter') searchCustomer();">
+      <button class="btn-search" onclick="searchCustomer()">🔍</button>
     </div>
     
     <div class="summary-bar">
       <span>Tổng: <b id="sumTongKh">0</b></span>
       <span>Đã ghi: <b id="sumDaCS" style="color:#28a745;">0</b></span>
       <span>Chưa ghi: <b id="sumChuaGhi" style="color:#d9534f;">0</b></span>
-      <span>
-        <span class="link-filter-chuaghi" onclick="filterChuaGhi()">Chưa ghi</span> | 
-        <span class="link-filter-tatca" onclick="filterTatCa()">Tất cả</span>
-      </span>
+      <span class="link-filter-chuaghi" onclick="filterChuaGhi()">Chưa ghi</span>
     </div>
   </div>
 
@@ -287,6 +302,6 @@
     </div>
   </div>
 
-  <script charset="UTF-8" src="nhap_chiso.js?v=4.3.0"></script>
+  <script charset="UTF-8" src="nhap_chiso.js?v=4.2.0"></script>
 </body>
 </html>
