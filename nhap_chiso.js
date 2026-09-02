@@ -174,7 +174,7 @@ function renderCurrentCustomerCard(slideDirection = null) {
 
   // Giữ lại đường link Google Maps nếu khách hàng đã có sẵn tọa độ trong Sheet, ngược lại hiện nút lấy tọa độ
   const hasLocation = Boolean(firstItem.lat && firstItem.lng);
-  let mapLinkHtml = `<a onclick="getLocationAndSave('${cust.ma_khang}')" style="color:#007bff; font-size: 14px; font-weight:bold; text-decoration:none;">📍 Lấy mới định vị</a>`;
+  let mapLinkHtml = `<a onclick="getLocationAndSave('${cust.ma_khang}')" style="color:red; font-size: 14px; font-weight:bold; text-decoration:none;">📍 Lấy mới định vị</a>`;
   if (hasLocation) {
     mapLinkHtml = `<span id="map_link_${cust.ma_khang}"><a href="http://maps.google.com/?q=${firstItem.lat},${firstItem.lng}" target="_blank" style="color:#007bff; font-weight:bold; text-decoration:none;">🌏 Xem Google Maps</a></span>`;
   }
