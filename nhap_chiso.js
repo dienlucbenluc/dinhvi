@@ -218,8 +218,8 @@ function renderCurrentCustomerCard(slideDirection = null) {
         </div>
 
         <div class="cust-dynamic-info-v2" id="detail_info_${cust.ma_khang}">
-          <span>SL Tháo(${firstItem.bcs}): <b>${firstItem.sluong_thao || 0}</b></span>
-          <span>SL KT: <b>${firstItem.sluong_kt || 0}</b></span>
+          <span>kW tháo: (${firstItem.bcs}): <b>${firstItem.sluong_thao || 0}</b></span>
+          <span>kW kỳ trước: <b>${firstItem.sluong_kt || 0}</b></span>
         </div>
       </div>
 
