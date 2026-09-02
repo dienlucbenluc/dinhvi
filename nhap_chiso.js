@@ -219,6 +219,7 @@ function renderCurrentCustomerCard(slideDirection = null) {
 
         <div class="cust-dynamic-info-v2" id="detail_info_${cust.ma_khang}">
           <span>kW tháo: (${firstItem.bcs}): <b>${firstItem.sluong_thao || 0}</b></span>
+          <span>kW kỳ trước <span id="bcs_label_${cust.ma_khang}">(${firstItem.bcs})</span>: <b id="kw_kt_val_${cust.ma_khang}">${firstItem.sluong_kt || 0}</b></span>
         </div>
       </div>
 
@@ -226,11 +227,10 @@ function renderCurrentCustomerCard(slideDirection = null) {
         <table class="chiso-table">
           <thead>
             <tr>
-              <th style="width: 12%;">BCS</th>
-              <th style="width: 18%;">kW KT</th>
-              <th style="width: 22%;">CS cũ</th>
-              <th style="width: 28%;">CS mới</th>
-              <th style="width: 20%;">Tổng SL</th>
+              <th style="width: 15%;">BCS</th>
+              <th style="width: 25%;">CS cũ</th>
+              <th style="width: 35%;">CS mới</th>
+              <th style="width: 25%;">Tổng SL</th>
             </tr>
           </thead>
           <tbody>
@@ -242,13 +242,13 @@ function renderCurrentCustomerCard(slideDirection = null) {
     html += `
       <tr id="row_${item.rowIndex}">
         <td class="text-center" style="padding: 6px 2px;"><span class="bcs-badge">${item.bcs}</span></td>
-        <td class="val-calc-large text-right" style="font-size:14px !important;">${item.sluong_kt || 0}</td>
         <td class="val-calc-large text-right">${item.chiso_cu}</td>
         <td>
           <input type="number" 
                  class="input-cs-moi" 
                  id="cs_moi_${item.rowIndex}" 
                  value="${csMoiVal}"
+                 onfocus="updateKwKtDisplay('${cust.ma_khang}', '${item.bcs}', ${item.sluong_kt || 0})"
                  onchange="calculateRow('${cust.ma_khang}', '${item.bcs}', ${item.rowIndex}, ${item.chiso_cu || 0}, ${item.hsn}, ${item.sluong_thao || 0}, ${item.sluong_kt || 0})">
           <input type="hidden" id="sl_val_${item.rowIndex}" value="${item.san_luong !== "" && item.san_luong !== undefined ? item.san_luong : '-'}">
         </td>
@@ -282,6 +282,14 @@ function renderCurrentCustomerCard(slideDirection = null) {
   } else {
     isAnimating = false;
   }
+}
+
+// Cập nhật kW kỳ trước đúng theo BCS khi focus/click vào ô nhập CS
+function updateKwKtDisplay(maKhang, bcs, sluongKt) {
+  const labelEl = document.getElementById(`bcs_label_${maKhang}`);
+  const valEl = document.getElementById(`kw_kt_val_${maKhang}`);
+  if (labelEl) labelEl.innerText = `(${bcs})`;
+  if (valEl) valEl.innerText = sluongKt || 0;
 }
 
 function nextCustomer() {
@@ -377,7 +385,7 @@ async function calculateRow(maKhang, bcs, rowIndex, csCu, hsn, sluongThao, sluon
   const hsnVal = Number(hsn) || 1;
   const slThao = Number(sluongThao) || 0;
 
-  // 3. Kiểm tra CS mới < CS cũ
+  // 3. Nếu CS mới < CS cũ thì cảnh báo và trả về giá trị rỗng (null)
   if (csMoi < csCuVal) {
     await showCustomConfirm(
       "⚠️ CẢNH BÁO CHỈ SỐ LỖI", 
@@ -397,7 +405,7 @@ async function calculateRow(maKhang, bcs, rowIndex, csCu, hsn, sluongThao, sluon
   if (slHiddenEl) slHiddenEl.value = sanLuong;
   if (tongSlCell) tongSlCell.innerText = tongSluong;
 
-  // 2. Cảnh báo chênh lệch sản lượng > 50% hoặc < -50% so với kỳ trước
+  // 2. Cảnh báo chênh lệch sản lượng > 50% hoặc < -50% so với sluong_kt của BCS này
   const sluongKtVal = Number(sluongKt) || 0;
   if (sluongKtVal > 0) {
     const diffPercent = ((tongSluong - sluongKtVal) / sluongKtVal) * 100;
@@ -405,7 +413,7 @@ async function calculateRow(maKhang, bcs, rowIndex, csCu, hsn, sluongThao, sluon
       const phanTramText = diffPercent > 0 ? `tăng +${diffPercent.toFixed(1)}%` : `giảm ${diffPercent.toFixed(1)}%`;
       await showCustomConfirm(
         "⚠️ CẢNH BÁO BẤT THƯỜNG", 
-        `Tổng sản lượng kỳ này (${tongSluong} kW) ${phanTramText} so với kỳ trước (${sluongKtVal} kW).\nBạn có chắc chắn chỉ số này là chính xác?`, 
+        `Tổng sản lượng BCS (${bcs}) kỳ này (${tongSluong} kW) ${phanTramText} so với kỳ trước (${sluongKtVal} kW).\nBạn có chắc chắn chỉ số này là chính xác?`, 
         true
       );
     }
