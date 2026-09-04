@@ -1,4 +1,4 @@
-const API_URL = "https://script.google.com/macros/s/AKfycbzKm3QsCZeO8Ps8EOtujg9GkiZlVHVISHlwEqAajBysbSforCgJaDKMyc5j35MUpO91/exec";
+const API_URL = "http://10.183.45.1/htcmis/php/dd_dinhvi_cto/api.php";
 
 let allLocations = [];
 let currentId = null;
@@ -21,7 +21,7 @@ document.addEventListener("DOMContentLoaded", () => {
     userDisplay.innerText = `${currentUser.ten_nvien || currentUser.ten_ndung || ""}`;
   }
 
-  // Ưu tiên hiển thị Avatar ngay lập tức từ LocalStorage giống home.html
+  // Ưu tiên hiển thị Avatar ngay lập tức từ LocalStorage
   if (currentUser && currentUser.avatar) {
     setCurrentUserAvatar(currentUser.avatar);
   }
@@ -34,12 +34,10 @@ document.addEventListener("DOMContentLoaded", () => {
   
   const searchInput = document.getElementById("searchInput");
   if(searchInput) {
-    // Chỉ lưu trạng thái khi gõ, không tự động lọc danh sách
     searchInput.addEventListener("input", () => {
       saveLocalSettings();
     });
 
-    // Cho phép nhấn Enter trong ô tìm kiếm để kích hoạt tìm kiếm
     searchInput.addEventListener("keypress", (e) => {
       if (e.key === "Enter") {
         searchLocations();
@@ -52,7 +50,6 @@ document.addEventListener("DOMContentLoaded", () => {
     if (el) el.addEventListener('change', saveLocalSettings);
   });
 
-  // Đổi khách hàng/công việc thì nút quay lại trạng thái lấy mới.
   const locNameReset = document.getElementById("locName");
   const jobReset = document.getElementById("jobSelect");
   const loaiTimReset = document.getElementById("loai_tim");
@@ -75,7 +72,6 @@ function normalizeAvatarUrl(url) {
   url = String(url).trim();
   if (!url) return "https://via.placeholder.com/40";
 
-  // Các dạng link Google Drive thường gặp.
   let m = url.match(/drive\.google\.com\/file\/d\/([^/?#]+)/i);
   if (m && m[1]) return "https://drive.google.com/thumbnail?id=" + m[1] + "&sz=w100";
 
@@ -105,15 +101,13 @@ function loadCurrentUserAvatar() {
 
   fetch(API_URL, {
     method: "POST",
-    headers: { "Content-Type": "text/plain;charset=utf-8" },
-    redirect: "follow",
+    headers: { "Content-Type": "application/json;charset=utf-8" },
     body: JSON.stringify({
       action: "GET_USER_AVATAR",
       ten_ndung: currentUser.ten_ndung
     })
   })
-  .then(res => res.text())
-  .then(text => JSON.parse(text))
+  .then(res => res.json())
   .then(res => {
     if (res.status === "success" && res.avatar) {
       if (currentUser.avatar !== res.avatar) {
@@ -168,12 +162,16 @@ function populateDropdown(id1, id2, dataArray, defaultText) {
 }
 
 function applyInitData(res) {
+  // 1. Đổ danh sách công việc vào Combobox
   populateDropdown("jobSelect", "editJobSelect", res.cong_viec || [], "Chọn công việc");
   
   const savedJob = localStorage.getItem("cmis_jobSelect");
   if (savedJob) document.getElementById("jobSelect").value = savedJob;
 
+  // 2. Gán mảng khách hàng và cập nhật giao diện
   allLocations = res.locations || [];
+  
+  // Cập nhật số lượng trên nút bấm & hiển thị danh sách
   updateGetLocationButtonText();
   filterLocations();
 }
@@ -189,44 +187,25 @@ function syncLocalCache() {
 }
 
 function loadInitData() {
-  const listElement = document.getElementById("locationList");
-
-  const cachedData = localStorage.getItem("cmis_full_init_data");
-  if (cachedData) {
-    try {
-      const parsed = JSON.parse(cachedData);
-      applyInitData(parsed);
-    } catch(e) {
-      console.error(e);
-    }
-  } else if (listElement) {
-    listElement.innerHTML = `
-      <li style="text-align: center; padding: 20px;">
-        <span class="spinner"></span>
-        <span style="font-weight: bold; color: #007bff; vertical-align: middle; font-size: 15px;">Đang lấy danh sách...</span>
-      </li>
-    `;
-  }
-
   fetch(API_URL, {
-    method: "POST",
-    headers: { "Content-Type": "text/plain;charset=utf-8" },
-    redirect: "follow",
-    body: JSON.stringify({ action: "GET_INIT_DATA" })
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json;charset=utf-8' },
+    body: JSON.stringify({ action: 'GET_INIT_DATA' })
   })
-  .then(res => res.text())
-  .then(text => JSON.parse(text))
-  .then(res => {
-    if (res.status === "success") {
-      localStorage.setItem("cmis_full_init_data", JSON.stringify(res));
-      applyInitData(res);
+  .then(res => res.json())
+  .then(data => {
+    if (data.status === 'success') {
+      // Gọi hàm applyInitData để đổ dữ liệu công việc vào #jobSelect 
+      // và render danh sách khách hàng vào #locationList
+      applyInitData(data);
+      syncLocalCache();
     } else {
-      if (listElement && !cachedData) listElement.innerHTML = `<li>Lỗi: ${res.message}</li>`;
+      showToast(data.message || "Không thể tải dữ liệu ban đầu");
     }
   })
   .catch(err => {
-    console.error(err);
-    if (listElement && !cachedData) listElement.innerHTML = `<li>Lỗi kết nối máy chủ! Vui lòng tải lại trang.</li>`;
+    console.error('Lỗi load dữ liệu:', err);
+    showToast("Lỗi kết nối máy chủ khi tải dữ liệu!");
   });
 }
 
@@ -247,7 +226,6 @@ function parseTimeString(timeStr) {
   return isNaN(t) ? 0 : t;
 }
 
-// Kiểm tra thời gian đã lưu quá 1 giờ (3,600,000 miligiây)
 function isOverOneHour(timeStr) {
   if (!timeStr) return false;
   const recordedTime = parseTimeString(timeStr);
@@ -268,7 +246,6 @@ function removeAccents(str) {
     .replace(/đ/g, "d").replace(/Đ/g, "D");
 }
 
-// Hàm kích hoạt tìm kiếm từ nút bấm
 function searchLocations() {
   filterLocations();
 }
@@ -277,18 +254,23 @@ function filterLocations() {
   const searchInput = document.getElementById("searchInput");
   const rawQuery = searchInput ? searchInput.value.trim() : "";
 
-  // Không tìm kiếm: giữ nguyên chức năng cũ.
+  // Nếu không nhập từ khóa tìm kiếm: Render toàn bộ danh sách khách hàng
   if (!rawQuery) {
-    let sortedLocations = [...allLocations].sort(
-      (a, b) => parseTimeString(b.time) - parseTimeString(a.time)
-    );
-    renderList(sortedLocations.slice(0, 50));
+    let sortedLocations = [...allLocations];
+    // Sắp xếp an toàn: Ưu tiên dữ liệu mới nhất
+    sortedLocations.sort((a, b) => {
+      const timeA = parseTimeString(a.time) || 0;
+      const timeB = parseTimeString(b.time) || 0;
+      return timeB - timeA;
+    });
+    
+    // Render tối đa 100 khách hàng đầu tiên
+    renderList(sortedLocations.slice(0, 100));
     return;
   }
 
   const query = removeAccents(rawQuery.toLowerCase());
 
-  // Chấm điểm để chọn đúng 1 khách hàng gần đúng nhất.
   function getMatchScore(loc) {
     const mk = removeAccents(String(loc.ma_khang || "").toLowerCase());
     const tk = removeAccents(String(loc.ten_khang || "").toLowerCase());
@@ -311,7 +293,6 @@ function filterLocations() {
     return 99;
   }
 
-  // Chỉ xét các khách hàng có thông tin khớp.
   const matchedLocations = allLocations.filter(loc => getMatchScore(loc) < 99);
 
   if (matchedLocations.length === 0) {
@@ -319,7 +300,6 @@ function filterLocations() {
     return;
   }
 
-  // Khách hàng khớp gần đúng nhất: chỉ lấy đúng 1 khách hàng.
   matchedLocations.sort((a, b) => {
     const scoreA = getMatchScore(a);
     const scoreB = getMatchScore(b);
@@ -330,8 +310,6 @@ function filterLocations() {
 
   const nearestCustomer = matchedLocations[0];
 
-  // Nếu khách hàng gần đúng nhất chưa có tọa độ thì chỉ hiện khách đó,
-  // vì không thể tính phạm vi 100m.
   const centerLat = parseFloat(nearestCustomer.lat);
   const centerLng = parseFloat(nearestCustomer.lng);
 
@@ -340,7 +318,6 @@ function filterLocations() {
     return;
   }
 
-  // Tính khoảng cách theo đường chim bay (Haversine), đơn vị mét.
   function distanceInMeters(lat1, lng1, lat2, lng2) {
     const R = 6371000;
     const toRad = value => value * Math.PI / 180;
@@ -357,9 +334,6 @@ function filterLocations() {
     return 2 * R * Math.asin(Math.sqrt(a));
   }
 
-  // Khách hàng gần đúng nhất luôn đứng đầu.
-  // Sau đó lấy tất cả khách hàng có tọa độ trong phạm vi 100m
-  // và sắp xếp tăng dần theo khoảng cách.
   const nearbyCustomers = allLocations
     .map(loc => {
       const lat = parseFloat(loc.lat);
@@ -374,7 +348,6 @@ function filterLocations() {
     })
     .filter(item => item && item.distance <= 100)
     .sort((a, b) => {
-      // Khách hàng tìm được luôn ở vị trí đầu tiên.
       if (String(a.loc.id) === String(nearestCustomer.id)) return -1;
       if (String(b.loc.id) === String(nearestCustomer.id)) return 1;
 
@@ -382,7 +355,6 @@ function filterLocations() {
     })
     .map(item => item.loc);
 
-  // Tránh trường hợp khách hàng tìm được không có trong danh sách do dữ liệu tọa độ.
   if (!nearbyCustomers.some(loc => String(loc.id) === String(nearestCustomer.id))) {
     nearbyCustomers.unshift(nearestCustomer);
   }
@@ -396,7 +368,6 @@ function renderList(locations) {
   
   if(!listElement) return;
   
-  // Chỉ hiển thị tổng số khách hàng trong bảng dinh_vi
   if(countElement) countElement.innerText = `(${allLocations.length})`;
   
   listElement.innerHTML = "";
@@ -410,7 +381,6 @@ function renderList(locations) {
   locations.forEach(loc => {
     const li = document.createElement("li");
     
-    // Đóng các thẻ khác khi chọn dòng mới
     li.onclick = function() {
         const isAlreadySelected = this.classList.contains("selected");
         
@@ -458,7 +428,6 @@ function renderList(locations) {
       
       <div class="maps-row">
         ${(loc.lat && loc.lng) ? `<a href="${mapsUrl}" target="_blank" class="maps-link">🌏 Xem trên Google Maps</a>` : `<span style="color:#888; font-size: 13px;">Không có tọa độ</span>`}
-        
         <span style="font-size: 13px; color: #555; font-weight: bold;">${dateOnly}</span>
       </div>
       
@@ -608,7 +577,6 @@ function getLocation() {
     return;
   }
 
-  // Khách hàng đã có tọa độ: mở Modal xác nhận
   if (isExistingLocation) {
     openRegetModal();
     return;
@@ -618,8 +586,7 @@ function getLocation() {
 
   fetch(API_URL, {
     method: "POST",
-    headers: { "Content-Type": "text/plain;charset=utf-8" },
-    redirect: "follow",
+    headers: { "Content-Type": "application/json;charset=utf-8" },
     body: JSON.stringify({
       action: "CHECK_EXISTS",
       search_type: searchType,
@@ -631,7 +598,6 @@ function getLocation() {
     if (res.status === "exists") {
       setRegetLocationButton(res);
 
-      // Chỉ hiện đúng 1 khách hàng đang tồn tại dưới danh sách.
       const existingCustomer = allLocations.find(loc =>
         String(loc.ma_khang || "").trim() === String(res.ma_khang || "").trim() &&
         String(loc.trang_thai) === "1"
@@ -704,8 +670,7 @@ function getGPSAndSave(isRelocate) {
 
     fetch(API_URL, {
       method: "POST",
-      headers: { "Content-Type": "text/plain;charset=utf-8" },
-      redirect: "follow",
+      headers: { "Content-Type": "application/json;charset=utf-8" },
       body: JSON.stringify({ action: action, location: locData })
     })
     .then(res => res.json())
@@ -755,7 +720,6 @@ function checkAndOpenEditModal(id) {
     return;
   }
 
-  // Kiểm tra thời gian nếu quá 1 giờ thì chặn sửa
   if (isOverOneHour(loc.time)) {
     showToast("Thông tin lưu quá 1 giờ, không thể sửa.");
     return;
@@ -773,7 +737,6 @@ function checkAndOpenDeleteModal(id) {
     return;
   }
 
-  // Kiểm tra thời gian nếu quá 1 giờ thì chặn xóa
   if (isOverOneHour(loc.time)) {
     showToast("Thông tin lưu quá 1 giờ, không thể xóa.");
     return;
@@ -818,16 +781,14 @@ function saveEditLocation() {
   const sendEditRequest = (lat = "", lng = "", time = "") => {
     fetch(API_URL, {
       method: "POST",
-      headers: { "Content-Type": "text/plain;charset=utf-8" },
-      redirect: "follow",
+      headers: { "Content-Type": "application/json;charset=utf-8" },
       body: JSON.stringify({
         action: "EDIT", id: currentId, search_type: newSearchType, search_value: newSearchValue,
         ten_nvien: currentUser.ten_nvien, ten_ndung: currentUser.ten_ndung, ten_cviec: newJob, note: newNote,
         lat: lat, lng: lng, time: time
       })
     })
-    .then(res => res.text())
-    .then(text => JSON.parse(text))
+    .then(res => res.json())
     .then(res => {
       if (res.status === "success") {
         const loc = allLocations.find(item => String(item.id) === String(currentId));
@@ -896,12 +857,10 @@ function deleteLocation() {
 
   fetch(API_URL, {
     method: "POST",
-    headers: { "Content-Type": "text/plain;charset=utf-8" },
-    redirect: "follow",
+    headers: { "Content-Type": "application/json;charset=utf-8" },
     body: JSON.stringify({ action: "DELETE", id: currentId, ten_ndung: currentUser.ten_ndung })
   })
-  .then(res => res.text())
-  .then(text => JSON.parse(text))
+  .then(res => res.json())
   .then(res => {
     if(btn) btn.disabled = false;
     if (res.status === "success") {
@@ -944,8 +903,7 @@ function saveNewPassword() {
 
   fetch(API_URL, {
     method: "POST",
-    headers: { "Content-Type": "text/plain;charset=utf-8" },
-    redirect: "follow",
+    headers: { "Content-Type": "application/json;charset=utf-8" },
     body: JSON.stringify({
       action: "CHANGE_PASSWORD",
       ten_ndung: currentUser.ten_ndung,
@@ -953,8 +911,7 @@ function saveNewPassword() {
       mat_khau_moi: newPass
     })
   })
-  .then(res => res.text())
-  .then(text => JSON.parse(text))
+  .then(res => res.json())
   .then(res => {
     if (res.status === "success") {
       showToast("Đổi mật khẩu thành công! Vui lòng đăng nhập lại.");
