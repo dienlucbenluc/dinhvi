@@ -1,4 +1,4 @@
-const API_URL = "https://script.google.com/macros/s/AKfycbzKm3QsCZeO8Ps8EOtujg9GkiZlVHVISHlwEqAajBysbSforCgJaDKMyc5j35MUpO91/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbxX2x0MN69JtvdCIna5AkOv5YlCz0sQLI7FYdHbQ6Lg8Q0SXWkBSA_r-p7_21qZ0JwU/exec";
 
 let allLocations = [];
 let currentId = null;
