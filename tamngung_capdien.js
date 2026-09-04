@@ -15,7 +15,7 @@ const CLOUDINARY_CLOUD_NAME = 'jokzcdxt';
 const CLOUDINARY_UPLOAD_PRESET = 'image_catdien';
 
 // Link Web App Apps Script
-//const API_URL = 'https://script.google.com/macros/s/AKfycbypH-vE7ctJxQObLPLvRrG71zbVx6_6E40foxkb4SS7e38kCmnyuj-09kuUGyFxcGhW/exec';
+const API_URL = 'https://script.google.com/macros/s/AKfycbypH-vE7ctJxQObLPLvRrG71zbVx6_6E40foxkb4SS7e38kCmnyuj-09kuUGyFxcGhW/exec';
 
 let allCustomers = [];
 let busy = false;
