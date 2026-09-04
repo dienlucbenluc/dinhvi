@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Tạm ngừng cấp điện</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #f3f5f7;
+      color: #222;
+    }
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      background: #fff;
+      border-bottom: 1px solid #ddd;
+      padding: 10px;
+    }
+    .title {
+      font-size: 19px;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+    .toolbar {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+    #searchBox {
+      flex: 1;
+      min-width: 0;
+      height: 42px;
+      border: 1px solid #ccc;
+      border-radius: 9px;
+      padding: 0 12px;
+      font-size: 15px;
+      outline: none;
+    }
+    button {
+      border: 0;
+      border-radius: 9px;
+      min-height: 42px;
+      padding: 0 14px;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .btn-load { background: #1976d2; color: #fff; }
+    .btn-photo { background: #455a64; color: #fff; }
+    .btn-save { background: #2e7d32; color: #fff; }
+    button:disabled { opacity: .55; cursor: not-allowed; }
+
+    #status {
+      margin-top: 7px;
+      font-size: 13px;
+      color: #555;
+      min-height: 18px;
+    }
+
+    .list {
+      padding: 10px;
+      display: grid;
+      gap: 10px;
+    }
+
+    .customer-box {
+      background: #fff;
+      border: 1px solid #dfe3e6;
+      border-radius: 12px;
+      box-shadow: 0 1px 4px rgba(0,0,0,.08);
+      overflow: hidden;
+    }
+    .box-head {
+      padding: 10px 12px;
+      background: #fafafa;
+      border-bottom: 1px solid #eee;
+    }
+    .ma-khang {
+      font-size: 17px;
+      font-weight: 800;
+    }
+    .ten-khang {
+      margin-top: 3px;
+      font-size: 15px;
+      font-weight: 600;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 7px 12px;
+      padding: 10px 12px;
+    }
+    .item label {
+      display: block;
+      color: #777;
+      font-size: 11px;
+      margin-bottom: 2px;
+    }
+    .item div {
+      font-size: 13px;
+      word-break: break-word;
+    }
+    .photo-area {
+      padding: 0 12px 10px;
+    }
+    .picture-box {
+      width: 100%;
+      min-height: 110px;
+      border: 1px dashed #bbb;
+      border-radius: 9px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #fafafa;
+      overflow: hidden;
+      color: #999;
+      font-size: 13px;
+    }
+    .picture-box img {
+      display: block;
+      width: 100%;
+      max-height: 280px;
+      object-fit: contain;
+    }
+    .actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 8px;
+      padding: 0 12px 12px;
+    }
+    .check-wrap {
+      min-height: 42px;
+      border: 1px solid #ccc;
+      border-radius: 9px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      font-size: 13px;
+      font-weight: 700;
+      background: #fff;
+      padding: 0 6px;
+      text-align: center;
+    }
+    .check-wrap input {
+      width: 18px;
+      height: 18px;
+      margin: 0;
+    }
+
+    .empty {
+      text-align: center;
+      padding: 35px 10px;
+      color: #777;
+    }
+
+    @media (max-width: 600px) {
+      .grid { grid-template-columns: 1fr 1fr; }
+      .actions { grid-template-columns: 1fr; }
+      .toolbar { flex-wrap: wrap; }
+      #searchBox { flex-basis: 100%; }
+      .btn-load { width: 100%; }
+    }
+  </style>
+</head>
+<body>
+  <div class="topbar">
+    <div class="title">⚡ TẠM NGỪNG CẤP ĐIỆN</div>
+    <div class="toolbar">
+      <input id="searchBox" type="search" placeholder="Tìm mã KH, tên KH, số công tơ...">
+      <button class="btn-load" id="btnLoad" onclick="loadCustomers()">↻ Lấy danh sách</button>
+    </div>
+    <div id="status"></div>
+  </div>
+
+  <div id="customerList" class="list">
+    <div class="empty">Đang chuẩn bị danh sách...</div>
+  </div>
+
+  <script src="tamngung_capdien.js"></script>
+</body>
+</html>
