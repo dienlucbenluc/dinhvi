@@ -183,28 +183,26 @@ function syncLocalCache() {
 }
 
 function loadInitData() {
-    fetch('api.php', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'GET_INIT_DATA' })
-    })
-    .then(res => res.json())
-    .then(data => {
-        if (data.status === 'success') {
-            // Render danh sách công việc vào Combobox/Select
-            const cbxCongViec = document.getElementById('cbx_cong_viec'); // Thay id_combobox của bạn vào đây
-            if (cbxCongViec && data.cong_viec) {
-                cbxCongViec.innerHTML = '<option value="">-- Chọn công việc --</option>';
-                data.cong_viec.forEach(tenCV => {
-                    const opt = document.createElement('option');
-                    opt.value = tenCV;
-                    opt.textContent = tenCV;
-                    cbxCongViec.appendChild(opt);
-                });
-            }
-        }
-    })
-    .catch(err => console.error('Lỗi load dữ liệu:', err));
+  fetch(API_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json;charset=utf-8' },
+    body: JSON.stringify({ action: 'GET_INIT_DATA' })
+  })
+  .then(res => res.json())
+  .then(data => {
+    if (data.status === 'success') {
+      // Gọi hàm applyInitData để đổ dữ liệu công việc vào #jobSelect 
+      // và render danh sách khách hàng vào #locationList
+      applyInitData(data);
+      syncLocalCache();
+    } else {
+      showToast(data.message || "Không thể tải dữ liệu ban đầu");
+    }
+  })
+  .catch(err => {
+    console.error('Lỗi load dữ liệu:', err);
+    showToast("Lỗi kết nối máy chủ khi tải dữ liệu!");
+  });
 }
 
 function parseTimeString(timeStr) {
