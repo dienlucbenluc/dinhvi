@@ -750,7 +750,7 @@
 
                 // Bước 1: Nếu có đổi avatar -> Đẩy trực tiếp lên Cloudinary trước
                 if (isAvatarChanged && base64AvatarResized) {
-                    btnSave.innerText = "Tải ảnh lên Cloudinary...";
+                    btnSave.innerText = "Upload ảnh...";
                     uploadedAvatarUrl = await uploadToCloudinary(base64AvatarResized);
                 }
 
