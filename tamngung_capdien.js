@@ -49,13 +49,11 @@ function value(obj, ...names) {
   return '';
 }
 
-// Hàm gọi API JSONP vượt rào cản CORS của trình duyệt
 function fetchJSONP(url) {
   return new Promise((resolve, reject) => {
     const callbackName = 'jsonp_cb_' + Math.round(100000 * Math.random());
     const script = document.createElement('script');
     
-    // Bổ sung timeout 10 giây phòng trường hợp điện thoại chặn lặng lẽ
     const timeoutId = setTimeout(() => {
       cleanup();
       reject(new Error('KẾT NỐI QUÁ THỜI GIAN (Kiểm tra mạng hoặc Safari/Chrome chặn).'));
@@ -82,7 +80,6 @@ function fetchJSONP(url) {
   });
 }
 
-// Cập nhật hàm loadCustomers dùng Fetch dự phòng nếu JSONP thất bại:
 async function loadCustomers() {
   if (busy) return;
 
@@ -94,12 +91,9 @@ async function loadCustomers() {
   try {
     let res;
     try {
-      // Thử kết nối qua JSONP trước
       res = await fetchJSONP(`${API_URL}?action=getList`);
     } catch (jsonpErr) {
       console.warn('JSONP thất bại, thử chuyển sang Fetch tiêu chuẩn:', jsonpErr);
-      
-      // Dự phòng gọi bằng Fetch trực tiếp cho mobile
       const response = await fetch(`${API_URL}?action=getList`);
       if (!response.ok) throw new Error('Server Apps Script từ chối kết nối.');
       res = await response.json();
@@ -162,9 +156,30 @@ function renderCustomers(items) {
     const soCto = value(c, 'SO_CTO', 'so_cto');
     const vtriDnoi = value(c, 'VTRI_DNOI', 'vtri_dnoi');
     const tenTram = value(c, 'TEN_TRAM', 'ten_tram');
-    const lat = value(c, 'LAT', 'lat');
-    const lng = value(c, 'LNG', 'lng');
+    const lat = String(value(c, 'LAT', 'lat') || '').trim();
+    const lng = String(value(c, 'LNG', 'lng') || '').trim();
     const picture = value(c, 'HINH_ANH', 'hinh_anh', 'PICTUREBOX');
+
+    const hasLocation = lat !== '' && lng !== '' && !isNaN(lat) && !isNaN(lng);
+
+    // Hiển thị Link Google Maps hoặc Nút lấy tọa độ GPS
+    let locationHtml = '';
+    if (hasLocation) {
+      const mapUrl = `https://www.google.com/maps?q=${lat},${lng}`;
+      locationHtml = `
+        <a href="${mapUrl}" target="_blank" style="color: #1976d2; font-weight: bold; text-decoration: none;">
+          📍 Xem trên Google Maps
+        </a>
+      `;
+    } else {
+      locationHtml = `
+        <button id="btn-location-${safeKey}" 
+                onclick="getLocationAndSave(${index}, '${safeKey}')" 
+                style="background: #ef6c00; color: #fff; padding: 4px 8px; border-radius: 6px; font-size: 12px; border: 0; cursor: pointer;">
+          📍 Lấy tọa độ mới
+        </button>
+      `;
+    }
 
     return `
       <div class="customer-box" id="box-${safeKey}" data-index="${index}">
@@ -179,7 +194,7 @@ function renderCustomers(items) {
           <div class="item"><label>SO_CTO</label><div>${escapeHtml(soCto)}</div></div>
           <div class="item"><label>VTRI_DNOI</label><div>${escapeHtml(vtriDnoi)}</div></div>
           <div class="item"><label>TEN_TRAM</label><div>${escapeHtml(tenTram)}</div></div>
-          <div class="item"><label>TỌA ĐỘ</label><div>${escapeHtml(lat)} , ${escapeHtml(lng)}</div></div>
+          <div class="item"><label>TỌA ĐỘ</label><div id="loc-cell-${safeKey}">${locationHtml}</div></div>
         </div>
 
         <div class="photo-area">
@@ -205,6 +220,101 @@ function renderCustomers(items) {
       </div>
     `;
   }).join('');
+}
+
+// Lấy tọa độ GPS thiết bị và cập nhật về Sheet
+async function getLocationAndSave(index, safeKey) {
+  const c = allCustomers[index];
+  if (!c) return;
+
+  const btnLoc = document.getElementById(`btn-location-${safeKey}`);
+  const maKhang = value(c, 'MA_KHANG', 'ma_khang');
+
+  if (!navigator.geolocation) {
+    setStatus('Trình duyệt hoặc thiết bị của bạn không hỗ trợ định vị GPS.', true);
+    return;
+  }
+
+  if (btnLoc) {
+    btnLoc.disabled = true;
+    btnLoc.textContent = '⏳ Đang lấy vị trí...';
+  }
+  setStatus(`Đang định vị GPS cho khách hàng ${maKhang}...`);
+
+  navigator.geolocation.getCurrentPosition(
+    async (position) => {
+      const lat = position.coords.latitude;
+      const lng = position.coords.longitude;
+
+      setStatus(`Đã định vị (${lat.toFixed(5)}, ${lng.toFixed(5)}). Đang lưu vào Google Sheet...`);
+
+      try {
+        const payload = {
+          action: 'save',
+          payload: {
+            MA_KHANG: maKhang,
+            LAT: lat,
+            LNG: lng
+          }
+        };
+
+        const response = await fetch(API_URL, {
+          method: 'POST',
+          body: JSON.stringify(payload)
+        });
+
+        const result = await response.json();
+
+        if (!result || result.success !== true) {
+          throw new Error(result?.message || 'Không thể lưu tọa độ.');
+        }
+
+        c.LAT = lat;
+        c.lat = lat;
+        c.LNG = lng;
+        c.lng = lng;
+
+        const cell = document.getElementById(`loc-cell-${safeKey}`);
+        if (cell) {
+          const mapUrl = `https://www.google.com/maps?q=${lat},${lng}`;
+          cell.innerHTML = `
+            <a href="${mapUrl}" target="_blank" style="color: #1976d2; font-weight: bold; text-decoration: none;">
+              📍 Xem trên Google Maps
+            </a>
+          `;
+        }
+
+        setStatus(`Đã lưu tọa độ mới cho khách hàng ${maKhang} thành công!`);
+
+      } catch (err) {
+        if (btnLoc) {
+          btnLoc.disabled = false;
+          btnLoc.textContent = '📍 Lấy tọa độ mới';
+        }
+        setStatus('Lỗi lưu tọa độ: ' + err.message, true);
+      }
+    },
+    (err) => {
+      if (btnLoc) {
+        btnLoc.disabled = false;
+        btnLoc.textContent = '📍 Lấy tọa độ mới';
+      }
+      let errorMsg = 'Không thể lấy vị trí GPS.';
+      if (err.code === err.PERMISSION_DENIED) {
+        errorMsg = 'Bạn đã từ chối cấp quyền truy cập vị trí (GPS) trên thiết bị.';
+      } else if (err.code === err.POSITION_UNAVAILABLE) {
+        errorMsg = 'Thông tin vị trí không khả dụng.';
+      } else if (err.code === err.TIMEOUT) {
+        errorMsg = 'Quá thời gian chờ lấy vị trí GPS.';
+      }
+      setStatus(errorMsg, true);
+    },
+    {
+      enableHighAccuracy: true,
+      timeout: 10000,
+      maximumAge: 0
+    }
+  );
 }
 
 function takePhoto(index, safeKey) {
