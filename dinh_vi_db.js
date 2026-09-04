@@ -93,42 +93,26 @@ function setCurrentUserAvatar(avatar) {
   const img = document.getElementById("userAvatarHeader");
   if (!img) return;
 
-  const displayName = currentUser ? (currentUser.ten_nvien || currentUser.ten_ndung || "NV") : "NV";
-  const defaultAvatar = `https://ui-avatars.com/api/?name=${encodeURIComponent(displayName)}&background=0D6EFD&color=fff`;
+  // Lấy tên hiển thị: Nguyễn Đức Truyền
+  const displayName = currentUser ? (currentUser.ten_nvien || currentUser.ten_ndung || "NT") : "NT";
+  
+  // Link tạo avatar chữ nổi bật đẹp mắt
+  const fallbackAvatar = `https://ui-avatars.com/api/?name=${encodeURIComponent(displayName)}&background=0D6EFD&color=fff&bold=true`;
 
+  // Sự kiện khi link Google Drive / Server bị lỗi tải ảnh
   img.onerror = function() {
-    this.onerror = null;
-    this.src = defaultAvatar;
+    this.onerror = null; // Tránh lặp vô tận
+    this.src = fallbackAvatar;
   };
 
   const formattedUrl = normalizeAvatarUrl(avatar);
-  img.src = formattedUrl ? formattedUrl : defaultAvatar;
-}
-
-function loadCurrentUserAvatar() {
-  if (!currentUser || !currentUser.ten_ndung) return;
-
-  fetch(API_URL, {
-    method: "POST",
-    headers: { "Content-Type": "application/json;charset=utf-8" },
-    body: JSON.stringify({
-      action: "GET_USER_AVATAR",
-      ten_ndung: currentUser.ten_ndung
-    })
-  })
-  .then(res => res.json())
-  .then(res => {
-    if (res.status === "success" && res.avatar) {
-      if (currentUser.avatar !== res.avatar) {
-        currentUser.avatar = res.avatar;
-        localStorage.setItem("cmis_user_session", JSON.stringify(currentUser));
-        setCurrentUserAvatar(res.avatar);
-      }
-    }
-  })
-  .catch(err => {
-    console.error("Không lấy được avatar nhân viên:", err);
-  });
+  
+  // Nếu có avatar thì gán, nếu rỗng gán thẳng fallback
+  if (formattedUrl) {
+    img.src = formattedUrl;
+  } else {
+    img.src = fallbackAvatar;
+  }
 }
 
 function toggleMenu() {
