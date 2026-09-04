@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <title>Đăng nhập - Định vị công tơ</title>
+    <style>
+        html, body { height: 100%; margin: 0; padding: 0; font-family: Arial, sans-serif; background: #f4f4f9; color: #333; display: flex; align-items: center; justify-content: center; }
+        .login-card { background: #fff; border-radius: 12px; padding: 24px; width: 90%; max-width: 380px; box-shadow: 0 8px 20px rgba(0,0,0,0.1); text-align: center; }
+        .logo { width: 60px; height: 60px; object-fit: contain; margin-bottom: 10px; mix-blend-mode: multiply; }
+        .title { font-size: 18px; font-weight: bold; color: #1E90FF; margin-bottom: 4px; }
+        .subtitle { font-size: 16px; font-weight: bold; color: #228B22; margin-bottom: 20px; }
+        .form-group { text-align: left; margin-bottom: 12px; position: relative; }
+        label { display: block; font-size: 13px; font-weight: bold; margin-bottom: 4px; color: #444; }
+        input[type="text"], input[type="password"] { width: 100%; padding: 10px 40px 10px 12px; border: 1px solid #ccc; border-radius: 8px; box-sizing: border-box; font-size: 15px; outline: none; }
+        input:focus { border-color: #007bff; }
+        .toggle-password { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); cursor: pointer; user-select: none; font-size: 16px; }
+        .remember-group { display: flex; align-items: center; justify-content: start; gap: 8px; margin-bottom: 12px; font-size: 14px; color: #555; }
+        .remember-group input { cursor: pointer; }
+        button { width: 100%; padding: 12px; background: #007bff; color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 5px; }
+        button:disabled { background: #aaa; }
+        #msg { margin-top: 12px; font-size: 12px; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <div class="login-card">
+        <img src="LOGO.png" alt="Logo" class="logo">
+        <div class="title">ĐIỆN LỰC BẾN LỨC</div>
+        <div class="subtitle">Định vị vị trí công tơ</div>
+
+        <div class="form-group">
+            <input type="text" id="username" placeholder="Nhập tên đăng nhập...">
+        </div>
+
+        <div class="form-group">
+            <input type="password" id="password" placeholder="Nhập mật khẩu...">
+            <span class="toggle-password" onclick="togglePasswordVisibility()">👁️</span>
+        </div>
+
+        <div class="remember-group">
+            <input type="checkbox" id="rememberMe">
+            <label for="rememberMe" style="margin:0; font-weight:normal; cursor:pointer;">Ghi nhớ thông tin đăng nhập</label>
+        </div>
+
+        <button id="btnLogin" onclick="handleLogin()">Đăng nhập</button>
+        <div id="msg"></div>
+    </div>
+
+    <script>
+        const API_URL = "api.php";
+
+        document.addEventListener("DOMContentLoaded", () => {
+            const userSession = localStorage.getItem("cmis_user_session");
+            if (userSession) {
+                window.location.href = "home.html";
+                return;
+            }
+
+            const savedUser = localStorage.getItem("cmis_remember_user");
+            const savedPass = localStorage.getItem("cmis_remember_pass");
+
+            if (savedUser && savedPass) {
+                document.getElementById("username").value = savedUser;
+                document.getElementById("password").value = savedPass;
+                document.getElementById("rememberMe").checked = true;
+            }
+        });
+
+        function togglePasswordVisibility() {
+            const passInput = document.getElementById("password");
+            const toggleIcon = document.querySelector(".toggle-password");
+            if (passInput.type === "password") {
+                passInput.type = "text";
+                toggleIcon.innerText = "🙈";
+            } else {
+                passInput.type = "password";
+                toggleIcon.innerText = "👁️";
+            }
+        }
+
+        function getCurrentFormattedTime() {
+            const now = new Date();
+            const day = String(now.getDate()).padStart(2, '0');
+            const month = String(now.getMonth() + 1).padStart(2, '0');
+            const year = now.getFullYear();
+            const hours = String(now.getHours()).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+            const seconds = String(now.getSeconds()).padStart(2, '0');
+            return `${day}/${month}/${year} ${hours}:${minutes}:${seconds}`;
+        }
+
+        function handleLogin() {
+            const ten_ndung = document.getElementById("username").value.trim();
+            const mat_khau = document.getElementById("password").value.trim();
+            const rememberMe = document.getElementById("rememberMe").checked;
+            const msgEl = document.getElementById("msg");
+            const btn = document.getElementById("btnLogin");
+
+            if (!ten_ndung || !mat_khau) {
+                msgEl.style.color = "#dc3545";
+                msgEl.innerText = "Vui lòng nhập đầy đủ thông tin";
+                return;
+            }
+
+            msgEl.style.color = "#007bff";
+            msgEl.innerText = "Đang kiểm tra đăng nhập...";
+            btn.disabled = true;
+
+            const time_log = getCurrentFormattedTime();
+
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 15000);
+
+            fetch(API_URL, {
+                method: "POST",
+                headers: { "Content-Type": "application/json;charset=utf-8" },
+                signal: controller.signal,
+                body: JSON.stringify({ 
+                    action: "LOGIN", 
+                    ten_ndung: ten_ndung, 
+                    mat_khau: mat_khau,
+                    time_log: time_log 
+                })
+            }).finally(() => clearTimeout(timeoutId))
+            .then(res => res.json())
+            .then(res => {
+                btn.disabled = false;
+                if (res.status === "success") {
+                    msgEl.style.color = "#28a745";
+                    msgEl.innerText = "Thành công, đang vào trang chủ...";
+                    
+                    const sessionData = {
+                        ten_ndung: res.ten_ndung,
+                        ten_nvien: res.ten_nvien,
+                        mat_khau: mat_khau
+                    };
+                    localStorage.setItem("cmis_user_session", JSON.stringify(sessionData));
+
+                    if (rememberMe) {
+                        localStorage.setItem("cmis_remember_user", ten_ndung);
+                        localStorage.setItem("cmis_remember_pass", mat_khau);
+                    } else {
+                        localStorage.removeItem("cmis_remember_user");
+                        localStorage.removeItem("cmis_remember_pass");
+                    }
+
+                    window.location.href = "home.html";
+                } else {
+                    msgEl.style.color = "#dc3545";
+                    msgEl.innerText = "Lỗi: " + res.message;
+                }
+            })
+            .catch(err => {
+                btn.disabled = false;
+                msgEl.style.color = "#dc3545";
+                msgEl.innerText = err.name === "AbortError"
+                    ? "Máy chủ phản hồi quá lâu, vui lòng thử lại!"
+                    : "Lỗi kết nối máy chủ!";
+                console.error(err);
+            });
+        }
+    </script>
+</body>
+</html>
