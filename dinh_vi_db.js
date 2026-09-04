@@ -24,8 +24,6 @@ document.addEventListener("DOMContentLoaded", () => {
   // Ưu tiên hiển thị Avatar ngay lập tức từ LocalStorage
   if (currentUser && currentUser.avatar) {
     setCurrentUserAvatar(currentUser.avatar);
-  } else {
-    setCurrentUserAvatar("");
   }
 
   // Kiểm tra hoặc cập nhật ngầm avatar từ server nếu cần
@@ -38,7 +36,6 @@ document.addEventListener("DOMContentLoaded", () => {
   if(searchInput) {
     searchInput.addEventListener("input", () => {
       saveLocalSettings();
-      filterLocations();
     });
 
     searchInput.addEventListener("keypress", (e) => {
@@ -71,9 +68,9 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 function normalizeAvatarUrl(url) {
-  if (!url) return "";
+  if (!url) return "https://via.placeholder.com/40";
   url = String(url).trim();
-  if (!url) return "";
+  if (!url) return "https://via.placeholder.com/40";
 
   let m = url.match(/drive\.google\.com\/file\/d\/([^/?#]+)/i);
   if (m && m[1]) return "https://drive.google.com/thumbnail?id=" + m[1] + "&sz=w100";
@@ -92,27 +89,37 @@ function normalizeAvatarUrl(url) {
 function setCurrentUserAvatar(avatar) {
   const img = document.getElementById("userAvatarHeader");
   if (!img) return;
-
-  // Lấy tên hiển thị: Nguyễn Đức Truyền
-  const displayName = currentUser ? (currentUser.ten_nvien || currentUser.ten_ndung || "NT") : "NT";
-  
-  // Link tạo avatar chữ nổi bật đẹp mắt
-  const fallbackAvatar = `https://ui-avatars.com/api/?name=${encodeURIComponent(displayName)}&background=0D6EFD&color=fff&bold=true`;
-
-  // Sự kiện khi link Google Drive / Server bị lỗi tải ảnh
   img.onerror = function() {
-    this.onerror = null; // Tránh lặp vô tận
-    this.src = fallbackAvatar;
+    this.onerror = null;
+    this.src = "https://via.placeholder.com/40";
   };
+  img.src = normalizeAvatarUrl(avatar);
+}
 
-  const formattedUrl = normalizeAvatarUrl(avatar);
-  
-  // Nếu có avatar thì gán, nếu rỗng gán thẳng fallback
-  if (formattedUrl) {
-    img.src = formattedUrl;
-  } else {
-    img.src = fallbackAvatar;
-  }
+function loadCurrentUserAvatar() {
+  if (!currentUser || !currentUser.ten_ndung) return;
+
+  fetch(API_URL, {
+    method: "POST",
+    headers: { "Content-Type": "application/json;charset=utf-8" },
+    body: JSON.stringify({
+      action: "GET_USER_AVATAR",
+      ten_ndung: currentUser.ten_ndung
+    })
+  })
+  .then(res => res.json())
+  .then(res => {
+    if (res.status === "success" && res.avatar) {
+      if (currentUser.avatar !== res.avatar) {
+        currentUser.avatar = res.avatar;
+        localStorage.setItem("cmis_user_session", JSON.stringify(currentUser));
+        setCurrentUserAvatar(res.avatar);
+      }
+    }
+  })
+  .catch(err => {
+    console.error("Không lấy được avatar nhân viên:", err);
+  });
 }
 
 function toggleMenu() {
@@ -188,6 +195,8 @@ function loadInitData() {
   .then(res => res.json())
   .then(data => {
     if (data.status === 'success') {
+      // Gọi hàm applyInitData để đổ dữ liệu công việc vào #jobSelect 
+      // và render danh sách khách hàng vào #locationList
       applyInitData(data);
       syncLocalCache();
     } else {
@@ -203,14 +212,6 @@ function loadInitData() {
 function parseTimeString(timeStr) {
   if (!timeStr) return 0;
   const str = String(timeStr).trim();
-
-  // Xử lý chuỗi định dạng DD/MM/YYYY HH:mm:ss
-  const match = str.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})\s+(\d{1,2}):(\d{1,2}):(\d{1,2})$/);
-  if (match) {
-    const [, day, month, year, hours, minutes, seconds] = match.map(Number);
-    return new Date(year, month - 1, day, hours, minutes, seconds).getTime();
-  }
-
   const parts = str.split(/[\s,]+/);
   if (parts.length >= 2) {
     const datePart = parts.find(p => p.includes("/"));
@@ -307,7 +308,58 @@ function filterLocations() {
     return parseTimeString(b.time) - parseTimeString(a.time);
   });
 
-  renderList(matchedLocations.slice(0, 100));
+  const nearestCustomer = matchedLocations[0];
+
+  const centerLat = parseFloat(nearestCustomer.lat);
+  const centerLng = parseFloat(nearestCustomer.lng);
+
+  if (!Number.isFinite(centerLat) || !Number.isFinite(centerLng)) {
+    renderList([nearestCustomer]);
+    return;
+  }
+
+  function distanceInMeters(lat1, lng1, lat2, lng2) {
+    const R = 6371000;
+    const toRad = value => value * Math.PI / 180;
+
+    const dLat = toRad(lat2 - lat1);
+    const dLng = toRad(lng2 - lng1);
+
+    const a =
+      Math.sin(dLat / 2) ** 2 +
+      Math.cos(toRad(lat1)) *
+      Math.cos(toRad(lat2)) *
+      Math.sin(dLng / 2) ** 2;
+
+    return 2 * R * Math.asin(Math.sqrt(a));
+  }
+
+  const nearbyCustomers = allLocations
+    .map(loc => {
+      const lat = parseFloat(loc.lat);
+      const lng = parseFloat(loc.lng);
+
+      if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
+
+      return {
+        loc,
+        distance: distanceInMeters(centerLat, centerLng, lat, lng)
+      };
+    })
+    .filter(item => item && item.distance <= 100)
+    .sort((a, b) => {
+      if (String(a.loc.id) === String(nearestCustomer.id)) return -1;
+      if (String(b.loc.id) === String(nearestCustomer.id)) return 1;
+
+      return a.distance - b.distance;
+    })
+    .map(item => item.loc);
+
+  if (!nearbyCustomers.some(loc => String(loc.id) === String(nearestCustomer.id))) {
+    nearbyCustomers.unshift(nearestCustomer);
+  }
+
+  renderList(nearbyCustomers);
 }
 
 function renderList(locations) {
@@ -503,6 +555,7 @@ function getLocation() {
   const searchType = document.getElementById("loai_tim").value;
   const searchValueInput = document.getElementById("locName").value.trim();
   const jobTitle = document.getElementById("jobSelect").value;
+  const noteContent = document.getElementById("locNote").value.trim();
 
   if (!searchValueInput) {
     showToast("Vui lòng nhập thông tin tìm kiếm...");
