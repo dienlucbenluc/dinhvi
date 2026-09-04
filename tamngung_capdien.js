@@ -1,232 +1,318 @@
-/**
- * tamngung_capdien.gs
- * Backend Google Apps Script cho trang tamngung_capdien.html
+/*
+ * tamngung_capdien.js
+ * Frontend độc lập gọi API Web App Apps Script
  */
-function doGet() {
-  return HtmlService
-    .createTemplateFromFile('tamngung_capdien')
-    .evaluate()
-    .setTitle('Tạm ngừng cấp điện')
-    .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
+
+const API_URL = 'https://script.google.com/macros/s/AKfycbypH-vE7ctJxQObLPLvRrG71zbVx6_6E40foxkb4SS7e38kCmnyuj-09kuUGyFxcGhW/exec';
+const CLOUDINARY_CLOUD_NAME = 'jokzcdxt';
+const CLOUDINARY_UPLOAD_PRESET = 'image_catdien';
+
+let allCustomers = [];
+let busy = false;
+
+document.addEventListener('DOMContentLoaded', () => {
+  const searchBox = document.getElementById('searchBox');
+  if (searchBox) {
+    searchBox.addEventListener('input', renderFiltered);
+  }
+  loadCustomers();
+});
+
+function setStatus(text, error = false) {
+  const el = document.getElementById('status');
+  if (!el) return;
+  el.textContent = text || '';
+  el.style.color = error ? '#c62828' : '#555';
 }
 
-const TAMNGUNG_SHEET_NAME = 'tamngung_capdien';
+function escapeHtml(value) {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
 
-/**
- * Lấy danh sách khách hàng cho frontend.
- */
-function getTamNgungCapDienList() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const sh = ss.getSheetByName(TAMNGUNG_SHEET_NAME);
+function normalize(v) {
+  return String(v ?? '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .trim();
+}
 
-  if (!sh) {
-    throw new Error('Không tìm thấy sheet: ' + TAMNGUNG_SHEET_NAME);
+function value(obj, ...names) {
+  for (const name of names) {
+    if (obj && obj[name] !== undefined && obj[name] !== null) return obj[name];
   }
+  return '';
+}
 
-  const values = sh.getDataRange().getValues();
-  if (values.length < 2) return [];
+// Hàm gọi API JSONP vượt rào cản CORS của trình duyệt
+function fetchJSONP(url) {
+  return new Promise((resolve, reject) => {
+    const callbackName = 'jsonp_cb_' + Math.round(100000 * Math.random());
+    window[callbackName] = function(data) {
+      delete window[callbackName];
+      document.body.removeChild(script);
+      resolve(data);
+    };
 
-  const headers = values[0].map(h => String(h).trim());
-  const map = {};
-  headers.forEach((h, i) => {
-    map[normalizeHeader_(h)] = i;
+    const script = document.createElement('script');
+    script.src = url + (url.indexOf('?') >= 0 ? '&' : '?') + 'callback=' + callbackName;
+    script.onerror = function() {
+      delete window[callbackName];
+      document.body.removeChild(script);
+      reject(new Error('Không thể kết nối đến Web App.'));
+    };
+    document.body.appendChild(script);
   });
+}
 
-  const idx = name => {
-    const i = map[normalizeHeader_(name)];
-    return i === undefined ? -1 : i;
-  };
+async function loadCustomers() {
+  if (busy) return;
 
-  const iMaKhang = firstIndex_(idx, ['MA_KHANG', 'ma_khang']);
-  const iTenKhang = firstIndex_(idx, ['TEN_KHANG', 'ten_khang']);
-  const iMaSogcs = firstIndex_(idx, ['MA_SOGCS', 'ma_sogcs']);
-  const iDanhSo = firstIndex_(idx, ['DANH_SO', 'danh_so']);
-  const iSoCto = firstIndex_(idx, ['SO_CTO', 'so_cto']);
-  const iVtri = firstIndex_(idx, ['VTRI_DNOI', 'vtri_dnoi', 'SO_COT', 'so_cot']);
-  const iTenTram = firstIndex_(idx, ['TEN_TRAM', 'ten_tram']);
-  const iLat = firstIndex_(idx, ['LAT', 'lat']);
-  const iLng = firstIndex_(idx, ['LNG', 'lng']);
-  const iHinhAnh = firstIndex_(idx, ['HINH_ANH', 'hinh_anh']);
-  const iTinhTrang = firstIndex_(idx, ['TINH_TRANG', 'tinh_trang']);
+  busy = true;
+  const btn = document.getElementById('btnLoad');
+  if (btn) btn.disabled = true;
+  setStatus('Đang lấy danh sách khách hàng...');
 
-  if (iMaKhang < 0) {
-    throw new Error('Sheet tamngung_capdien chưa có cột MA_KHANG.');
+  try {
+    const res = await fetchJSONP(`${API_URL}?action=getList`);
+    busy = false;
+    if (btn) btn.disabled = false;
+
+    if (!res || !res.success || !Array.isArray(res.data)) {
+      throw new Error(res?.message || 'Không lấy được danh sách hợp lệ.');
+    }
+
+    allCustomers = res.data;
+    renderFiltered();
+    setStatus(`Đã tải ${allCustomers.length} khách hàng.`);
+  } catch (err) {
+    busy = false;
+    if (btn) btn.disabled = false;
+    setStatus('Lỗi lấy danh sách: ' + err.message, true);
+  }
+}
+
+function renderFiltered() {
+  const searchBox = document.getElementById('searchBox');
+  const keyword = searchBox ? normalize(searchBox.value) : '';
+  const list = keyword
+    ? allCustomers.filter(c => {
+        const text = [
+          value(c, 'MA_KHANG', 'ma_khang'),
+          value(c, 'TEN_KHANG', 'ten_khang'),
+          value(c, 'MA_SOGCS', 'ma_sogcs'),
+          value(c, 'DANH_SO', 'danh_so'),
+          value(c, 'SO_CTO', 'so_cto'),
+          value(c, 'VTRI_DNOI', 'vtri_dnoi')
+        ].map(normalize).join(' ');
+        return text.includes(keyword);
+      })
+    : allCustomers;
+
+  renderCustomers(list);
+}
+
+function renderCustomers(items) {
+  const root = document.getElementById('customerList');
+  if (!root) return;
+
+  if (!items.length) {
+    root.innerHTML = '<div class="empty">Không có khách hàng phù hợp.</div>';
+    return;
   }
 
-  const result = [];
+  root.innerHTML = items.map((c, index) => {
+    const key = String(value(c, 'MA_KHANG', 'ma_khang') || index);
+    const safeKey = encodeURIComponent(key);
 
-  for (let r = 1; r < values.length; r++) {
-    const row = values[r];
+    const maKhang = value(c, 'MA_KHANG', 'ma_khang');
+    const tenKhang = value(c, 'TEN_KHANG', 'ten_khang');
+    const maSogcs = value(c, 'MA_SOGCS', 'ma_sogcs');
+    const danhSo = value(c, 'DANH_SO', 'danh_so');
+    const soCto = value(c, 'SO_CTO', 'so_cto');
+    const vtriDnoi = value(c, 'VTRI_DNOI', 'vtri_dnoi');
+    const tenTram = value(c, 'TEN_TRAM', 'ten_tram');
+    const lat = value(c, 'LAT', 'lat');
+    const lng = value(c, 'LNG', 'lng');
+    const picture = value(c, 'HINH_ANH', 'hinh_anh', 'PICTUREBOX');
 
-    // Bỏ qua dòng hoàn toàn trống.
-    if (row.every(v => v === '' || v === null)) continue;
+    return `
+      <div class="customer-box" id="box-${safeKey}" data-index="${index}">
+        <div class="box-head">
+          <div class="ma-khang">Mã KH: ${escapeHtml(maKhang)}</div>
+          <div class="ten-khang">${escapeHtml(tenKhang)}</div>
+        </div>
 
-    result.push({
-      MA_KHANG: getCell_(row, iMaKhang),
-      TEN_KHANG: getCell_(row, iTenKhang),
-      MA_SOGCS: getCell_(row, iMaSogcs),
-      DANH_SO: getCell_(row, iDanhSo),
-      SO_CTO: getCell_(row, iSoCto),
-      VTRI_DNOI: getCell_(row, iVtri),
-      TEN_TRAM: getCell_(row, iTenTram),
-      LAT: getCell_(row, iLat),
-      LNG: getCell_(row, iLng),
-      HINH_ANH: getCell_(row, iHinhAnh),
-      PICTUREBOX: getCell_(row, iHinhAnh),
-      TINH_TRANG: getCell_(row, iTinhTrang)
+        <div class="grid">
+          <div class="item"><label>MA_SOGCS</label><div>${escapeHtml(maSogcs)}</div></div>
+          <div class="item"><label>DANH_SO</label><div>${escapeHtml(danhSo)}</div></div>
+          <div class="item"><label>SO_CTO</label><div>${escapeHtml(soCto)}</div></div>
+          <div class="item"><label>VTRI_DNOI</label><div>${escapeHtml(vtriDnoi)}</div></div>
+          <div class="item"><label>TEN_TRAM</label><div>${escapeHtml(tenTram)}</div></div>
+          <div class="item"><label>TỌA ĐỘ</label><div>${escapeHtml(lat)} , ${escapeHtml(lng)}</div></div>
+        </div>
+
+        <div class="photo-area">
+          <div class="picture-box" id="picture-${safeKey}">
+            ${picture ? `<img src="${escapeHtml(picture)}" alt="Hình ảnh ${escapeHtml(maKhang)}">` : 'Chưa có hình ảnh'}
+          </div>
+        </div>
+
+        <div class="actions">
+          <button class="btn-photo" onclick="takePhoto(${index}, '${safeKey}')">📷 Chụp ảnh</button>
+          <label class="check-wrap">
+            <input type="checkbox" id="check-${safeKey}" ${Number(value(c, 'TINH_TRANG', 'tinh_trang')) === 1 ? 'checked' : ''}>
+            Đã cắt điện
+          </label>
+          <button class="btn-save" id="save-${safeKey}" onclick="saveCustomer(${index}, '${safeKey}')">💾 Lưu</button>
+          <input type="file"
+                 id="file-${safeKey}"
+                 accept="image/*"
+                 capture="environment"
+                 style="display:none"
+                 onchange="photoSelected(${index}, '${safeKey}', this)">
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function takePhoto(index, safeKey) {
+  const input = document.getElementById('file-' + safeKey);
+  if (input) input.click();
+}
+
+function photoSelected(index, safeKey, input) {
+  const file = input.files?.[0];
+  if (!file) return;
+
+  if (!file.type.startsWith('image/')) {
+    setStatus('Vui lòng chọn file hình ảnh.', true);
+    return;
+  }
+
+  const reader = new FileReader();
+  reader.onload = e => {
+    const box = document.getElementById('picture-' + safeKey);
+    if (box) {
+      box.innerHTML = `<img src="${e.target.result}" alt="Ảnh mới">`;
+    }
+
+    allCustomers[index]._newPhotoFile = file;
+    allCustomers[index]._newPhotoDataUrl = e.target.result;
+
+    setStatus('Đã chọn ảnh. Nhấn Lưu để upload và cập nhật.');
+  };
+  reader.readAsDataURL(file);
+}
+
+function dataUrlToBlob(dataUrl) {
+  const parts = dataUrl.split(',');
+  const mime = parts[0].match(/:(.*?);/)?.[1] || 'image/jpeg';
+  const binary = atob(parts[1]);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+  return new Blob([bytes], { type: mime });
+}
+
+async function uploadToCloudinary(dataUrl, maKhang) {
+  if (!dataUrl) return '';
+
+  const blob = dataUrlToBlob(dataUrl);
+  const form = new FormData();
+  form.append('file', blob, `${maKhang || 'khachhang'}_${Date.now()}.jpg`);
+  form.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
+  form.append('folder', 'tamngung_capdien');
+
+  const response = await fetch(
+    `https://api.cloudinary.com/v1_1/${encodeURIComponent(CLOUDINARY_CLOUD_NAME)}/image/upload`,
+    { method: 'POST', body: form }
+  );
+
+  if (!response.ok) {
+    const txt = await response.text();
+    throw new Error('Cloudinary upload lỗi: ' + txt);
+  }
+
+  const result = await response.json();
+  return result.secure_url || result.url || '';
+}
+
+async function saveCustomer(index, safeKey) {
+  const c = allCustomers[index];
+  if (!c) return;
+
+  const btn = document.getElementById('save-' + safeKey);
+  const checkbox = document.getElementById('check-' + safeKey);
+
+  if (btn && btn.disabled) return;
+
+  const oldText = btn ? btn.textContent : '';
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = '⏳ Đang lưu...';
+  }
+
+  try {
+    const maKhang = value(c, 'MA_KHANG', 'ma_khang');
+    if (!maKhang) throw new Error('Thiếu MA_KHANG.');
+
+    let imageUrl = value(c, 'HINH_ANH', 'hinh_anh', 'PICTUREBOX');
+
+    if (c._newPhotoDataUrl) {
+      setStatus(`Đang upload hình ${maKhang} lên Cloudinary...`);
+      imageUrl = await uploadToCloudinary(c._newPhotoDataUrl, maKhang);
+    }
+
+    const tinhTrang = checkbox && checkbox.checked ? 1 : 0;
+
+    const payload = {
+      action: 'save',
+      payload: {
+        MA_KHANG: maKhang,
+        HINH_ANH: imageUrl,
+        PICTUREBOX: imageUrl,
+        TINH_TRANG: tinhTrang
+      }
+    };
+
+    setStatus(`Đang cập nhật ${maKhang}...`);
+
+    const response = await fetch(API_URL, {
+      method: 'POST',
+      body: JSON.stringify(payload)
     });
-  }
 
-  return result;
-}
+    const result = await response.json();
 
-/**
- * Lưu thông tin tạm ngừng cấp điện.
- */
-function saveTamNgungCapDien(payload) {
-  if (!payload) throw new Error('Thiếu dữ liệu lưu.');
-
-  const maKhang = String(payload.MA_KHANG || '').trim();
-  if (!maKhang) throw new Error('Thiếu MA_KHANG.');
-
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const sh = ss.getSheetByName(TAMNGUNG_SHEET_NAME);
-
-  if (!sh) {
-    throw new Error('Không tìm thấy sheet: ' + TAMNGUNG_SHEET_NAME);
-  }
-
-  const data = sh.getDataRange().getValues();
-  if (data.length < 2) {
-    throw new Error('Sheet chưa có dữ liệu khách hàng.');
-  }
-
-  const headers = data[0].map(h => String(h).trim());
-  const map = {};
-  headers.forEach((h, i) => {
-    map[normalizeHeader_(h)] = i;
-  });
-
-  const maIndex = findHeader_(map, ['MA_KHANG']);
-  if (maIndex < 0) throw new Error('Không tìm thấy cột MA_KHANG.');
-
-  const hinhIndex = findHeader_(map, ['HINH_ANH']);
-  const tinhIndex = findHeader_(map, ['TINH_TRANG']);
-  const ngaySuaIndex = findHeader_(map, ['NGAY_SUA']);
-  const nguoiSuaIndex = findHeader_(map, ['NGUOI_SUA']);
-
-  if (tinhIndex < 0) throw new Error('Không tìm thấy cột TINH_TRANG.');
-
-  // Chuẩn hóa trạng thái: chỉ nhận 0 hoặc 1.
-  const tinhTrang = Number(payload.TINH_TRANG) === 1 ? 1 : 0;
-
-  let nguoiSua = String(payload.NGUOI_SUA || '').trim();
-
-  if (!nguoiSua) {
-    try {
-      nguoiSua = Session.getActiveUser().getEmail() || '';
-    } catch (e) {}
-  }
-
-  if (!nguoiSua) {
-    try {
-      nguoiSua = Session.getEffectiveUser().getEmail() || '';
-    } catch (e) {}
-  }
-
-  if (!nguoiSua) nguoiSua = 'UNKNOWN';
-
-  const now = new Date();
-  let updated = 0;
-
-  for (let r = 1; r < data.length; r++) {
-    const currentMa = String(data[r][maIndex] ?? '').trim();
-
-    if (currentMa !== maKhang) continue;
-
-    const rowNumber = r + 1;
-
-    // TINH_TRANG
-    sh.getRange(rowNumber, tinhIndex + 1).setValue(tinhTrang);
-
-    // HINH_ANH
-    const imageUrl = String(payload.HINH_ANH || payload.PICTUREBOX || '').trim();
-    if (hinhIndex >= 0 && imageUrl) {
-      sh.getRange(rowNumber, hinhIndex + 1).setValue(imageUrl);
+    if (!result || result.success !== true) {
+      throw new Error(result?.message || 'Lưu thất bại.');
     }
 
-    // NGAY_SUA
-    if (ngaySuaIndex >= 0) {
-      sh.getRange(rowNumber, ngaySuaIndex + 1).setValue(now);
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = oldText;
     }
 
-    // NGUOI_SUA
-    if (nguoiSuaIndex >= 0) {
-      sh.getRange(rowNumber, nguoiSuaIndex + 1).setValue(nguoiSua);
+    c.HINH_ANH = imageUrl;
+    c.hinh_anh = imageUrl;
+    c.PICTUREBOX = imageUrl;
+    c.TINH_TRANG = tinhTrang;
+    delete c._newPhotoFile;
+    delete c._newPhotoDataUrl;
+
+    setStatus(`Đã lưu ${maKhang}. TINH_TRANG = ${tinhTrang}.`);
+
+  } catch (err) {
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = oldText;
     }
-
-    updated++;
+    setStatus(err.message || String(err), true);
   }
-
-  if (updated === 0) {
-    throw new Error('Không tìm thấy MA_KHANG: ' + maKhang);
-  }
-
-  SpreadsheetApp.flush();
-
-  return {
-    success: true,
-    MA_KHANG: maKhang,
-    TINH_TRANG: tinhTrang,
-    updatedRows: updated,
-    NGAY_SUA: now,
-    NGUOI_SUA: nguoiSua
-  };
-}
-
-/**
- * Các hàm helper.
- */
-function normalizeHeader_(value) {
-  return String(value || '')
-    .trim()
-    .toUpperCase()
-    .replace(/\s+/g, '_');
-}
-
-function findHeader_(map, names) {
-  for (const name of names) {
-    const key = normalizeHeader_(name);
-    if (map[key] !== undefined) return map[key];
-  }
-  return -1;
-}
-
-function firstIndex_(idxFn, names) {
-  for (const name of names) {
-    const i = idxFn(name);
-    if (i >= 0) return i;
-  }
-  return -1;
-}
-
-function getCell_(row, index) {
-  if (index < 0 || index >= row.length) return '';
-  const value = row[index];
-
-  if (value instanceof Date) {
-    return Utilities.formatDate(
-      value,
-      Session.getScriptTimeZone(),
-      'yyyy-MM-dd HH:mm:ss'
-    );
-  }
-
-  return value === null || value === undefined ? '' : value;
-}
-
-function testTamNgungCapDien() {
-  const list = getTamNgungCapDienList();
-  Logger.log('Tổng số khách hàng: ' + list.length);
-  if (list.length) Logger.log(JSON.stringify(list[0]));
 }
