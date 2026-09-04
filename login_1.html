@@ -124,19 +124,8 @@
                     mat_khau: mat_khau,
                     time_log: time_log 
                 })
-            })
-            .then(async res => {
-                const text = await res.text();
-                if (!res.ok) {
-                    throw new Error("HTTP " + res.status + ": " + text);
-                }
-                try {
-                    return JSON.parse(text);
-                } catch (e) {
-                    throw new Error("Máy chủ không trả JSON hợp lệ: " + text.substring(0, 300));
-                }
-            })
-            .finally(() => clearTimeout(timeoutId))
+            }).finally(() => clearTimeout(timeoutId))
+            .then(res => res.json())
             .then(res => {
                 btn.disabled = false;
                 if (res.status === "success") {
@@ -167,14 +156,10 @@
             .catch(err => {
                 btn.disabled = false;
                 msgEl.style.color = "#dc3545";
-                if (err.name === "AbortError") {
-                    msgEl.innerText = "Máy chủ phản hồi quá lâu, vui lòng thử lại!";
-                } else {
-                    msgEl.innerText = err.message
-                        ? "Lỗi: " + err.message
-                        : "Lỗi kết nối máy chủ!";
-                }
-                console.error("LOGIN ERROR:", err);
+                msgEl.innerText = err.name === "AbortError"
+                    ? "Máy chủ phản hồi quá lâu, vui lòng thử lại!"
+                    : "Lỗi kết nối máy chủ!";
+                console.error(err);
             });
         }
     </script>
