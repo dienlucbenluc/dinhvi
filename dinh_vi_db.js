@@ -162,12 +162,16 @@ function populateDropdown(id1, id2, dataArray, defaultText) {
 }
 
 function applyInitData(res) {
+  // 1. Đổ danh sách công việc vào Combobox
   populateDropdown("jobSelect", "editJobSelect", res.cong_viec || [], "Chọn công việc");
   
   const savedJob = localStorage.getItem("cmis_jobSelect");
   if (savedJob) document.getElementById("jobSelect").value = savedJob;
 
+  // 2. Gán mảng khách hàng và cập nhật giao diện
   allLocations = res.locations || [];
+  
+  // Cập nhật số lượng trên nút bấm & hiển thị danh sách
   updateGetLocationButtonText();
   filterLocations();
 }
