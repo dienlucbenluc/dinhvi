@@ -250,11 +250,18 @@ function filterLocations() {
   const searchInput = document.getElementById("searchInput");
   const rawQuery = searchInput ? searchInput.value.trim() : "";
 
+  // Nếu không nhập từ khóa tìm kiếm: Render toàn bộ danh sách khách hàng
   if (!rawQuery) {
-    let sortedLocations = [...allLocations].sort(
-      (a, b) => parseTimeString(b.time) - parseTimeString(a.time)
-    );
-    renderList(sortedLocations.slice(0, 50));
+    let sortedLocations = [...allLocations];
+    // Sắp xếp an toàn: Ưu tiên dữ liệu mới nhất
+    sortedLocations.sort((a, b) => {
+      const timeA = parseTimeString(a.time) || 0;
+      const timeB = parseTimeString(b.time) || 0;
+      return timeB - timeA;
+    });
+    
+    // Render tối đa 100 khách hàng đầu tiên
+    renderList(sortedLocations.slice(0, 100));
     return;
   }
 
