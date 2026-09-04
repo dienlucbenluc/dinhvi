@@ -67,7 +67,7 @@
             gap: 12px; 
         }
 
-        /* Avatar Header: Trở lại cover và căn lề đỉnh (top) */
+        /* Avatar Header: Cover & Căn lề đỉnh (top) */
         .user-avatar-header { 
             width: 50px; 
             height: 50px; 
@@ -484,6 +484,10 @@
         const DEFAULT_AVATAR = "data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='50' height='50' viewBox='0 0 50 50'%3E%3Crect width='50' height='50' rx='25' fill='%23eef2f5'/%3E%3Ccircle cx='25' cy='19' r='8' fill='%23909aa8'/%3E%3Cpath d='M11 43c1.8-8 7.1-12 14-12s12.2 4 14 12' fill='%23909aa8'/%3E%3C/svg%3E";
         const ADMIN_PASSWORD = "cmis&123";
 
+        // CẤU HÌNH CLOUDINARY (Hãy thay đổi 2 giá trị này)
+        const CLOUDINARY_CLOUD_NAME = "TEN_CLOUD_NAME_CUO_BAN";
+        const CLOUDINARY_UPLOAD_PRESET = "TEN_UPLOAD_PRESET_UNSIGNED";
+
         let currentUser = null;
         let isAvatarChanged = false;
         let base64AvatarResized = ""; 
@@ -492,20 +496,6 @@
             if (!avatar || typeof avatar !== "string") return DEFAULT_AVATAR;
             const url = avatar.trim();
             if (!url) return DEFAULT_AVATAR;
-
-            if (url.startsWith("data:image/") || url.includes("drive.google.com/uc?") || url.includes("drive.google.com/thumbnail")) {
-                return url;
-            }
-
-            let match = url.match(/drive\.google\.com\/file\/d\/([^/?#]+)/i);
-            if (match && match[1]) return "https://drive.google.com/uc?export=view&id=" + match[1];
-
-            match = url.match(/[?&]id=([^&#]+)/i);
-            if (url.includes("drive.google.com") && match && match[1]) return "https://drive.google.com/uc?export=view&id=" + match[1];
-
-            match = url.match(/lh3\.googleusercontent\.com\/d\/([^/?#]+)/i);
-            if (match && match[1]) return "https://drive.google.com/uc?export=view&id=" + match[1];
-
             return url;
         }
 
@@ -685,7 +675,7 @@
             document.getElementById('alertModal').style.display = 'none';
         }
 
-        /* Chỉnh sửa vị trí xén ảnh sy = 0 để giữ phần đầu */
+        /* Xử lý resize ảnh cắt từ mép trên */
         function handleAvatarFileSelect(event) {
             const file = event.target.files[0];
             if (!file) return;
@@ -701,11 +691,11 @@
 
                     let minSide = Math.min(img.width, img.height);
                     let sx = (img.width - minSide) / 2;
-                    let sy = 0; // Cố định cắt từ sát mép trên ảnh để không mất chóp đầu
+                    let sy = 0; // Cố định cắt từ sát mép trên ảnh
 
                     ctx.drawImage(img, sx, sy, minSide, minSide, 0, 0, 300, 300);
 
-                    base64AvatarResized = canvas.toDataURL("image/jpeg", 0.95);
+                    base64AvatarResized = canvas.toDataURL("image/jpeg", 0.90);
 
                     document.getElementById('avatarPreview').src = base64AvatarResized;
                     isAvatarChanged = true;
@@ -713,6 +703,25 @@
                 img.src = e.target.result;
             };
             reader.readAsDataURL(file);
+        }
+
+        /* Hàm tải ảnh trực tiếp lên Cloudinary */
+        async function uploadToCloudinary(base64Image) {
+            const formData = new FormData();
+            formData.append("file", base64Image);
+            formData.append("upload_preset", CLOUDINARY_UPLOAD_PRESET);
+
+            const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`, {
+                method: "POST",
+                body: formData
+            });
+
+            if (!res.ok) {
+                throw new Error("Lỗi khi tải ảnh lên Cloudinary");
+            }
+
+            const data = await res.json();
+            return data.secure_url; // Trả về link https của ảnh trên Cloudinary
         }
 
         async function saveProfileAndPass() {
@@ -734,9 +743,19 @@
             }
 
             btnSave.disabled = true;
-            btnSave.innerText = "Lưu ảnh...";
+            btnSave.innerText = "Đang xử lý...";
 
             try {
+                let uploadedAvatarUrl = "";
+
+                // Bước 1: Nếu có đổi avatar -> Đẩy trực tiếp lên Cloudinary trước
+                if (isAvatarChanged && base64AvatarResized) {
+                    btnSave.innerText = "Tải ảnh lên Cloudinary...";
+                    uploadedAvatarUrl = await uploadToCloudinary(base64AvatarResized);
+                }
+
+                // Bước 2: Gửi URL Cloudinary thu được cùng dữ liệu về Backend (Apps Script/Database) để lưu vào cột avatar của bảng nhan_vien
+                btnSave.innerText = "Lưu hồ sơ...";
                 const formData = new URLSearchParams();
                 formData.append("action", "CHANGE_PASSWORD");
                 formData.append("ten_ndung", username);
@@ -744,7 +763,7 @@
                 formData.append("mat_khau_moi", newPass || oldPass);
                 formData.append("ten_nvien", newTenNvien);
                 formData.append("is_avatar_changed", isAvatarChanged ? "true" : "false");
-                formData.append("avatar_base64", base64AvatarResized);
+                formData.append("avatar_url", uploadedAvatarUrl); // Gửi trực tiếp URL ảnh Cloudinary
 
                 const response = await fetch(API_URL, {
                     method: "POST",
@@ -759,12 +778,10 @@
                 if (result.status === "success") {
                     currentUser.ten_nvien = newTenNvien;
                     
-                    if (isAvatarChanged && base64AvatarResized) {
-                        localStorage.setItem("cmis_user_avatar_cache", base64AvatarResized);
-                        currentUser.avatar = base64AvatarResized;
-                    } else if (result.avatar_url) {
-                        currentUser.avatar = result.avatar_url;
-                        localStorage.setItem("cmis_user_avatar_cache", result.avatar_url);
+                    const finalAvatarUrl = uploadedAvatarUrl || result.avatar_url || currentUser.avatar;
+                    if (finalAvatarUrl) {
+                        currentUser.avatar = finalAvatarUrl;
+                        localStorage.setItem("cmis_user_avatar_cache", finalAvatarUrl);
                     }
                     
                     localStorage.setItem("cmis_user_session", JSON.stringify(currentUser));
@@ -778,7 +795,7 @@
                     showAlert(result.message || "Thất bại. Vui lòng kiểm tra lại!", "Lỗi Thất Bại", false);
                 }
             } catch (err) {
-                showAlert("Lỗi kết nối máy chủ. Vui lòng thử lại sau!", "Lỗi Kết Nối", false);
+                showAlert("Lỗi kết nối máy chủ hoặc Cloudinary. Vui lòng thử lại sau!", "Lỗi Kết Nối", false);
                 console.error(err);
             } finally {
                 btnSave.disabled = false;
