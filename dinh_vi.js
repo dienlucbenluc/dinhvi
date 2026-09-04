@@ -67,23 +67,26 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 });
 
-function normalizeAvatarUrl(url) {
-  if (!url) return "https://via.placeholder.com/40";
-  url = String(url).trim();
-  if (!url) return "https://via.placeholder.com/40";
+function normalizeAvatarUrl(avatar) {
+  const DEFAULT_AVATAR = "https://via.placeholder.com/40";
+  const AVATAR_BASE_URL = "http://10.183.45.1/htcmis/php/ht_nguoidung/avatar/";
 
-  let m = url.match(/drive\.google\.com\/file\/d\/([^/?#]+)/i);
-  if (m && m[1]) return "https://drive.google.com/thumbnail?id=" + m[1] + "&sz=w100";
+  if (!avatar) return DEFAULT_AVATAR;
 
-  m = url.match(/[?&]id=([^&#]+)/i);
-  if (url.includes("drive.google.com") && m && m[1]) {
-    return "https://drive.google.com/thumbnail?id=" + m[1] + "&sz=w100";
+  let filename = String(avatar).trim();
+  if (!filename) return DEFAULT_AVATAR;
+
+  // Nếu dữ liệu đã là URL tuyệt đối (bắt đầu bằng http:// hoặc https://) thì giữ nguyên
+  if (filename.startsWith("http://") || filename.startsWith("https://")) {
+    return filename;
   }
 
-  m = url.match(/lh3\.googleusercontent\.com\/d\/([^/?#]+)/i);
-  if (m && m[1]) return "https://drive.google.com/thumbnail?id=" + m[1] + "&sz=w100";
+  // Loại bỏ ký tự / ở đầu nếu có để tránh trùng lặp đường dẫn
+  if (filename.startsWith("/")) {
+    filename = filename.substring(1);
+  }
 
-  return url;
+  return AVATAR_BASE_URL + filename;
 }
 
 function setCurrentUserAvatar(avatar) {
