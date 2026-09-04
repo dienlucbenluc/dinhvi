@@ -53,38 +53,63 @@ function value(obj, ...names) {
 function fetchJSONP(url) {
   return new Promise((resolve, reject) => {
     const callbackName = 'jsonp_cb_' + Math.round(100000 * Math.random());
+    const script = document.createElement('script');
+    
+    // Bổ sung timeout 10 giây phòng trường hợp điện thoại chặn lặng lẽ
+    const timeoutId = setTimeout(() => {
+      cleanup();
+      reject(new Error('KẾT NỐI QUÁ THỜI GIAN (Kiểm tra mạng hoặc Safari/Chrome chặn).'));
+    }, 10000);
+
+    function cleanup() {
+      clearTimeout(timeoutId);
+      if (window[callbackName]) delete window[callbackName];
+      if (script.parentNode) script.parentNode.removeChild(script);
+    }
+
     window[callbackName] = function(data) {
-      delete window[callbackName];
-      document.body.removeChild(script);
+      cleanup();
       resolve(data);
     };
 
-    const script = document.createElement('script');
     script.src = url + (url.indexOf('?') >= 0 ? '&' : '?') + 'callback=' + callbackName;
     script.onerror = function() {
-      delete window[callbackName];
-      document.body.removeChild(script);
+      cleanup();
       reject(new Error('Không thể kết nối đến Web App.'));
     };
+
     document.body.appendChild(script);
   });
 }
 
+// Cập nhật hàm loadCustomers dùng Fetch dự phòng nếu JSONP thất bại:
 async function loadCustomers() {
   if (busy) return;
 
   busy = true;
   const btn = document.getElementById('btnLoad');
   if (btn) btn.disabled = true;
-  setStatus('Đang lấy danh sách khách hàng...');
+  setStatus('Đang kết nối server...');
 
   try {
-    const res = await fetchJSONP(`${API_URL}?action=getList`);
+    let res;
+    try {
+      // Thử kết nối qua JSONP trước
+      res = await fetchJSONP(`${API_URL}?action=getList`);
+    } catch (jsonpErr) {
+      console.warn('JSONP thất bại, thử chuyển sang Fetch tiêu chuẩn:', jsonpErr);
+      
+      // Dự phòng gọi bằng Fetch trực tiếp cho mobile
+      const response = await fetch(`${API_URL}?action=getList`);
+      if (!response.ok) throw new Error('Server Apps Script từ chối kết nối.');
+      res = await response.json();
+    }
+
     busy = false;
     if (btn) btn.disabled = false;
 
     if (!res || !res.success || !Array.isArray(res.data)) {
-      throw new Error(res?.message || 'Không lấy được danh sách hợp lệ.');
+      throw new Error(res?.message || 'Dữ liệu trả về không hợp lệ.');
     }
 
     allCustomers = res.data;
