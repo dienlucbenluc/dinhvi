@@ -1,5 +1,5 @@
 const API_URL = "https://script.google.com/macros/s/AKfycbypH-vE7ctJxQObLPLvRrG71zbVx6_6E40foxkb4SS7e38kCmnyuj-09kuUGyFxcGhW/exec";
-const IMGUR_CLIENT_ID = "1c0n1NK2RSskmev3mPVKZWUPYmJ_vaxjYIX_MkEVWYz0"; // Thay Client ID Imgur của bạn (hoặc giữ nguyên nếu đã cấu hình ở Apps Script)
+const IMGUR_CLIENT_ID = "1c0n1NK2RSskmev3mPVKZWUPYmJ_vaxjYIX_MkEVWYz0";
 
 let currentUser = null;
 let currentCustomers = [];
