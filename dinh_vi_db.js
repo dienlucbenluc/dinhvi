@@ -183,43 +183,28 @@ function syncLocalCache() {
 }
 
 function loadInitData() {
-  const listElement = document.getElementById("locationList");
-
-  const cachedData = localStorage.getItem("cmis_full_init_data");
-  if (cachedData) {
-    try {
-      const parsed = JSON.parse(cachedData);
-      applyInitData(parsed);
-    } catch(e) {
-      console.error(e);
-    }
-  } else if (listElement) {
-    listElement.innerHTML = `
-      <li style="text-align: center; padding: 20px;">
-        <span class="spinner"></span>
-        <span style="font-weight: bold; color: #007bff; vertical-align: middle; font-size: 15px;">Đang lấy danh sách...</span>
-      </li>
-    `;
-  }
-
-  fetch(API_URL, {
-    method: "POST",
-    headers: { "Content-Type": "application/json;charset=utf-8" },
-    body: JSON.stringify({ action: "GET_INIT_DATA" })
-  })
-  .then(res => res.json())
-  .then(res => {
-    if (res.status === "success") {
-      localStorage.setItem("cmis_full_init_data", JSON.stringify(res));
-      applyInitData(res);
-    } else {
-      if (listElement && !cachedData) listElement.innerHTML = `<li>Lỗi: ${res.message}</li>`;
-    }
-  })
-  .catch(err => {
-    console.error(err);
-    if (listElement && !cachedData) listElement.innerHTML = `<li>Lỗi kết nối máy chủ! Vui lòng tải lại trang.</li>`;
-  });
+    fetch('api.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'GET_INIT_DATA' })
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.status === 'success') {
+            // Render danh sách công việc vào Combobox/Select
+            const cbxCongViec = document.getElementById('cbx_cong_viec'); // Thay id_combobox của bạn vào đây
+            if (cbxCongViec && data.cong_viec) {
+                cbxCongViec.innerHTML = '<option value="">-- Chọn công việc --</option>';
+                data.cong_viec.forEach(tenCV => {
+                    const opt = document.createElement('option');
+                    opt.value = tenCV;
+                    opt.textContent = tenCV;
+                    cbxCongViec.appendChild(opt);
+                });
+            }
+        }
+    })
+    .catch(err => console.error('Lỗi load dữ liệu:', err));
 }
 
 function parseTimeString(timeStr) {
