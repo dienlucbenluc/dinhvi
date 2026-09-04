@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <title>Tạm ngừng cấp điện</title>
+    <link rel="preconnect" href="https://drive.google.com">
+    <style>
+        html, body { height: 100%; margin: 0; padding: 0; font-family: Arial, sans-serif; background: #f4f4f9; color: #333; overflow: hidden; }
+        .app-container { display: flex; flex-direction: column; height: 100vh; max-width: 600px; margin: 0 auto; box-sizing: border-box; padding: 12px; }
+        .fixed-header { flex-shrink: 0; background: #f4f4f9; padding-bottom: 8px; }
+        
+        .header-top-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+        .header-logo-container { display: flex; align-items: center; gap: 10px; }
+        .main-logo { width: 40px; height: 40px; object-fit: cover; flex-shrink: 0; border-radius: 50%; border: 2px solid #007bff; background: #f0f4ff; box-sizing: border-box; }
+        .header-text-group { display: flex; flex-direction: column; justify-content: center; }
+        .company-title { font-size: 18px; font-weight: bold; color: #1E90FF; line-height: 1.2; margin-bottom: 2px; }
+        .tac-gia { font-size: 13px; color: #8B0000; font-weight: bold; margin-bottom: 2px; }
+        
+        .menu-container { position: relative; }
+        .menu-btn { background: #007bff; color: white; border: none; font-size: 18px; padding: 6px 12px; border-radius: 6px; cursor: pointer; }
+
+        .filter-row { display: flex; gap: 6px; align-items: center; margin-bottom: 8px; }
+        input[type="date"], select { padding: 8px 10px; border: 1px solid #ccc; border-radius: 8px; font-size: 14px; background: #fff; box-sizing: border-box; }
+        .btn-icon { background: #007bff; color: white; border: none; border-radius: 8px; padding: 8px 12px; font-size: 14px; cursor: pointer; font-weight: bold; }
+        .btn-icon:disabled { background: #ccc; cursor: not-allowed; }
+
+        .scrollable-content { flex: 1; overflow-y: auto; padding-right: 2px; }
+        ul { list-style-type: none; padding: 0; margin: 0; }
+        
+        .card-item { background: white; margin-bottom: 12px; padding: 12px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); border: 1px solid #eee; }
+        .card-header { font-size: 15px; font-weight: bold; color: #111; margin-bottom: 4px; }
+        .card-info { font-size: 13px; color: #444; margin-bottom: 4px; line-height: 1.4; }
+        .maps-link { display: inline-block; color: #0056b3; text-decoration: none; font-weight: bold; font-size: 13px; margin-top: 4px; }
+        
+        /* Khung chứa ảnh & các nút chức năng */
+        .image-section { margin-top: 8px; border-top: 1px dashed #ddd; padding-top: 8px; }
+        .btn-photo { background: #17a2b8; color: white; border: none; border-radius: 6px; padding: 6px 12px; font-size: 13px; cursor: pointer; }
+        .btn-save { background: #28a745; color: white; border: none; border-radius: 6px; padding: 6px 12px; font-size: 13px; cursor: pointer; font-weight: bold; }
+        .btn-save:disabled { background: #ccc; cursor: not-allowed; }
+        
+        .preview-box { margin-top: 8px; text-align: center; }
+        .preview-img { max-width: 100%; max-height: 200px; border-radius: 6px; border: 1px solid #ddd; object-fit: contain; }
+
+        .hidden-file-input { display: none; }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Header chuẩn theo trang dinh_vi.html -->
+        <div class="fixed-header">
+            <div class="header-top-row">
+                <div class="header-logo-container">
+                    <img id="userAvatarHeader" src="https://via.placeholder.com/40" alt="Avatar" class="main-logo">
+                    <div class="header-text-group">
+                        <div class="company-title">Tạm ngừng cấp điện</div>
+                        <div class="tac-gia" id="currentUserDisplay">Đang tải...</div>
+                    </div>
+                </div>
+                <div class="menu-container">
+                    <button class="menu-btn" onclick="window.location.href='home.html'">☰</button>
+                </div>
+            </div>
+
+            <!-- Thanh lọc Datebox & Combobox ID_LENH -->
+            <div class="filter-row">
+                <input type="date" id="dateSelect" style="flex: 1.2;">
+                <button type="button" class="btn-icon" onclick="loadIdLenhByDate()" title="Lấy ID Lệnh">🔍 Lệnh</button>
+                <select id="idLenhSelect" style="flex: 2;">
+                    <option value="">-- Chọn ID Lệnh --</option>
+                </select>
+                <button type="button" class="btn-icon" onclick="loadCustomersByLenh()" title="Tìm Khách hàng">🔍 KH</button>
+            </div>
+        </div>
+
+        <!-- Danh sách khách hàng -->
+        <div class="scrollable-content">
+            <ul id="customerList"></ul>
+        </div>
+    </div>
+
+    <!-- Dynamic file input dùng chung để chọn/chụp ảnh -->
+    <input type="file" id="globalFileInput" class="hidden-file-input" accept="image/*">
+
+    <script src="tamngung_capdien.js"></script>
+</body>
+</html>
