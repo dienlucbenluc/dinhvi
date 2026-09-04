@@ -14,6 +14,9 @@
 const CLOUDINARY_CLOUD_NAME = 'jokzcdxt';
 const CLOUDINARY_UPLOAD_PRESET = 'image_catdien';
 
+// Link Web App Apps Script
+const API_URL = 'https://script.google.com/macros/s/AKfycbypH-vE7ctJxQObLPLvRrG71zbVx6_6E40foxkb4SS7e38kCmnyuj-09kuUGyFxcGhW/exec';
+
 let allCustomers = [];
 let busy = false;
 
@@ -58,35 +61,40 @@ function loadCustomers() {
   document.getElementById('btnLoad').disabled = true;
   setStatus('Đang lấy danh sách khách hàng...');
 
-  if (!window.google || !google.script || !google.script.run) {
-    busy = false;
-    document.getElementById('btnLoad').disabled = false;
-    setStatus('Không tìm thấy Google Apps Script.', true);
-    return;
-  }
-
-  google.script.run
-    .withSuccessHandler(data => {
+  fetch(API_URL + '?action=getTamNgungCapDienList', {
+    method: 'GET',
+    redirect: 'follow'
+  })
+    .then(async response => {
+      const text = await response.text();
+      if (!response.ok) throw new Error('HTTP ' + response.status + ': ' + text);
+      try {
+        return JSON.parse(text);
+      } catch (e) {
+        throw new Error('Apps Script không trả JSON: ' + text.substring(0, 300));
+      }
+    })
+    .then(data => {
       busy = false;
       document.getElementById('btnLoad').disabled = false;
 
-      if (!Array.isArray(data)) {
+      const list = Array.isArray(data) ? data : data?.data;
+      if (!Array.isArray(list)) {
         allCustomers = [];
         renderFiltered();
-        setStatus('Backend không trả về danh sách hợp lệ.', true);
+        setStatus(data?.message || 'Backend không trả về danh sách hợp lệ.', true);
         return;
       }
 
-      allCustomers = data;
+      allCustomers = list;
       renderFiltered();
       setStatus(`Đã tải ${allCustomers.length} khách hàng.`);
     })
-    .withFailureHandler(err => {
+    .catch(err => {
       busy = false;
       document.getElementById('btnLoad').disabled = false;
       setStatus('Lỗi lấy danh sách: ' + (err?.message || err), true);
-    })
-    .getTamNgungCapDienList();
+    });
 }
 
 function renderFiltered() {
@@ -271,32 +279,46 @@ async function saveCustomer(index, safeKey) {
 
     setStatus(`Đang cập nhật ${maKhang}...`);
 
-    google.script.run
-      .withSuccessHandler(result => {
-        btn.disabled = false;
-        btn.textContent = oldText;
-
-        if (result && result.success === false) {
-          setStatus(result.message || 'Lưu thất bại.', true);
-          return;
-        }
-
-        // Giữ URL ảnh và trạng thái mới trong bộ nhớ để không phải tải lại toàn bộ danh sách.
-        c.HINH_ANH = imageUrl;
-        c.hinh_anh = imageUrl;
-        c.PICTUREBOX = imageUrl;
-        c.TINH_TRANG = tinhTrang;
-        delete c._newPhotoFile;
-        delete c._newPhotoDataUrl;
-
-        setStatus(`Đã lưu ${maKhang}. TINH_TRANG = ${tinhTrang}.`);
+    const response = await fetch(API_URL, {
+      method: 'POST',
+      redirect: 'follow',
+      headers: {
+        'Content-Type': 'text/plain;charset=utf-8'
+      },
+      body: JSON.stringify({
+        action: 'saveTamNgungCapDien',
+        ...payload
       })
-      .withFailureHandler(err => {
-        btn.disabled = false;
-        btn.textContent = oldText;
-        setStatus('Lỗi lưu: ' + (err?.message || err), true);
-      })
-      .saveTamNgungCapDien(payload);
+    });
+
+    const text = await response.text();
+
+    if (!response.ok) {
+      throw new Error('HTTP ' + response.status + ': ' + text);
+    }
+
+    let result;
+    try {
+      result = JSON.parse(text);
+    } catch (e) {
+      throw new Error('Apps Script không trả JSON: ' + text.substring(0, 300));
+    }
+
+    if (result && result.success === false) {
+      throw new Error(result.message || 'Lưu thất bại.');
+    }
+
+    btn.disabled = false;
+    btn.textContent = oldText;
+
+    c.HINH_ANH = imageUrl;
+    c.hinh_anh = imageUrl;
+    c.PICTUREBOX = imageUrl;
+    c.TINH_TRANG = tinhTrang;
+    delete c._newPhotoFile;
+    delete c._newPhotoDataUrl;
+
+    setStatus(`Đã lưu ${maKhang}. TINH_TRANG = ${tinhTrang}.`);
 
   } catch (err) {
     btn.disabled = false;
