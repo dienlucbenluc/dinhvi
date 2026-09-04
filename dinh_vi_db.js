@@ -24,6 +24,8 @@ document.addEventListener("DOMContentLoaded", () => {
   // Ưu tiên hiển thị Avatar ngay lập tức từ LocalStorage
   if (currentUser && currentUser.avatar) {
     setCurrentUserAvatar(currentUser.avatar);
+  } else {
+    setCurrentUserAvatar("");
   }
 
   // Kiểm tra hoặc cập nhật ngầm avatar từ server nếu cần
@@ -36,6 +38,7 @@ document.addEventListener("DOMContentLoaded", () => {
   if(searchInput) {
     searchInput.addEventListener("input", () => {
       saveLocalSettings();
+      filterLocations();
     });
 
     searchInput.addEventListener("keypress", (e) => {
@@ -68,9 +71,9 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 function normalizeAvatarUrl(url) {
-  if (!url) return "https://via.placeholder.com/40";
+  if (!url) return "";
   url = String(url).trim();
-  if (!url) return "https://via.placeholder.com/40";
+  if (!url) return "";
 
   let m = url.match(/drive\.google\.com\/file\/d\/([^/?#]+)/i);
   if (m && m[1]) return "https://drive.google.com/thumbnail?id=" + m[1] + "&sz=w100";
@@ -89,11 +92,17 @@ function normalizeAvatarUrl(url) {
 function setCurrentUserAvatar(avatar) {
   const img = document.getElementById("userAvatarHeader");
   if (!img) return;
+
+  const displayName = currentUser ? (currentUser.ten_nvien || currentUser.ten_ndung || "NV") : "NV";
+  const defaultAvatar = `https://ui-avatars.com/api/?name=${encodeURIComponent(displayName)}&background=0D6EFD&color=fff`;
+
   img.onerror = function() {
     this.onerror = null;
-    this.src = "https://via.placeholder.com/40";
+    this.src = defaultAvatar;
   };
-  img.src = normalizeAvatarUrl(avatar);
+
+  const formattedUrl = normalizeAvatarUrl(avatar);
+  img.src = formattedUrl ? formattedUrl : defaultAvatar;
 }
 
 function loadCurrentUserAvatar() {
@@ -195,8 +204,6 @@ function loadInitData() {
   .then(res => res.json())
   .then(data => {
     if (data.status === 'success') {
-      // Gọi hàm applyInitData để đổ dữ liệu công việc vào #jobSelect 
-      // và render danh sách khách hàng vào #locationList
       applyInitData(data);
       syncLocalCache();
     } else {
@@ -212,6 +219,14 @@ function loadInitData() {
 function parseTimeString(timeStr) {
   if (!timeStr) return 0;
   const str = String(timeStr).trim();
+
+  // Xử lý chuỗi định dạng DD/MM/YYYY HH:mm:ss
+  const match = str.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})\s+(\d{1,2}):(\d{1,2}):(\d{1,2})$/);
+  if (match) {
+    const [, day, month, year, hours, minutes, seconds] = match.map(Number);
+    return new Date(year, month - 1, day, hours, minutes, seconds).getTime();
+  }
+
   const parts = str.split(/[\s,]+/);
   if (parts.length >= 2) {
     const datePart = parts.find(p => p.includes("/"));
@@ -308,58 +323,7 @@ function filterLocations() {
     return parseTimeString(b.time) - parseTimeString(a.time);
   });
 
-  const nearestCustomer = matchedLocations[0];
-
-  const centerLat = parseFloat(nearestCustomer.lat);
-  const centerLng = parseFloat(nearestCustomer.lng);
-
-  if (!Number.isFinite(centerLat) || !Number.isFinite(centerLng)) {
-    renderList([nearestCustomer]);
-    return;
-  }
-
-  function distanceInMeters(lat1, lng1, lat2, lng2) {
-    const R = 6371000;
-    const toRad = value => value * Math.PI / 180;
-
-    const dLat = toRad(lat2 - lat1);
-    const dLng = toRad(lng2 - lng1);
-
-    const a =
-      Math.sin(dLat / 2) ** 2 +
-      Math.cos(toRad(lat1)) *
-      Math.cos(toRad(lat2)) *
-      Math.sin(dLng / 2) ** 2;
-
-    return 2 * R * Math.asin(Math.sqrt(a));
-  }
-
-  const nearbyCustomers = allLocations
-    .map(loc => {
-      const lat = parseFloat(loc.lat);
-      const lng = parseFloat(loc.lng);
-
-      if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
-
-      return {
-        loc,
-        distance: distanceInMeters(centerLat, centerLng, lat, lng)
-      };
-    })
-    .filter(item => item && item.distance <= 100)
-    .sort((a, b) => {
-      if (String(a.loc.id) === String(nearestCustomer.id)) return -1;
-      if (String(b.loc.id) === String(nearestCustomer.id)) return 1;
-
-      return a.distance - b.distance;
-    })
-    .map(item => item.loc);
-
-  if (!nearbyCustomers.some(loc => String(loc.id) === String(nearestCustomer.id))) {
-    nearbyCustomers.unshift(nearestCustomer);
-  }
-
-  renderList(nearbyCustomers);
+  renderList(matchedLocations.slice(0, 100));
 }
 
 function renderList(locations) {
@@ -555,7 +519,6 @@ function getLocation() {
   const searchType = document.getElementById("loai_tim").value;
   const searchValueInput = document.getElementById("locName").value.trim();
   const jobTitle = document.getElementById("jobSelect").value;
-  const noteContent = document.getElementById("locNote").value.trim();
 
   if (!searchValueInput) {
     showToast("Vui lòng nhập thông tin tìm kiếm...");
