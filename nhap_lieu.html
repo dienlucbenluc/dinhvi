@@ -41,7 +41,7 @@ document.getElementById('dataForm').addEventListener('submit', function(e) {
     msgDiv.style.color = '#333';
     msgDiv.innerText = 'Đang xử lý...';
 
-    fetch('xuly_nhap.php', {
+    fetch('http://10.183.45.1/htcmis/php/test/xuly_nhap.php', {
         method: 'POST',
         body: formData
     })
