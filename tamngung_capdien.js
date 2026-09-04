@@ -11,8 +11,8 @@
  *   - Điền CLOUDINARY_UPLOAD_PRESET (Unsigned upload preset)
  */
 
-const CLOUDINARY_CLOUD_NAME = 'THAY_CLOUD_NAME_CLOUDINARY';
-const CLOUDINARY_UPLOAD_PRESET = 'THAY_UNSIGNED_UPLOAD_PRESET';
+const CLOUDINARY_CLOUD_NAME = 'jokzcdxt';
+const CLOUDINARY_UPLOAD_PRESET = 'image_catdien';
 
 let allCustomers = [];
 let busy = false;
