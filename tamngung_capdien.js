@@ -6,7 +6,7 @@ let allCustomers = [];
 let busy = false;
 let appInitialized = false;
 let nhanVienLoaded = false;
-let pendingCancelArgs = null; // Biến lưu tạm thông tin khách hàng chờ hủy
+let pendingCancelArgs = null;
 
 document.addEventListener('DOMContentLoaded', initApp);
 
@@ -132,13 +132,9 @@ async function loadNhanVienList() {
   ) || '').trim();
 
   if (!loggedTenNdung) {
-    selectUser.innerHTML =
-      '<option value="">-- Chưa có đăng nhập --</option>';
+    selectUser.innerHTML = '<option value="">-- Chưa có đăng nhập --</option>';
     selectUser.disabled = true;
-    setStatus(
-      'Không đọc được cmis_user_session. Bác hãy đăng nhập lại từ login.html.',
-      true
-    );
+    setStatus('Không đọc được cmis_user_session. Bác hãy đăng nhập lại từ login.html.', true);
     return;
   }
 
@@ -166,11 +162,8 @@ async function loadNhanVienList() {
     }
 
     let actualLevel = Number(res.level);
-
     if (!Number.isFinite(actualLevel) || actualLevel <= 0) {
-      const loggedRow = res.data.find(u =>
-        normalize(String(u.ten_ndung || '')) === normalize(loggedTenNdung)
-      );
+      const loggedRow = res.data.find(u => normalize(String(u.ten_ndung || '')) === normalize(loggedTenNdung));
       const rowLevel = Number(loggedRow?.level);
       if (Number.isFinite(rowLevel) && rowLevel > 0) actualLevel = rowLevel;
     }
@@ -219,10 +212,9 @@ async function loadNhanVienList() {
   } catch (err) {
     console.error('Lỗi tải danh sách nhân viên:', err);
     selectUser.style.display = '';
-    selectUser.innerHTML =
-      `<option value="${escapeHtml(loggedTenNdung)}">${escapeHtml(
-        getUserField(currentUser, 'ten_nvien', 'TEN_NVIEN') || loggedTenNdung
-      )}</option>`;
+    selectUser.innerHTML = `<option value="${escapeHtml(loggedTenNdung)}">${escapeHtml(
+      getUserField(currentUser, 'ten_nvien', 'TEN_NVIEN') || loggedTenNdung
+    )}</option>`;
     selectUser.disabled = true;
     setStatus('Lỗi tải danh sách nhân viên: ' + (err.message || err), true);
   }
@@ -241,8 +233,7 @@ async function loadCustomers() {
     currentUser, 'ten_ndung', 'TEN_NDUNG', 'username', 'userName'
   ) || '').trim();
   const selectedDate = document.getElementById('filterDate')?.value || '';
-  const selectedUser =
-    document.getElementById('userSelect')?.value || loggedTenNdung;
+  const selectedUser = document.getElementById('userSelect')?.value || loggedTenNdung;
 
   const parsedLevel = Number(currentUser.level);
   const level = Number.isFinite(parsedLevel) && parsedLevel > 0 ? parsedLevel : 3;
@@ -413,7 +404,6 @@ async function getLocationAndSave(index, safeKey) {
   }
   setStatus(`Đang định vị GPS cho ${maKhang}...`);
 
-  // Lấy thông tin user đăng nhập
   const currentUser = getCurrentUser();
   const loggedTenNdung = String(getUserField(currentUser, 'ten_ndung', 'TEN_NDUNG', 'username') || '').trim();
   const loggedTenNvien = String(getUserField(currentUser, 'ten_nvien', 'TEN_NVIEN') || '').trim();
@@ -424,7 +414,6 @@ async function getLocationAndSave(index, safeKey) {
         const lat = position.coords.latitude;
         const lng = position.coords.longitude;
 
-        // Truyền đầy đủ dữ liệu khách hàng + tọa độ để server ghi vào sheet dinh_vi
         const payload = {
           MA_KHANG: maKhang,
           TEN_KHANG: value(c, 'TEN_KHANG', 'ten_khang'),
@@ -434,7 +423,7 @@ async function getLocationAndSave(index, safeKey) {
           VTRI_DNOI: value(c, 'VTRI_DNOI', 'vtri_dnoi', 'SO_COT', 'so_cot'),
           TEN_NDUNG: loggedTenNdung,
           TEN_NVIEN: loggedTenNvien,
-          TEN_CVIEC: 'Cắt điện',
+          TEN_CVIEC: 'Tạm ngừng cấp điện',
           LAT: lat,
           LNG: lng
         };
@@ -567,7 +556,6 @@ async function saveCustomer(index, safeKey) {
   }
 }
 
-// --- LOGIC MỚI CHO MODAL HỦY TRẠNG THÁI ---
 function closeCancelModal() {
   const modal = document.getElementById('cancelModal');
   if (modal) modal.style.display = 'none';
@@ -582,7 +570,7 @@ function cancelCustomer(index, safeKey) {
   
   const msgEl = document.getElementById('cancelModalMsg');
   if (msgEl) {
-    msgEl.textContent = `Bạn có chắc chắn muốn hủy trạng thái và xóa hình ảnh của khách hàng ${maKhang}?`;
+    msgEl.textContent = `Bạn có chắc chắn muốn hủy trạng thái, xóa hình ảnh và xóa thông tin định vị của khách hàng ${maKhang}?`;
   }
 
   pendingCancelArgs = { index, safeKey, maKhang };
@@ -615,14 +603,17 @@ async function executeCancel() {
   if (btnSave) btnSave.disabled = true;
 
   try {
-    setStatus(`Đang tiến hành hủy và xóa ảnh cho ${maKhang}...`);
+    setStatus(`Đang tiến hành hủy và xóa dữ liệu cho ${maKhang}...`);
 
+    // Gửi kèm LAT và LNG hiện tại để xóa chính xác dòng ở sheet dinh_vi
     const response = await fetch(API_URL, {
       method: 'POST',
       body: JSON.stringify({
         action: 'cancel',
         payload: {
-          MA_KHANG: maKhang
+          MA_KHANG: maKhang,
+          LAT: c.LAT || '',
+          LNG: c.LNG || ''
         }
       })
     });
@@ -646,7 +637,7 @@ async function executeCancel() {
     if (cell) {
       cell.innerHTML = `<a id="btn-location-${safeKey}" onclick="getLocationAndSave(${index}, '${safeKey}')" style="color:red;font-weight:bold;text-decoration:none;">📍 Lấy tọa độ mới</a>`;
     }
-    setStatus(`Đã hủy thành công khách hàng ${maKhang}.`);
+    setStatus(`Đã hủy và xóa định vị thành công cho ${maKhang}.`);
   } catch (err) {
     setStatus('Lỗi khi hủy: ' + (err.message || String(err)), true);
   } finally {
