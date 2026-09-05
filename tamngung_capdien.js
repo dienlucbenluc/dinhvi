@@ -362,6 +362,29 @@ function renderCustomers(items) {
   enableLoopScroll(root);
 }
 
+
+function handleSwipeLoop() {
+    if (isScrolling) return;
+
+    const maxScroll = container.scrollWidth - container.clientWidth;
+    const currentScroll = container.scrollLeft;
+    const swipeDistance = touchStartX - touchEndX; // > 0 là vuốt sang trái (tiến), < 0 là vuốt sang phải (lùi)
+
+    // 1. Đang ở Khách hàng đầu tiên và người dùng kéo/vuốt sang phải để lùi (swipeDistance < -30)
+    if (currentScroll <= 5 && swipeDistance < -30) {
+      isScrolling = true;
+      container.scrollTo({ left: maxScroll, behavior: 'smooth' });
+      setTimeout(() => { isScrolling = false; }, 350);
+    } 
+    // 2. Đang ở Khách hàng cuối cùng và người dùng kéo/vuốt sang trái để tiến (swipeDistance > 30)
+    else if (Math.ceil(currentScroll) >= maxScroll - 5 && swipeDistance > 30) {
+      isScrolling = true;
+      container.scrollTo({ left: 0, behavior: 'smooth' });
+      setTimeout(() => { isScrolling = false; }, 350);
+    }
+  }
+}
+
 function enableLoopScroll(container) {
   let isScrolling = false;
   let touchStartX = 0;
