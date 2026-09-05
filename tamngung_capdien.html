@@ -7,7 +7,7 @@
   <style>
     * { box-sizing: border-box; }
     body { margin:0; font-family:Arial,sans-serif; background:#eef2f5; color:#222; }
-    .app-container { max-width:500px; margin:0 auto; background:#f3f5f7; min-height:100vh; box-shadow:0 0 15px rgba(0,0,0,.1); position:relative;cursor: grab;user-select: none; }
+    .app-container { max-width:500px; margin:0 auto; background:#f3f5f7; min-height:100vh; box-shadow:0 0 15px rgba(0,0,0,.1); position:relative; cursor: grab; user-select: none; }
     .topbar { position:sticky; top:0; z-index:20; background:#fff; border-bottom:1px solid #ddd; padding:10px; }
 
     .title {
@@ -32,7 +32,6 @@
     .toolbar { display:flex; flex-direction:column; gap:8px; }
     .filter-row { display:flex; gap:6px; align-items:center; }
     .input-date { flex:1; height:42px; border:1px solid #ccc; border-radius:9px; padding:0 8px; font-size:14px; outline:none; }
-    .select-user { display:block !important; visibility:visible !important; flex:1.5; height:42px; border:1px solid #ccc; border-radius:9px; padding:0 8px; font-size:14px; outline:none; background:#fff; min-width:0; }
     .btn-search { white-space:nowrap; height:42px; }
     #searchBox { width:100%; height:42px; border:1px solid #ccc; border-radius:9px; padding:0 12px; font-size:15px; outline:none; }
     button { border:0; border-radius:9px; height:42px; padding:0 12px; font-size:14px; font-weight:700; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:6px; }
@@ -51,7 +50,6 @@
       scroll-behavior: smooth;
       gap: 12px;
       -webkit-overflow-scrolling: touch;
-      /* Ẩn thanh cuộn trình duyệt */
       -ms-overflow-style: none;
       scrollbar-width: none;
     }
@@ -71,7 +69,6 @@
       overflow: hidden;
     }
 
-    /* --- THANH CHỈ SỐ STT VÀ HƯỚNG DẪN VUỐT --- */
     .box-stt-bar {
       display: flex;
       align-items: center;
@@ -109,33 +106,32 @@
     .empty { text-align:center; padding:35px 10px; color:#777; width:100%; }
 
     .modal-overlay {
-    position: fixed;
-    top: 0; left: 0; width: 100%; height: 100%;
-    background: rgba(0, 0, 0, 0.5);
-    display: flex; align-items: center; justify-content: center;
-    z-index: 9999;
-}
-.modal-box {
-    background: #fff;
-    padding: 20px;
-    border-radius: 12px;
-    width: 90%; max-width: 350px;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
-    text-align: center;
-}
-.modal-title {
-    font-size: 18px; font-weight: bold; margin-bottom: 8px;
-}
-.modal-buttons {
-    display: flex; gap: 10px; margin-top: 15px;
-}
-.btn-modal-cancel, .btn-modal-danger {
-    flex: 1; padding: 10px; border: none; border-radius: 6px;
-    font-weight: bold; cursor: pointer;
-}
-.btn-modal-cancel { background: #e0e0e0; color: #333; }
-.btn-modal-danger { background: #d32f2f; color: #fff; }
-    
+      position: fixed;
+      top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(0, 0, 0, 0.5);
+      display: flex; align-items: center; justify-content: center;
+      z-index: 9999;
+    }
+    .modal-box {
+      background: #fff;
+      padding: 20px;
+      border-radius: 12px;
+      width: 90%; max-width: 350px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+      text-align: center;
+    }
+    .modal-title {
+      font-size: 18px; font-weight: bold; margin-bottom: 8px;
+    }
+    .modal-buttons {
+      display: flex; gap: 10px; margin-top: 15px;
+    }
+    .btn-modal-cancel, .btn-modal-danger {
+      flex: 1; padding: 10px; border: none; border-radius: 6px;
+      font-weight: bold; cursor: pointer;
+    }
+    .btn-modal-cancel { background: #e0e0e0; color: #333; }
+    .btn-modal-danger { background: #d32f2f; color: #fff; }
   </style>
 </head>
 <body>
@@ -148,38 +144,36 @@
       <div class="toolbar">
         <div class="filter-row">
           <input type="date" id="filterDate" class="input-date">
-          <select id="userSelect" class="select-user">
-            <option value="">-- Chọn nhân viên --</option>
-          </select>
-          <button class="btn-search" id="btnSearch" onclick="loadCustomers()">🔍</button>
+          <button class="btn-search" id="btnSearch" onclick="loadCustomers()">🔍 Tìm kiếm</button>
         </div>
         <input id="searchBox" type="search" placeholder="Tìm theo Mã KH, Tên KH, Số CTO...">
       </div>
-     <div style="font-size: 14px; font-style: italic; margin-top: 8px;" id="status"></div>
+      <div style="font-size: 14px; font-style: italic; margin-top: 8px;" id="status"></div>
     </div>
     <div id="customerList" class="list">
       <div class="empty">Đang chuẩn bị danh sách...</div>
     </div>
   </div>
+
   <script>
     function goHome() {
       window.top.location.href = 'home.html';
     }
   </script>
-  <script src="tamngung_capdien.js?v=20260905_level6"></script>
+  <script src="tamngung_capdien.js?v=20260905_v2"></script>
 
-    <!-- Modal Xác Nhận Hủy Trạng Thái -->
-<div id="cancelModal" class="modal-overlay" style="display: none;">
+  <!-- Modal Xác Nhận Hủy Trạng Thái -->
+  <div id="cancelModal" class="modal-overlay" style="display: none;">
     <div class="modal-box">
-        <div class="modal-title" style="color: var(--danger-color, #d32f2f);">Xác Nhận Hủy</div>
-        <p id="cancelModalMsg" style="font-size: 14px; color: var(--text-sub, #555); text-align: center; margin: 12px 0;">
-            Bạn có chắc chắn muốn hủy trạng thái và xóa hình ảnh của khách hàng này?
-        </p>
-        <div class="modal-buttons">
-            <button class="btn-modal-cancel" onclick="closeCancelModal()">Hủy</button>
-            <button class="btn-modal-danger" id="btnConfirmCancel">Đồng ý</button>
-        </div>
+      <div class="modal-title" style="color: var(--danger-color, #d32f2f);">Xác Nhận Hủy</div>
+      <p id="cancelModalMsg" style="font-size: 14px; color: var(--text-sub, #555); text-align: center; margin: 12px 0;">
+        Bạn có chắc chắn muốn hủy trạng thái và xóa hình ảnh của khách hàng này?
+      </p>
+      <div class="modal-buttons">
+        <button class="btn-modal-cancel" onclick="closeCancelModal()">Hủy</button>
+        <button class="btn-modal-danger" id="btnConfirmCancel">Đồng ý</button>
+      </div>
     </div>
-</div>
+  </div>
 </body>
 </html>
