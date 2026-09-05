@@ -174,10 +174,30 @@ async function loadNhanVienList() {
       throw new Error(res?.message || 'Dữ liệu nhân viên không hợp lệ.');
     }
 
-    const actualLevel = Number(res.level);
+    // Ưu tiên level backend trả về.
+    // Nếu bản Web App đang chạy chưa trả trường "level", lấy level
+    // trực tiếp từ dòng ten_ndung của người đăng nhập trong res.data.
+    let actualLevel = Number(res.level);
+
+    if (!Number.isFinite(actualLevel) || actualLevel <= 0) {
+      const loggedRow = res.data.find(u =>
+        normalize(String(u.ten_ndung || '')) === normalize(loggedTenNdung)
+      );
+      const rowLevel = Number(loggedRow?.level);
+      if (Number.isFinite(rowLevel) && rowLevel > 0) {
+        actualLevel = rowLevel;
+      }
+    }
+
+    // Chỉ mặc định Level 3 khi hoàn toàn không xác định được.
     const level = Number.isFinite(actualLevel) && actualLevel > 0
       ? actualLevel
       : 3;
+
+    // Lưu level thật vào session để loadCustomers dùng cùng một quyền.
+    currentUser.ten_ndung = loggedTenNdung;
+    currentUser.level = level;
+    localStorage.setItem('cmis_user_session', JSON.stringify(currentUser));
 
     selectUser.innerHTML = '';
 
@@ -208,9 +228,13 @@ async function loadNhanVienList() {
       });
     }
 
-    // Level 1: tất cả nhân viên + cho phép chọn.
-    // Level 3: chỉ người đăng nhập + khóa.
+    // Level 1: hiện và cho phép chọn toàn bộ nhân viên.
+    // Level khác 1: vẫn hiện combobox nhưng khóa, chỉ có người đăng nhập.
+    selectUser.style.display = '';
     selectUser.disabled = level !== 1;
+    selectUser.title = level === 1
+      ? 'Level 1: được chọn tất cả nhân viên'
+      : 'Chỉ được xem nhân viên đang đăng nhập';
     nhanVienLoaded = true;
 
     if (level === 1) {
@@ -307,7 +331,10 @@ async function loadCustomers() {
   const selectedDate = document.getElementById('filterDate')?.value || '';
   const selectedUser =
     document.getElementById('userSelect')?.value || loggedTenNdung;
-  const level = Number(currentUser.level || 3);
+  const parsedLevel = Number(currentUser.level);
+  const level = Number.isFinite(parsedLevel) && parsedLevel > 0
+    ? parsedLevel
+    : 3;
 
   const queryParams = new URLSearchParams({
     action: 'getList',
