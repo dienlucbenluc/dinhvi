@@ -326,6 +326,29 @@ function renderCustomers(items) {
     const picture = value(c, 'HINH_ANH', 'hinh_anh', 'PICTUREBOX');
     const hasLocation = lat !== '' && lng !== '' && !isNaN(lat) && !isNaN(lng);
 
+   let dateOnly = "---";
+    if (ngayCat) {
+        const strTime = String(ngayCat).trim();
+        const dateMatch = strTime.match(/\d{1,2}\/\d{1,2}\/\d{4}/);
+        
+        if (dateMatch) {
+            dateOnly = dateMatch[0]; 
+            let parts = dateOnly.split('/');
+            if(parts.length === 3) {
+                dateOnly = `${parts[0].padStart(2, '0')}/${parts[1].padStart(2, '0')}/${parts[2]}`;
+            }
+        } else {
+            const d = new Date(strTime);
+            if (!isNaN(d.getTime())) {
+                const day = d.getDate().toString().padStart(2, '0');
+                const month = (d.getMonth() + 1).toString().padStart(2, '0');
+                dateOnly = `${day}/${month}/${d.getFullYear()}`;
+            } else {
+                dateOnly = strTime.split(/[ T]/)[0]; 
+            }
+        }
+    }
+    
     let locationHtml = hasLocation
       ? `<a href="https://www.google.com/maps?q=${lat},${lng}" target="_blank" style="color:#1976d2;font-weight:bold;text-decoration:none;">📍 Xem Google Maps</a>`
       : `<a id="btn-location-${safeKey}" onclick="getLocationAndSave(${index}, '${safeKey}')" style="color:red;font-weight:bold;text-decoration:none;">📍 Lấy tọa độ mới</a>`;
@@ -345,7 +368,7 @@ function renderCustomers(items) {
           <div class="item">DS: ${escapeHtml(danhSo)}</div>
           <div class="item">Số CTơ: ${escapeHtml(soCto)}</div>
           <div class="item">Cột: ${escapeHtml(vtriDnoi)}</div>
-          <div class="item">Trạm: ${escapeHtml(ngayCat)}</div>
+          <div class="item">Trạm: ${dateOnly}</div>
           <div class="item"><a id="loc-cell-${safeKey}">${locationHtml}</a></div>
         </div>
         <div class="item">Trạm: ${escapeHtml(tenTram)}</div>
