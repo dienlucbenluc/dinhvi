@@ -329,7 +329,7 @@ function renderCustomers(items) {
 
     let locationHtml = hasLocation
       ? `<a href="https://www.google.com/maps?q=${lat},${lng}" target="_blank" style="color:#1976d2;font-weight:bold;text-decoration:none;">📍 Xem Google Maps</a>`
-      : `<button id="btn-location-${safeKey}" onclick="getLocationAndSave(${index}, '${safeKey}')" style="background:#ef6c00;color:#fff;padding:4px 8px;border-radius:6px;font-size:12px;border:0;cursor:pointer;">📍 Lấy tọa độ mới</button>`;
+      : `<button id="btn-location-${safeKey}" onclick="getLocationAndSave(${index}, '${safeKey}')" style="color:red;font-weight:bold;text-decoration:none;">📍 Lấy tọa độ mới</button>`;
 
     return `
       <div class="customer-box" id="box-${safeKey}" data-index="${index}">
