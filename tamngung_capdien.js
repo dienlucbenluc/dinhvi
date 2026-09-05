@@ -5,7 +5,6 @@ const CLOUDINARY_UPLOAD_PRESET = 'image_catdien';
 let allCustomers = [];
 let busy = false;
 let appInitialized = false;
-let nhanVienLoaded = false;
 let pendingCancelArgs = null;
 
 document.addEventListener('DOMContentLoaded', initApp);
@@ -25,7 +24,6 @@ async function initApp() {
   const searchBox = document.getElementById('searchBox');
   if (searchBox) searchBox.addEventListener('input', renderFiltered);
 
-  await loadNhanVienList();
   loadCustomers();
 }
 
@@ -120,11 +118,8 @@ function fetchJSONP(url) {
   });
 }
 
-async function loadNhanVienList() {
-  if (nhanVienLoaded) return;
-
-  const selectUser = document.getElementById('userSelect');
-  if (!selectUser) return;
+async function loadCustomers() {
+  if (busy) return;
 
   const currentUser = getCurrentUser();
   const loggedTenNdung = String(getUserField(
@@ -132,117 +127,21 @@ async function loadNhanVienList() {
   ) || '').trim();
 
   if (!loggedTenNdung) {
-    selectUser.innerHTML = '<option value="">-- Chưa có đăng nhập --</option>';
-    selectUser.disabled = true;
-    setStatus('Không đọc được cmis_user_session. Bác hãy đăng nhập lại từ login.html.', true);
+    setStatus('Chưa đăng nhập hoặc không tìm thấy tài khoản. Vui lòng đăng nhập lại.', true);
     return;
   }
-
-  selectUser.disabled = true;
-  selectUser.style.display = '';
-  selectUser.innerHTML = '<option value="">⏳ Đang tải nhân viên...</option>';
-
-  try {
-    const query = new URLSearchParams({
-      action: 'getNhanVien',
-      ten_ndung: loggedTenNdung
-    });
-
-    let res;
-    try {
-      res = await fetchJSONP(`${API_URL}?${query.toString()}`);
-    } catch (_) {
-      const response = await fetch(`${API_URL}?${query.toString()}`);
-      if (!response.ok) throw new Error('Server Apps Script từ chối kết nối.');
-      res = await response.json();
-    }
-
-    if (!res || res.success !== true || !Array.isArray(res.data)) {
-      throw new Error(res?.message || 'Dữ liệu nhân viên không hợp lệ.');
-    }
-
-    let actualLevel = Number(res.level);
-    if (!Number.isFinite(actualLevel) || actualLevel <= 0) {
-      const loggedRow = res.data.find(u => normalize(String(u.ten_ndung || '')) === normalize(loggedTenNdung));
-      const rowLevel = Number(loggedRow?.level);
-      if (Number.isFinite(rowLevel) && rowLevel > 0) actualLevel = rowLevel;
-    }
-
-    const level = Number.isFinite(actualLevel) && actualLevel > 0 ? actualLevel : 3;
-
-    currentUser.ten_ndung = loggedTenNdung;
-    currentUser.level = level;
-    localStorage.setItem('cmis_user_session', JSON.stringify(currentUser));
-
-    selectUser.innerHTML = '';
-
-    res.data.forEach(u => {
-      const tenNdung = String(u.ten_ndung ?? '').trim();
-      if (!tenNdung) return;
-
-      const tenNvien = String(u.ten_nvien ?? '').trim();
-      const opt = document.createElement('option');
-      opt.value = tenNdung;
-      opt.textContent = tenNvien || tenNdung;
-
-      if (normalize(tenNdung) === normalize(loggedTenNdung)) {
-        opt.selected = true;
-      }
-      selectUser.appendChild(opt);
-    });
-
-    if (!selectUser.options.length) {
-      const opt = document.createElement('option');
-      opt.value = loggedTenNdung;
-      opt.textContent = getUserField(currentUser, 'ten_nvien', 'TEN_NVIEN') || loggedTenNdung;
-      opt.selected = true;
-      selectUser.appendChild(opt);
-    }
-
-    selectUser.style.display = '';
-    selectUser.disabled = level !== 1;
-
-    if (level === 1) {
-      setStatus(`Đã tải ${res.data.length} nhân viên. Quyền Level 1.`);
-    } else {
-      setStatus(`Nhân viên: ${loggedTenNdung}. Quyền Level ${level}.`);
-    }
-
-    nhanVienLoaded = true;
-  } catch (err) {
-    console.error('Lỗi tải danh sách nhân viên:', err);
-    selectUser.style.display = '';
-    selectUser.innerHTML = `<option value="${escapeHtml(loggedTenNdung)}">${escapeHtml(
-      getUserField(currentUser, 'ten_nvien', 'TEN_NVIEN') || loggedTenNdung
-    )}</option>`;
-    selectUser.disabled = true;
-    setStatus('Lỗi tải danh sách nhân viên: ' + (err.message || err), true);
-  }
-}
-
-async function loadCustomers() {
-  if (busy) return;
 
   busy = true;
   const btn = document.getElementById('btnSearch');
   if (btn) btn.disabled = true;
-  setStatus('Đang kết nối server...');
+  setStatus(`Đang tải dữ liệu cho tài khoản: ${loggedTenNdung}...`);
 
-  const currentUser = getCurrentUser();
-  const loggedTenNdung = String(getUserField(
-    currentUser, 'ten_ndung', 'TEN_NDUNG', 'username', 'userName'
-  ) || '').trim();
   const selectedDate = document.getElementById('filterDate')?.value || '';
-  const selectedUser = document.getElementById('userSelect')?.value || loggedTenNdung;
-
-  const parsedLevel = Number(currentUser.level);
-  const level = Number.isFinite(parsedLevel) && parsedLevel > 0 ? parsedLevel : 3;
 
   const queryParams = new URLSearchParams({
     action: 'getList',
     date: selectedDate,
-    ten_ndung: selectedUser,
-    logged_ten_ndung: loggedTenNdung
+    ten_ndung: loggedTenNdung
   });
 
   try {
@@ -262,7 +161,7 @@ async function loadCustomers() {
 
     allCustomers = res.data;
     renderFiltered();
-    setStatus(`Đã tải ${allCustomers.length} khách hàng.`);
+    setStatus(`Tài khoản [${loggedTenNdung}] - Đã tải ${allCustomers.length} khách hàng.`);
   } catch (err) {
     setStatus('Lỗi lấy danh sách: ' + err.message, true);
   } finally {
@@ -345,8 +244,8 @@ function renderCustomers(items) {
     }
     
     let locationHtml = hasLocation
-      ? `<span href="https://www.google.com/maps?q=${lat},${lng}" target="_blank" style="color:#1976d2;font-weight:bold;text-decoration:none;">📍 Xem Google Maps</span>`
-      : `<span id="btn-location-${safeKey}" onclick="getLocationAndSave(${index}, '${safeKey}')" style="color:red;font-weight:bold;text-decoration:none;">📍 Bấm lấy tọa độ mới</span>`;
+      ? `<a href="https://www.google.com/maps?q=${lat},${lng}" target="_blank" style="color:#1976d2;font-weight:bold;text-decoration:none;">📍 Xem Google Maps</a>`
+      : `<span id="btn-location-${safeKey}" onclick="getLocationAndSave(${index}, '${safeKey}')" style="color:red;font-weight:bold;cursor:pointer;">📍 Bấm lấy tọa độ mới</span>`;
 
     return `
       <div class="customer-box" id="box-${safeKey}" data-index="${index}">
@@ -364,13 +263,13 @@ function renderCustomers(items) {
           <div class="item">Số CTơ: ${escapeHtml(soCto)}</div>
           <div class="item">Cột: ${escapeHtml(vtriDnoi)}</div>
           <div class="item">Ngày CĐ: ${dateOnly}</div>
-          <div class="item"><a id="loc-cell-${safeKey}">${locationHtml}</a></div>
+          <div class="item"><span id="loc-cell-${safeKey}">${locationHtml}</span></div>
         </div>
-         <div style="max-width: 400px; font-size:13px; padding:10px 12px;margin-top:-10px;white-space: nowrap;overflow: hidden; text-overflow: ellipsis;">Trạm: ${escapeHtml(tenTram)}</div>
+        <div style="max-width: 400px; font-size:13px; padding:10px 12px;margin-top:-10px;white-space: nowrap;overflow: hidden; text-overflow: ellipsis;">Trạm: ${escapeHtml(tenTram)}</div>
         <div class="photo-actions-container">
-         <div class="picture-box" id="picture-${safeKey}">
-         ${optimizedPicture ? `<img src="${escapeHtml(optimizedPicture)}" alt="Hình ảnh ${escapeHtml(maKhang)}">` : 'Chưa có hình ảnh'}
-         </div>
+          <div class="picture-box" id="picture-${safeKey}">
+            ${optimizedPicture ? `<img src="${escapeHtml(optimizedPicture)}" alt="Hình ảnh ${escapeHtml(maKhang)}">` : 'Chưa có hình ảnh'}
+          </div>
           <div class="actions-right">
             <label class="check-wrap">
               <input type="checkbox" id="check-${safeKey}" ${Number(value(c, 'TINH_TRANG', 'tinh_trang')) === 1 ? 'checked' : ''}>
@@ -399,14 +298,14 @@ async function getLocationAndSave(index, safeKey) {
   }
 
   if (btnLoc) {
-    btnLoc.disabled = true;
+    btnLoc.style.pointerEvents = 'none';
     btnLoc.textContent = '⏳ Đang lấy vị trí...';
   }
   setStatus(`Đang định vị GPS cho ${maKhang}...`);
 
   const currentUser = getCurrentUser();
   const loggedTenNdung = String(getUserField(currentUser, 'ten_ndung', 'TEN_NDUNG', 'username') || '').trim();
-  const loggedTenNvien = String(getUserField(currentUser, 'ten_nvien', 'TEN_NVIEN') || '').trim();
+  const loggedTenNvien = String(getUserField(currentUser, 'ten_nvien', 'TEN_NVIEN') || loggedTenNdung).trim();
 
   navigator.geolocation.getCurrentPosition(
     async position => {
@@ -442,12 +341,12 @@ async function getLocationAndSave(index, safeKey) {
         if (cell) cell.innerHTML = `<a href="https://www.google.com/maps?q=${lat},${lng}" target="_blank" style="color:#1976d2;font-weight:bold;text-decoration:none;">📍 Xem Google Maps</a>`;
         setStatus(`Đã lưu tọa độ & ghi định vị thành công cho ${maKhang}!`);
       } catch (err) {
-        if (btnLoc) { btnLoc.disabled = false; btnLoc.textContent = '📍 Lấy tọa độ mới'; }
+        if (btnLoc) { btnLoc.style.pointerEvents = 'auto'; btnLoc.textContent = '📍 Bấm lấy tọa độ mới'; }
         setStatus('Lỗi lưu tọa độ: ' + err.message, true);
       }
     },
     err => {
-      if (btnLoc) { btnLoc.disabled = false; btnLoc.textContent = '📍 Lấy tọa độ mới'; }
+      if (btnLoc) { btnLoc.style.pointerEvents = 'auto'; btnLoc.textContent = '📍 Bấm lấy tọa độ mới'; }
       setStatus('Không thể lấy vị trí GPS: ' + err.message, true);
     },
     { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
@@ -520,6 +419,9 @@ async function saveCustomer(index, safeKey) {
   if (btn) { btn.disabled = true; btn.textContent = '⏳ Đang lưu...'; }
 
   try {
+    const currentUser = getCurrentUser();
+    const loggedTenNdung = String(getUserField(currentUser, 'ten_ndung', 'TEN_NDUNG', 'username') || '').trim();
+
     const maKhang = value(c, 'MA_KHANG', 'ma_khang');
     let imageUrl = value(c, 'HINH_ANH', 'hinh_anh', 'PICTUREBOX');
 
@@ -537,7 +439,8 @@ async function saveCustomer(index, safeKey) {
           MA_KHANG: maKhang,
           HINH_ANH: imageUrl,
           PICTUREBOX: imageUrl,
-          TINH_TRANG: tinhTrang
+          TINH_TRANG: tinhTrang,
+          NGUOI_SUA: loggedTenNdung
         }
       })
     });
@@ -605,7 +508,6 @@ async function executeCancel() {
   try {
     setStatus(`Đang tiến hành hủy và xóa dữ liệu cho ${maKhang}...`);
 
-    // Gửi kèm LAT và LNG hiện tại để xóa chính xác dòng ở sheet dinh_vi
     const response = await fetch(API_URL, {
       method: 'POST',
       body: JSON.stringify({
@@ -635,7 +537,7 @@ async function executeCancel() {
     if (pictureBox) pictureBox.innerHTML = 'Chưa có hình ảnh';
     const cell = document.getElementById(`loc-cell-${safeKey}`);
     if (cell) {
-      cell.innerHTML = `<a id="btn-location-${safeKey}" onclick="getLocationAndSave(${index}, '${safeKey}')" style="color:red;font-weight:bold;text-decoration:none;">📍 Lấy tọa độ mới</a>`;
+      cell.innerHTML = `<span id="btn-location-${safeKey}" onclick="getLocationAndSave(${index}, '${safeKey}')" style="color:red;font-weight:bold;cursor:pointer;">📍 Bấm lấy tọa độ mới</span>`;
     }
     setStatus(`Đã hủy và xóa định vị thành công cho ${maKhang}.`);
   } catch (err) {
