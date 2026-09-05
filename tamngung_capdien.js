@@ -358,6 +358,7 @@ function renderCustomers(items) {
             </label>
             <button class="btn-photo" onclick="takePhoto(${index}, '${safeKey}')">📷 Chụp ảnh</button>
             <button class="btn-save" id="save-${safeKey}" onclick="saveCustomer(${index}, '${safeKey}')">💾 Lưu</button>
+            <button class="btn-cancel" id="cancel-${safeKey}" onclick="cancelCustomer(${index}, '${safeKey}')">❌ Hủy</button>
             <input type="file" id="file-${safeKey}" accept="image/*" capture="environment" style="display:none" onchange="photoSelected(${index}, '${safeKey}', this)">
           </div>
         </div>
@@ -459,6 +460,41 @@ async function uploadToCloudinary(dataUrl, maKhang) {
   return result.secure_url || result.url || '';
 }
 
+function getCloudinaryPublicId(url) {
+  if (!url || !url.includes('cloudinary.com')) return null;
+  try {
+    const parts = url.split('/upload/');
+    if (parts.length < 2) return null;
+    let path = parts[1];
+    path = path.replace(/^v\d+\//, '');
+    const lastDot = path.lastIndexOf('.');
+    if (lastDot !== -1) {
+      path = path.substring(0, lastDot);
+    }
+    return path;
+  } catch (e) {
+    return null;
+  }
+}
+
+async function deleteFromCloudinary(imageUrl) {
+  const publicId = getCloudinaryPublicId(imageUrl);
+  if (!publicId) return;
+
+  try {
+    const form = new FormData();
+    form.append('public_id', publicId);
+    form.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
+
+    await fetch(
+      `https://api.cloudinary.com/v1_1/${encodeURIComponent(CLOUDINARY_CLOUD_NAME)}/image/destroy`,
+      { method: 'POST', body: form }
+    );
+  } catch (err) {
+    console.warn('Không thể xóa ảnh trên Cloudinary:', err);
+  }
+}
+
 async function saveCustomer(index, safeKey) {
   const c = allCustomers[index];
   if (!c) return;
@@ -504,5 +540,67 @@ async function saveCustomer(index, safeKey) {
     setStatus(err.message || String(err), true);
   } finally {
     if (btn) { btn.disabled = false; btn.textContent = oldText; }
+  }
+}
+
+async function cancelCustomer(index, safeKey) {
+  const c = allCustomers[index];
+  if (!c) return;
+
+  if (!confirm('Bạn có chắc chắn muốn hủy trạng thái và xóa hình ảnh này?')) {
+    return;
+  }
+
+  const btnCancel = document.getElementById('cancel-' + safeKey);
+  const btnSave = document.getElementById('save-' + safeKey);
+  const checkbox = document.getElementById('check-' + safeKey);
+  const pictureBox = document.getElementById('picture-' + safeKey);
+
+  if (btnCancel && btnCancel.disabled) return;
+
+  const oldText = btnCancel ? btnCancel.textContent : '';
+  if (btnCancel) { btnCancel.disabled = true; btnCancel.textContent = '⏳ Đang hủy...'; }
+  if (btnSave) btnSave.disabled = true;
+
+  try {
+    const maKhang = value(c, 'MA_KHANG', 'ma_khang');
+    const currentImageUrl = value(c, 'HINH_ANH', 'hinh_anh', 'PICTUREBOX');
+
+    if (currentImageUrl) {
+      setStatus(`Đang xóa hình ảnh trên Cloudinary cho ${maKhang}...`);
+      await deleteFromCloudinary(currentImageUrl);
+    }
+
+    setStatus(`Đang hủy dữ liệu cho ${maKhang}...`);
+    const response = await fetch(API_URL, {
+      method: 'POST',
+      body: JSON.stringify({
+        action: 'cancel',
+        payload: {
+          MA_KHANG: maKhang
+        }
+      })
+    });
+
+    const result = await response.json();
+    if (!result || result.success !== true) {
+      throw new Error(result?.message || 'Hủy thất bại.');
+    }
+
+    c.HINH_ANH = '';
+    c.PICTUREBOX = '';
+    c.TINH_TRANG = 0;
+    delete c._newPhotoFile;
+    delete c._newPhotoDataUrl;
+
+    if (checkbox) checkbox.checked = false;
+    if (pictureBox) pictureBox.innerHTML = 'Chưa có hình ảnh';
+
+    setStatus(`Đã hủy thành công khách hàng ${maKhang}.`);
+  } catch (err) {
+    setStatus('Lỗi khi hủy: ' + (err.message || String(err)), true);
+  } finally {
+    if (btnCancel) { btnCancel.disabled = false; btnCancel.textContent = oldText; }
+    if (btnSave) btnSave.disabled = false;
   }
 }
