@@ -197,25 +197,35 @@ function renderCustomers(items) {
           <div class="item"><label>TỌA ĐỘ</label><div id="loc-cell-${safeKey}">${locationHtml}</div></div>
         </div>
 
-        <div class="photo-area">
+        <!-- BỐ CỤC MỚI: Gom Ảnh + Nút vào cùng container 2 cột -->
+        <div class="photo-actions-container">
+          <!-- Cột bên trái: Khung hiển thị hình ảnh -->
           <div class="picture-box" id="picture-${safeKey}">
             ${picture ? `<img src="${escapeHtml(picture)}" alt="Hình ảnh ${escapeHtml(maKhang)}">` : 'Chưa có hình ảnh'}
           </div>
-        </div>
 
-        <div class="actions">
-          <button class="btn-photo" onclick="takePhoto(${index}, '${safeKey}')">📷 Chụp ảnh</button>
-          <label class="check-wrap">
-            <input type="checkbox" id="check-${safeKey}" ${Number(value(c, 'TINH_TRANG', 'tinh_trang')) === 1 ? 'checked' : ''}>
-            Đã cắt điện
-          </label>
-          <button class="btn-save" id="save-${safeKey}" onclick="saveCustomer(${index}, '${safeKey}')">💾 Lưu</button>
-          <input type="file"
-                 id="file-${safeKey}"
-                 accept="image/*"
-                 capture="environment"
-                 style="display:none"
-                 onchange="photoSelected(${index}, '${safeKey}', this)">
+          <!-- Cột bên phải: Nút bấm xếp theo số thứ tự 1-2-3 -->
+          <div class="actions-right">
+            <!-- 1. Checkbox Đã cắt điện -->
+            <label class="check-wrap">
+              <input type="checkbox" id="check-${safeKey}" ${Number(value(c, 'TINH_TRANG', 'tinh_trang')) === 1 ? 'checked' : ''}>
+              Đã cắt điện
+            </label>
+
+            <!-- 2. Nút Chụp ảnh -->
+            <button class="btn-photo" onclick="takePhoto(${index}, '${safeKey}')">📷 Chụp ảnh</button>
+
+            <!-- 3. Nút Lưu -->
+            <button class="btn-save" id="save-${safeKey}" onclick="saveCustomer(${index}, '${safeKey}')">💾 Lưu</button>
+
+            <!-- Thẻ input chọn ảnh ẩn -->
+            <input type="file"
+                   id="file-${safeKey}"
+                   accept="image/*"
+                   capture="environment"
+                   style="display:none"
+                   onchange="photoSelected(${index}, '${safeKey}', this)">
+          </div>
         </div>
       </div>
     `;
