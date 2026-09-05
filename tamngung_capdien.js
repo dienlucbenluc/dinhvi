@@ -127,14 +127,14 @@ async function loadCustomers() {
   ) || '').trim();
 
   if (!loggedTenNdung) {
-    setStatus('Chưa đăng nhập hoặc không tìm thấy tài khoản. Vui lòng đăng nhập lại.', true);
+    setStatus('không tìm thấy tài khoản đăng nhập.', true);
     return;
   }
 
   busy = true;
   const btn = document.getElementById('btnSearch');
   if (btn) btn.disabled = true;
-  setStatus(`Đang tải dữ liệu cho tài khoản: ${loggedTenNdung}...`);
+  setStatus(`Đang tải dữ liệu...`);
 
   const selectedDate = document.getElementById('filterDate')?.value || '';
 
@@ -161,7 +161,7 @@ async function loadCustomers() {
 
     allCustomers = res.data;
     renderFiltered();
-    setStatus(`Tài khoản [${loggedTenNdung}] - Đã tải ${allCustomers.length} khách hàng.`);
+    setStatus(` Tổng khách hàng: ${allCustomers.length}.`);
   } catch (err) {
     setStatus('Lỗi lấy danh sách: ' + err.message, true);
   } finally {
