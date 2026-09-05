@@ -1,55 +1,87 @@
-// Ép chạy ngay lập tức để test kết nối
-(function initApp() {
-  console.log('=== APP ĐANG KHỞI CHẠY ===');
-  
-  // Gọi hàm loadNhanVienList sau khi DOM sẵn sàng
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', loadNhanVienList);
-  } else {
-    loadNhanVienList();
-  }
-})();
+// Khởi tạo ứng dụng: chỉ chạy 1 lần sau khi DOM sẵn sàng.
+let appInitialized = false;
+let nhanVienLoaded = false;
 
-const API_URL = 'https://script.google.com/macros/s/AKfycbypH-vE7ctJxQObLPLvRrG71zbVx6_6E40foxkb4SS7e38kCmnyuj-09kuUGyFxcGhW/exec';
-const CLOUDINARY_CLOUD_NAME = 'jokzcdxt';
-const CLOUDINARY_UPLOAD_PRESET = 'image_catdien';
+document.addEventListener('DOMContentLoaded', initApp);
 
-let allCustomers = [];
-let busy = false;
+async function initApp() {
+  if (appInitialized) return;
+  appInitialized = true;
 
-document.addEventListener('DOMContentLoaded', async () => {
-  // Gán ngày hiện tại cho ô Date
   const dateInput = document.getElementById('filterDate');
-  if (dateInput) {
-    const today = new Date().toISOString().split('T')[0];
-    dateInput.value = today;
+  if (dateInput && !dateInput.value) {
+    const now = new Date();
+    const localDate = new Date(now.getTime() - now.getTimezoneOffset() * 60000)
+      .toISOString().slice(0, 10);
+    dateInput.value = localDate;
   }
-
-  // Tải danh sách nhân viên vào Combobox từ Google Sheet theo quyền Level
-  await loadNhanVienList();
 
   const searchBox = document.getElementById('searchBox');
-  if (searchBox) {
-    searchBox.addEventListener('input', renderFiltered);
-  }
+  if (searchBox) searchBox.addEventListener('input', renderFiltered);
 
+  await loadNhanVienList();
   loadCustomers();
-});
+}
 
-// Hàm gọi API lấy danh sách nhân viên từ Sheet 'nhan_vien'
+// Đọc tài khoản đăng nhập từ bộ nhớ web.
+// Hỗ trợ cả localStorage và sessionStorage.
+function getCurrentUser() {
+  for (const storage of [localStorage, sessionStorage]) {
+    try {
+      const raw = storage.getItem('user_info');
+      if (!raw) continue;
+      const obj = JSON.parse(raw);
+      if (obj && typeof obj === 'object') return obj;
+    } catch (e) {
+      console.warn('Không đọc được user_info:', e);
+    }
+  }
+  return {};
+}
+
+function getUserField(user, ...names) {
+  for (const name of names) {
+    if (user && user[name] !== undefined && user[name] !== null &&
+        String(user[name]).trim() !== '') {
+      return user[name];
+    }
+  }
+  return '';
+}
+
+// Hàm lấy danh sách nhân viên từ sheet nhan_vien theo Level.
 async function loadNhanVienList() {
-  const currentUser = JSON.parse(localStorage.getItem('user_info') || '{}');
-  const loggedTenNdung = currentUser.ten_ndung || '';
-  const userLevel = Number(currentUser.level || 3);
+  if (nhanVienLoaded) return;
 
   const selectUser = document.getElementById('userSelect');
   if (!selectUser) return;
+
+  const currentUser = getCurrentUser();
+  const loggedTenNdung = String(getUserField(
+    currentUser, 'ten_ndung', 'TEN_NDUNG', 'username', 'userName', 'username_login'
+  ) || '').trim();
+
+  const levelRaw = getUserField(currentUser, 'level', 'LEVEL', 'quyen', 'QUYEN');
+  const parsedLevel = Number(levelRaw);
+  const effectiveLevel =
+    Number.isFinite(parsedLevel) && parsedLevel > 0 ? parsedLevel : 3;
+
+  if (!loggedTenNdung) {
+    selectUser.innerHTML =
+      '<option value="">-- Chưa xác định tài khoản đăng nhập --</option>';
+    selectUser.disabled = true;
+    setStatus('Không tìm thấy ten_ndung của tài khoản đăng nhập.', true);
+    return;
+  }
+
+  selectUser.disabled = true;
+  selectUser.innerHTML = '<option value="">⏳ Đang tải nhân viên...</option>';
 
   try {
     const queryParams = new URLSearchParams({
       action: 'getNhanVien',
       ten_ndung: loggedTenNdung,
-      level: userLevel
+      level: String(effectiveLevel)
     });
 
     let res;
@@ -57,40 +89,67 @@ async function loadNhanVienList() {
       res = await fetchJSONP(`${API_URL}?${queryParams.toString()}`);
     } catch (e) {
       const response = await fetch(`${API_URL}?${queryParams.toString()}`);
+      if (!response.ok) throw new Error('Server Apps Script từ chối kết nối.');
       res = await response.json();
+    }
+
+    if (!res || res.success !== true || !Array.isArray(res.data)) {
+      throw new Error(res?.message || 'Dữ liệu nhân viên trả về không hợp lệ.');
     }
 
     selectUser.innerHTML = '';
 
-    if (res && res.success && Array.isArray(res.data) && res.data.length > 0) {
-      res.data.forEach(u => {
-        const opt = document.createElement('option');
-        opt.value = u.ten_ndung;
-        opt.textContent = u.ten_nvien ? `${u.ten_nvien} (${u.ten_ndung})` : u.ten_ndung;
-        
-        // Mặc định chọn tài khoản trùng với người đăng nhập
-        if (u.ten_ndung.toLowerCase() === loggedTenNdung.toLowerCase()) {
-          opt.selected = true;
-        }
-        selectUser.appendChild(opt);
-      });
-    } else {
-      // Dùng fallback nếu không tải được danh sách
+    if (res.data.length === 0) {
+      // Fallback an toàn: tài khoản đăng nhập.
       const opt = document.createElement('option');
       opt.value = loggedTenNdung;
-      opt.textContent = currentUser.ten_nvien || loggedTenNdung;
+      opt.textContent =
+        getUserField(currentUser, 'ten_nvien', 'TEN_NVIEN') || loggedTenNdung;
       opt.selected = true;
       selectUser.appendChild(opt);
+    } else {
+      res.data.forEach(u => {
+        const tenNdung = String(u.ten_ndung ?? '').trim();
+        if (!tenNdung) return;
+
+        const tenNvien = String(u.ten_nvien ?? '').trim();
+        const opt = document.createElement('option');
+        opt.value = tenNdung;
+        opt.textContent = tenNvien
+          ? `${tenNvien} (${tenNdung})`
+          : tenNdung;
+
+        if (normalize(tenNdung) === normalize(loggedTenNdung)) {
+          opt.selected = true;
+        }
+
+        selectUser.appendChild(opt);
+      });
+    }
+
+    // Level 1: xem/chọn tất cả nhân viên.
+    // Level khác 1: chỉ dùng nhân viên đang đăng nhập.
+    selectUser.disabled = effectiveLevel !== 1;
+    nhanVienLoaded = true;
+
+    if (effectiveLevel === 1) {
+      setStatus(`Đã tải ${res.data.length} nhân viên. Quyền Level 1.`);
+    } else {
+      setStatus(`Nhân viên: ${loggedTenNdung}. Quyền Level ${effectiveLevel}.`);
     }
   } catch (err) {
     console.warn('Lỗi tải danh sách nhân viên:', err);
-  }
 
-  // Khóa Combobox nếu Level khác 1; Cho phép chọn nếu Level = 1
-  if (userLevel !== 1) {
+    selectUser.innerHTML = '';
+    const opt = document.createElement('option');
+    opt.value = loggedTenNdung;
+    opt.textContent =
+      getUserField(currentUser, 'ten_nvien', 'TEN_NVIEN') || loggedTenNdung;
+    opt.selected = true;
+    selectUser.appendChild(opt);
     selectUser.disabled = true;
-  } else {
-    selectUser.disabled = false;
+
+    setStatus('Lỗi tải danh sách nhân viên: ' + (err.message || err), true);
   }
 }
 
@@ -165,10 +224,17 @@ async function loadCustomers() {
   if (btn) btn.disabled = true;
   setStatus('Đang kết nối server...');
 
-  const currentUser = JSON.parse(localStorage.getItem('user_info') || '{}');
+  const currentUser = getCurrentUser();
+  const loggedTenNdung = String(getUserField(
+    currentUser, 'ten_ndung', 'TEN_NDUNG', 'username', 'userName', 'username_login'
+  ) || '').trim();
   const selectedDate = document.getElementById('filterDate')?.value || '';
-  const selectedUser = document.getElementById('userSelect')?.value || currentUser.ten_ndung || '';
-  const level = Number(currentUser.level || 3);
+  const selectedUser =
+    document.getElementById('userSelect')?.value || loggedTenNdung;
+  const levelRaw = getUserField(currentUser, 'level', 'LEVEL', 'quyen', 'QUYEN');
+  const parsedLevel = Number(levelRaw);
+  const level =
+    Number.isFinite(parsedLevel) && parsedLevel > 0 ? parsedLevel : 3;
 
   const queryParams = new URLSearchParams({
     action: 'getList',
@@ -488,20 +554,3 @@ async function saveCustomer(index, safeKey) {
   }
 }
 
-// Đảm bảo DOM đã tải xong mới gọi hàm
-document.addEventListener('DOMContentLoaded', () => {
-  // 1. Kiểm tra session đăng nhập
-  const currentUser = JSON.parse(localStorage.getItem('user_info') || '{}');
-  if (!currentUser.ten_ndung) {
-    console.warn('Chưa đăng nhập! Chuyển hướng về trang login...');
-    // window.location.href = 'login.html'; 
-    return;
-  }
-
-  // 2. Kích hoạt tải danh sách nhân viên
-  if (typeof loadNhanVienList === 'function') {
-    loadNhanVienList();
-  } else {
-    console.error('Hàm loadNhanVienList chưa được định nghĩa!');
-  }
-});
