@@ -608,11 +608,9 @@ if (slider) {
   let isDown = false;
   let startX;
   let scrollLeft;
-  let isSwapping = false;
 
   slider.addEventListener('mousedown', (e) => {
     isDown = true;
-    isSwapping = false;
     startX = e.pageX - slider.offsetLeft;
     scrollLeft = slider.scrollLeft;
     slider.style.cursor = 'grabbing';
@@ -632,31 +630,9 @@ if (slider) {
   slider.addEventListener('mousemove', (e) => {
     if (!isDown) return;
     e.preventDefault();
-
     const x = e.pageX - slider.offsetLeft;
-    const walk = (x - startX) * 1.2; // Hệ số 1.2 cho độ nhạy mượt mà, không bị trôi quá nhanh
+    const walk = (x - startX) * 1.5;
     slider.scrollLeft = scrollLeft - walk;
-
-    const maxScroll = slider.scrollWidth - slider.clientWidth;
-
-    // Xử lý chuyển vùng mượt mà không bị giật con trỏ chuột
-    if (!isSwapping) {
-      if (slider.scrollLeft <= 2) {
-        isSwapping = true;
-        slider.scrollLeft = maxScroll - 5;
-        // Bù lại tọa độ gốc để chuột không bị trôi
-        startX = e.pageX - slider.offsetLeft;
-        scrollLeft = slider.scrollLeft;
-        setTimeout(() => { isSwapping = false; }, 50);
-      } else if (slider.scrollLeft >= maxScroll - 2) {
-        isSwapping = true;
-        slider.scrollLeft = 5;
-        // Bù lại tọa độ gốc để chuột không bị trôi
-        startX = e.pageX - slider.offsetLeft;
-        scrollLeft = slider.scrollLeft;
-        setTimeout(() => { isSwapping = false; }, 50);
-      }
-    }
   });
 
   slider.style.cursor = 'grab';
