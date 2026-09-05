@@ -364,31 +364,19 @@ function renderCustomers(items) {
 
 function enableLoopScroll(container) {
   let isScrolling = false;
-  let scrollTimeout = null;
+  let touchStartX = 0;
+  let touchEndX = 0;
 
-  container.addEventListener('scroll', () => {
-    if (isScrolling) return;
+  // Lấy vị trí khi bắt đầu chạm tay vào màn hình
+  container.addEventListener('touchstart', (e) => {
+    touchStartX = e.touches[0].clientX;
+  }, { passive: true });
 
-    clearTimeout(scrollTimeout);
-    scrollTimeout = setTimeout(() => {
-      const maxScroll = container.scrollWidth - container.clientWidth;
-      const currentScroll = container.scrollLeft;
-
-      // Vuốt lùi từ thẻ đầu tiên -> nhảy về thẻ cuối
-      if (currentScroll <= 0) {
-        isScrolling = true;
-        container.scrollTo({ left: maxScroll, behavior: 'smooth' });
-        setTimeout(() => { isScrolling = false; }, 300);
-      } 
-      // Vuốt tiến từ thẻ cuối cùng -> nhảy về thẻ đầu
-      else if (Math.ceil(currentScroll) >= maxScroll) {
-        isScrolling = true;
-        container.scrollTo({ left: 0, behavior: 'smooth' });
-        setTimeout(() => { isScrolling = false; }, 300);
-      }
-    }, 150);
-  });
-}
+  // Lấy vị trí khi thả tay khỏi màn hình
+  container.addEventListener('touchend', (e) => {
+    touchEndX = e.changedTouches[0].clientX;
+    handleSwipeLoop();
+  }, { passive: true });
 
 async function getLocationAndSave(index, safeKey) {
   const c = allCustomers[index];
