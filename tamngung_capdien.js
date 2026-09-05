@@ -612,12 +612,17 @@ async function cancelCustomer(index, safeKey) {
     c.HINH_ANH = '';
     c.PICTUREBOX = '';
     c.TINH_TRANG = 0;
+    c.LAT = ''; 
+    c.LNG = ''; 
     delete c._newPhotoFile;
     delete c._newPhotoDataUrl;
 
     if (checkbox) checkbox.checked = false;
     if (pictureBox) pictureBox.innerHTML = 'Chưa có hình ảnh';
-
+    const cell = document.getElementById(`loc-cell-${safeKey}`);
+    if (cell) {
+      cell.innerHTML = `<a id="btn-location-${safeKey}" onclick="getLocationAndSave(${index}, '${safeKey}')" style="color:red;font-weight:bold;text-decoration:none;">📍 Lấy tọa độ mới</a>`;
+             }
     setStatus(`Đã hủy thành công khách hàng ${maKhang}.`);
   } catch (err) {
     setStatus('Lỗi khi hủy: ' + (err.message || String(err)), true);
