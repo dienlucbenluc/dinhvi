@@ -1,3 +1,15 @@
+// Ép chạy ngay lập tức để test kết nối
+(function initApp() {
+  console.log('=== APP ĐANG KHỞI CHẠY ===');
+  
+  // Gọi hàm loadNhanVienList sau khi DOM sẵn sàng
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', loadNhanVienList);
+  } else {
+    loadNhanVienList();
+  }
+})();
+
 const API_URL = 'https://script.google.com/macros/s/AKfycbypH-vE7ctJxQObLPLvRrG71zbVx6_6E40foxkb4SS7e38kCmnyuj-09kuUGyFxcGhW/exec';
 const CLOUDINARY_CLOUD_NAME = 'jokzcdxt';
 const CLOUDINARY_UPLOAD_PRESET = 'image_catdien';
