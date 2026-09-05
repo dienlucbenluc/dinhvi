@@ -325,7 +325,10 @@ function renderCustomers(items) {
     const lng = String(value(c, 'LNG', 'lng') || '').trim();
     const picture = value(c, 'HINH_ANH', 'hinh_anh', 'PICTUREBOX');
     const hasLocation = lat !== '' && lng !== '' && !isNaN(lat) && !isNaN(lng);
-
+let optimizedPicture = picture;
+    if (picture && picture.includes('cloudinary.com')) {
+      optimizedPicture = picture.replace('/upload/', '/upload/q_auto,f_auto,w_800/');
+    }
    let dateOnly = "---";
     if (ngayCat) {
         const strTime = String(ngayCat).trim();
@@ -373,9 +376,9 @@ function renderCustomers(items) {
         </div>
          <div style="max-width: 400px; font-size:13px; padding:10px 12px;margin-top:-10px;white-space: nowrap;overflow: hidden; text-overflow: ellipsis;">Trạm: ${escapeHtml(tenTram)}</div>
         <div class="photo-actions-container">
-          <div class="picture-box" id="picture-${safeKey}">
-            ${picture ? `<img src="${escapeHtml(picture)}" alt="Hình ảnh ${escapeHtml(maKhang)}">` : 'Chưa có hình ảnh'}
-          </div>
+         <div class="picture-box" id="picture-${safeKey}">
+         ${optimizedPicture ? `<img src="${escapeHtml(optimizedPicture)}" alt="Hình ảnh ${escapeHtml(maKhang)}">` : 'Chưa có hình ảnh'}
+         </div>
           <div class="actions-right">
             <label class="check-wrap">
               <input type="checkbox" id="check-${safeKey}" ${Number(value(c, 'TINH_TRANG', 'tinh_trang')) === 1 ? 'checked' : ''}>
@@ -443,19 +446,27 @@ function takePhoto(index, safeKey) {
   if (input) input.click();
 }
 
-function photoSelected(index, safeKey, input) {
+async function photoSelected(index, safeKey, input) {
   const file = input.files?.[0];
   if (!file || !file.type.startsWith('image/')) return;
 
-  const reader = new FileReader();
-  reader.onload = e => {
+  try {
+    setStatus('Đang nén tối ưu dung lượng ảnh...');
+    
+    // Nén ảnh: Chiều rộng tối đa 1000px, chất lượng 70%
+    const compressedDataUrl = await compressImage(file, 1000, 0.7);
+
     const box = document.getElementById('picture-' + safeKey);
-    if (box) box.innerHTML = `<img src="${e.target.result}" alt="Ảnh mới">`;
+    if (box) box.innerHTML = `<img src="${compressedDataUrl}" alt="Ảnh mới">`;
+    
     allCustomers[index]._newPhotoFile = file;
-    allCustomers[index]._newPhotoDataUrl = e.target.result;
-    setStatus('Đã chọn ảnh. Nhấn Lưu để cập nhật.');
-  };
-  reader.readAsDataURL(file);
+    allCustomers[index]._newPhotoDataUrl = compressedDataUrl; // Lưu bản đã nén
+    
+    setStatus('Đã chọn và tối ưu ảnh. Nhấn Lưu để cập nhật.');
+  } catch (err) {
+    console.error('Lỗi nén ảnh:', err);
+    setStatus('Lỗi xử lý ảnh, vui lòng thử lại.', true);
+  }
 }
 
 function dataUrlToBlob(dataUrl) {
@@ -666,4 +677,39 @@ if (slider) {
   });
 
   slider.style.cursor = 'grab';
+}
+
+// Hàm nén ảnh giảm dung lượng
+function compressImage(file, maxWidth = 1000, quality = 0.7) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = event => {
+      const img = new Image();
+      img.src = event.target.result;
+      img.onload = () => {
+        let width = img.width;
+        let height = img.height;
+
+        // Tính toán lại tỷ lệ kích thước nếu lớn hơn maxWidth
+        if (width > maxWidth) {
+          height = Math.round((height * maxWidth) / width);
+          width = maxWidth;
+        }
+
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, width, height);
+
+        // Xuất ra Base64 với định dạng JPEG và độ nén quality (0.7 ~ 70%)
+        const compressedDataUrl = canvas.toDataURL('image/jpeg', quality);
+        resolve(compressedDataUrl);
+      };
+      img.onerror = error => reject(error);
+    };
+    reader.onerror = error => reject(error);
+  });
 }
