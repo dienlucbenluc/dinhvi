@@ -11,24 +11,24 @@
     .topbar { position:sticky; top:0; z-index:20; background:#fff; border-bottom:1px solid #ddd; padding:10px; }
 
     .title {
-  font-size:19px;
-  font-weight:700;
-  margin-bottom:8px;
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  gap:8px;
-}
+      font-size:19px;
+      font-weight:700;
+      margin-bottom:8px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:8px;
+    }
 
-.btn-home {
-  color:#000;
-  height:36px;
-  padding:0 10px;
-  font-size:13px;
-  border-radius:8px;
-  white-space:nowrap;
-  flex-shrink:0;
-}
+    .btn-home {
+      color:#000;
+      height:36px;
+      padding:0 10px;
+      font-size:13px;
+      border-radius:8px;
+      white-space:nowrap;
+      flex-shrink:0;
+    }
     .toolbar { display:flex; flex-direction:column; gap:8px; }
     .filter-row { display:flex; gap:6px; align-items:center; }
     .input-date { flex:1; height:42px; border:1px solid #ccc; border-radius:9px; padding:0 8px; font-size:14px; outline:none; }
@@ -40,8 +40,35 @@
     .btn-save { background:#2e7d32; color:#fff; width:100%; }
     button:disabled { opacity:.55; cursor:not-allowed; }
     #status { margin-top:7px; font-size:13px; color:#555; min-height:18px; }
-    .list { padding:10px; display:grid; gap:10px; }
-    .customer-box { background:#fff; border:1px solid #dfe3e6; border-radius:12px; box-shadow:0 1px 4px rgba(0,0,0,.08); overflow:hidden; }
+
+    /* --- CẤU TRÚC KÉO NGANG (CAROUSEL) --- */
+    .list {
+      padding: 10px;
+      display: flex !important;
+      overflow-x: auto;
+      scroll-snap-type: x mandatory;
+      scroll-behavior: smooth;
+      gap: 12px;
+      -webkit-overflow-scrolling: touch;
+      /* Ẩn thanh cuộn trình duyệt */
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+    .list::-webkit-scrollbar {
+      display: none;
+    }
+
+    .customer-box {
+      flex: 0 0 100%;
+      max-width: 100%;
+      scroll-snap-align: center;
+      background: #fff;
+      border: 1px solid #dfe3e6;
+      border-radius: 12px;
+      box-shadow: 0 1px 4px rgba(0,0,0,.08);
+      overflow: hidden;
+    }
+
     .box-head { padding:10px 12px; background:#fafafa; border-bottom:1px solid #eee; }
     .ma-khang { font-size:17px; font-weight:800; }
     .ten-khang { margin-top:3px; font-size:15px; font-weight:600; }
@@ -54,16 +81,16 @@
     .actions-right { display:flex; flex-direction:column; justify-content:space-between; gap:6px; }
     .check-wrap { height:42px; border:1px solid #ccc; border-radius:9px; display:flex; align-items:center; justify-content:center; gap:6px; font-size:13px; font-weight:700; background:#fff; padding:0 6px; text-align:center; cursor:pointer; }
     .check-wrap input { width:18px; height:18px; margin:0; }
-    .empty { text-align:center; padding:35px 10px; color:#777; }
+    .empty { text-align:center; padding:35px 10px; color:#777; width:100%; }
   </style>
 </head>
 <body>
   <div class="app-container">
     <div class="topbar">
-     <div class="title">
-  <span>⚡ TẠM NGỪNG CẤP ĐIỆN</span>
-  <button class="btn-home" type="button" onclick="goHome()">🏠 Trang chủ</button>
-</div>
+      <div class="title">
+        <span>⚡ TẠM NGỪNG CẤP ĐIỆN</span>
+        <button class="btn-home" type="button" onclick="goHome()">🏠 Trang chủ</button>
+      </div>
       <div class="toolbar">
         <div class="filter-row">
           <input type="date" id="filterDate" class="input-date">
@@ -81,10 +108,10 @@
     </div>
   </div>
   <script>
-  function goHome() {
-    window.top.location.href = 'home.html';
-  }
-</script>
+    function goHome() {
+      window.top.location.href = 'home.html';
+    }
+  </script>
   <script src="tamngung_capdien.js?v=20260905_level6"></script>
 </body>
 </html>
