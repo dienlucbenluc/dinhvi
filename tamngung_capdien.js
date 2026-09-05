@@ -186,10 +186,10 @@ async function loadNhanVienList() {
       const tenNdung = String(u.ten_ndung ?? '').trim();
       if (!tenNdung) return;
 
-const tenNvien = String(u.ten_nvien ?? '').trim();
-const opt = document.createElement('option');
-opt.value = tenNdung;
-opt.textContent = tenNvien || tenNdung;
+      const tenNvien = String(u.ten_nvien ?? '').trim();
+      const opt = document.createElement('option');
+      opt.value = tenNdung;
+      opt.textContent = tenNvien || tenNdung;
 
       if (normalize(tenNdung) === normalize(loggedTenNdung)) {
         opt.selected = true;
@@ -205,9 +205,6 @@ opt.textContent = tenNvien || tenNdung;
       selectUser.appendChild(opt);
     }
 
-    // Không ẩn combobox.
-    // Level 1: chọn được tất cả nhân viên.
-    // Level khác 1: chỉ được xem người đăng nhập.
     selectUser.style.display = '';
     selectUser.disabled = level !== 1;
 
@@ -246,16 +243,15 @@ async function loadCustomers() {
   const selectedUser =
     document.getElementById('userSelect')?.value || loggedTenNdung;
 
-  // Không cho client tự nâng quyền. Level phải là level đã được xác nhận từ backend.
   const parsedLevel = Number(currentUser.level);
   const level = Number.isFinite(parsedLevel) && parsedLevel > 0 ? parsedLevel : 3;
 
-const queryParams = new URLSearchParams({
-  action: 'getList',
-  date: selectedDate,
-  ten_ndung: selectedUser,
-  logged_ten_ndung: loggedTenNdung
-});
+  const queryParams = new URLSearchParams({
+    action: 'getList',
+    date: selectedDate,
+    ten_ndung: selectedUser,
+    logged_ten_ndung: loggedTenNdung
+  });
 
   try {
     let res;
@@ -312,6 +308,8 @@ function renderCustomers(items) {
     return;
   }
 
+  const total = items.length;
+
   root.innerHTML = items.map((c, index) => {
     const key = String(value(c, 'MA_KHANG', 'ma_khang') || index);
     const safeKey = encodeURIComponent(key);
@@ -333,6 +331,10 @@ function renderCustomers(items) {
 
     return `
       <div class="customer-box" id="box-${safeKey}" data-index="${index}">
+        <div class="box-stt-bar">
+          <span class="stt-badge">STT: ${index + 1} / ${total}</span>
+          <span class="swipe-hint">⬅️ Vuốt để đổi KH ➡️</span>
+        </div>
         <div class="box-head">
           <div class="ma-khang">Mã KH: ${escapeHtml(maKhang)}</div>
           <div class="ten-khang">${escapeHtml(tenKhang)}</div>
