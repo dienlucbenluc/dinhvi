@@ -106,9 +106,9 @@
                 headers: { "Content-Type": "text/plain;charset=utf-8" },
                 redirect: "follow",
                 signal: controller.signal,
-                body: JSON.stringify({ 
-                    action: "LOGIN", 
-                    ten_ndung: ten_ndung, 
+                body: JSON.stringify({
+                    action: "LOGIN",
+                    ten_ndung: ten_ndung,
                     mat_khau: mat_khau
                 })
             }).finally(() => clearTimeout(timeoutId))
@@ -119,13 +119,20 @@
                 if (res.status === "success") {
                     msgEl.style.color = "#28a745";
                     msgEl.innerText = "Thành công, đang vào trang chủ...";
-                    
+
+                    // Lưu đầy đủ thông tin phiên đăng nhập, ĐẶC BIỆT là level.
                     const sessionData = {
                         ten_ndung: res.ten_ndung,
                         ten_nvien: res.ten_nvien,
-                        mat_khau: mat_khau
+                        mat_khau: mat_khau,
+                        avatar: res.avatar || "",
+                        level: Number(res.level || 3)
                     };
-                    localStorage.setItem("cmis_user_session", JSON.stringify(sessionData));
+
+                    localStorage.setItem(
+                        "cmis_user_session",
+                        JSON.stringify(sessionData)
+                    );
 
                     if (rememberMe) {
                         localStorage.setItem("cmis_remember_user", ten_ndung);
