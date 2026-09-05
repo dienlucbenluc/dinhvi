@@ -186,10 +186,10 @@ async function loadNhanVienList() {
       const tenNdung = String(u.ten_ndung ?? '').trim();
       if (!tenNdung) return;
 
-      const tenNvien = String(u.ten_nvien ?? '').trim();
-      const opt = document.createElement('option');
-      opt.value = tenNdung;
-      opt.textContent = tenNvien || tenNdung;
+const tenNvien = String(u.ten_nvien ?? '').trim();
+const opt = document.createElement('option');
+opt.value = tenNdung;
+opt.textContent = tenNvien || tenNdung;
 
       if (normalize(tenNdung) === normalize(loggedTenNdung)) {
         opt.selected = true;
@@ -205,6 +205,9 @@ async function loadNhanVienList() {
       selectUser.appendChild(opt);
     }
 
+    // Không ẩn combobox.
+    // Level 1: chọn được tất cả nhân viên.
+    // Level khác 1: chỉ được xem người đăng nhập.
     selectUser.style.display = '';
     selectUser.disabled = level !== 1;
 
@@ -243,15 +246,16 @@ async function loadCustomers() {
   const selectedUser =
     document.getElementById('userSelect')?.value || loggedTenNdung;
 
+  // Không cho client tự nâng quyền. Level phải là level đã được xác nhận từ backend.
   const parsedLevel = Number(currentUser.level);
   const level = Number.isFinite(parsedLevel) && parsedLevel > 0 ? parsedLevel : 3;
 
-  const queryParams = new URLSearchParams({
-    action: 'getList',
-    date: selectedDate,
-    ten_ndung: selectedUser,
-    logged_ten_ndung: loggedTenNdung
-  });
+const queryParams = new URLSearchParams({
+  action: 'getList',
+  date: selectedDate,
+  ten_ndung: selectedUser,
+  logged_ten_ndung: loggedTenNdung
+});
 
   try {
     let res;
@@ -330,7 +334,7 @@ function renderCustomers(items) {
     return `
       <div class="customer-box" id="box-${safeKey}" data-index="${index}">
         <div class="box-head">
-          <div class="ma-khang">Mã KH: ${escapeHtml(maKhang)} <span style="font-size:13px;font-weight:normal;color:#666;">(${index + 1}/${items.length})</span></div>
+          <div class="ma-khang">Mã KH: ${escapeHtml(maKhang)}</div>
           <div class="ten-khang">${escapeHtml(tenKhang)}</div>
         </div>
         <div class="grid">
@@ -357,49 +361,7 @@ function renderCustomers(items) {
         </div>
       </div>`;
   }).join('');
-
-  // Kích hoạt tính năng vuốt xoay vòng cho danh sách
-  enableLoopScroll(root);
 }
-
-
-function handleSwipeLoop() {
-    if (isScrolling) return;
-
-    const maxScroll = container.scrollWidth - container.clientWidth;
-    const currentScroll = container.scrollLeft;
-    const swipeDistance = touchStartX - touchEndX; // > 0 là vuốt sang trái (tiến), < 0 là vuốt sang phải (lùi)
-
-    // 1. Đang ở Khách hàng đầu tiên và người dùng kéo/vuốt sang phải để lùi (swipeDistance < -30)
-    if (currentScroll <= 5 && swipeDistance < -30) {
-      isScrolling = true;
-      container.scrollTo({ left: maxScroll, behavior: 'smooth' });
-      setTimeout(() => { isScrolling = false; }, 350);
-    } 
-    // 2. Đang ở Khách hàng cuối cùng và người dùng kéo/vuốt sang trái để tiến (swipeDistance > 30)
-    else if (Math.ceil(currentScroll) >= maxScroll - 5 && swipeDistance > 30) {
-      isScrolling = true;
-      container.scrollTo({ left: 0, behavior: 'smooth' });
-      setTimeout(() => { isScrolling = false; }, 350);
-    }
-  }
-}
-
-function enableLoopScroll(container) {
-  let isScrolling = false;
-  let touchStartX = 0;
-  let touchEndX = 0;
-
-  // Lấy vị trí khi bắt đầu chạm tay vào màn hình
-  container.addEventListener('touchstart', (e) => {
-    touchStartX = e.touches[0].clientX;
-  }, { passive: true });
-
-  // Lấy vị trí khi thả tay khỏi màn hình
-  container.addEventListener('touchend', (e) => {
-    touchEndX = e.changedTouches[0].clientX;
-    handleSwipeLoop();
-  }, { passive: true });
 
 async function getLocationAndSave(index, safeKey) {
   const c = allCustomers[index];
