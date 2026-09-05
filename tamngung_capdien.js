@@ -59,8 +59,8 @@ function getUserField(user, ...names) {
 function setStatus(text, error = false) {
   const el = document.getElementById('status');
   if (!el) return;
-  el.textContent = text || '';
-  el.style.color = error ? '#c62828' : '#555';
+  statusDiv.textContent = text;
+  statusDiv.style.color = isError ? '#d32f2f' : '#2e7d32';
 }
 
 function escapeHtml(value) {
