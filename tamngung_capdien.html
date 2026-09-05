@@ -9,9 +9,20 @@
     body {
       margin: 0;
       font-family: Arial, sans-serif;
-      background: #f3f5f7;
+      background: #eef2f5;
       color: #222;
     }
+
+    /* Giới hạn chiều rộng tối đa như màn hình Mobile khi xem trên PC */
+    .app-container {
+      max-width: 500px;
+      margin: 0 auto;
+      background: #f3f5f7;
+      min-height: 100vh;
+      box-shadow: 0 0 15px rgba(0,0,0,0.1);
+      position: relative;
+    }
+
     .topbar {
       position: sticky;
       top: 0;
@@ -108,7 +119,7 @@
       word-break: break-word;
     }
 
-    /* Bố cục 2 cột cho Khung hình bên trái & Nút bên phải */
+    /* Bố cục 2 cột nằm ngang: Ảnh trái - Nút phải */
     .photo-actions-container {
       display: grid;
       grid-template-columns: 1fr 1fr;
@@ -117,10 +128,10 @@
       align-items: stretch;
     }
 
-    /* Khung hình cố định chiều cao */
+    /* Cố định khung chứa ảnh không bung rách giao diện */
     .picture-box {
       width: 100%;
-      height: 140px; /* Khóa cố định chiều cao */
+      height: 138px;
       border: 1px dashed #bbb;
       border-radius: 9px;
       display: flex;
@@ -134,10 +145,10 @@
     .picture-box img {
       width: 100%;
       height: 100%;
-      object-fit: cover; /* Giữ nguyên tỉ lệ khung hình mà không lo làm bung khung */
+      object-fit: cover;
     }
 
-    /* Cột bên phải chứa các nút bấm xếp 1-2-3 */
+    /* Cột bên phải sắp xếp theo chiều dọc 1-2-3 */
     .actions-right {
       display: flex;
       flex-direction: column;
@@ -158,6 +169,7 @@
       background: #fff;
       padding: 0 6px;
       text-align: center;
+      cursor: pointer;
     }
     .check-wrap input {
       width: 18px;
@@ -173,52 +185,19 @@
   </style>
 </head>
 <body>
-  <div class="topbar">
-    <div class="title">⚡ TẠM NGỪNG CẤP ĐIỆN</div>
-    <div class="toolbar">
-      <input id="searchBox" type="search" placeholder="Tìm mã KH, tên KH, số công tơ...">
-      <button class="btn-load" id="btnLoad" onclick="loadCustomers()">↻ Lấy danh sách</button>
+
+  <div class="app-container">
+    <div class="topbar">
+      <div class="title">⚡ TẠM NGỪNG CẤP ĐIỆN</div>
+      <div class="toolbar">
+        <input id="searchBox" type="search" placeholder="Tìm mã KH, tên KH, số công tơ...">
+        <button class="btn-load" id="btnLoad" onclick="loadCustomers()">↻ Lấy danh sách</button>
+      </div>
+      <div id="status"></div>
     </div>
-    <div id="status">Đã tải 3 khách hàng.</div>
-  </div>
 
-  <div id="customerList" class="list">
-    <!-- Mẫu khung khách hàng -->
-    <div class="customer-box">
-      <div class="box-head">
-        <div class="ma-khang">Mã KH: PB06060048121</div>
-        <div class="ten-khang">Công Ty Cổ Phần Ba Huân Long An (0909804186)</div>
-      </div>
-      
-      <div class="grid">
-        <div class="item"><label>MA_SOGCS</label><div>F3005D022</div></div>
-        <div class="item"><label>DANH_SO</label><div>3B02700</div></div>
-        <div class="item"><label>SO_CTO</label><div>25355650</div></div>
-        <div class="item"><label>VTRI_DNOI</label><div>TT18</div></div>
-        <div class="item" style="grid-column: span 2;"><label>TEN_TRAM</label><div>Công ty TNHH Ba Huân Long An (2x1500+2x1000)kVA</div></div>
-      </div>
-
-      <!-- Khung ảnh + Nút bấm xếp song song -->
-      <div class="photo-actions-container">
-        <!-- Khung ảnh cố định bên trái -->
-        <div class="picture-box">
-          <span>Chưa có hình ảnh</span>
-        </div>
-
-        <!-- Cột bên phải theo thứ tự 1-2-3 -->
-        <div class="actions-right">
-          <!-- 1. Checkbox Đã cắt điện -->
-          <label class="check-wrap">
-            <input type="checkbox"> Đã cắt điện
-          </label>
-          
-          <!-- 2. Nút Chụp ảnh -->
-          <button class="btn-photo">📷 Chụp ảnh</button>
-          
-          <!-- 3. Nút Lưu -->
-          <button class="btn-save">💾 Lưu</button>
-        </div>
-      </div>
+    <div id="customerList" class="list">
+      <div class="empty">Đang chuẩn bị danh sách...</div>
     </div>
   </div>
 
