@@ -6,16 +6,16 @@ const CLOUDINARY_UPLOAD_PRESET = 'image_catdien';
 let allCustomers = [];
 let busy = false;
 
-document.addEventListener('DOMContentLoaded', () => {
-  // Tự động gán ngày hiện tại cho ô Date
+document.addEventListener('DOMContentLoaded', async () => {
+  // Gán ngày hiện tại cho ô Date
   const dateInput = document.getElementById('filterDate');
   if (dateInput) {
     const today = new Date().toISOString().split('T')[0];
     dateInput.value = today;
   }
 
-  // Khởi tạo thông tin người dùng từ localStorage khi đăng nhập
-  initUserInfo();
+  // Tải danh sách nhân viên vào Combobox từ Google Sheet
+  await loadNhanVienList();
 
   const searchBox = document.getElementById('searchBox');
   if (searchBox) {
@@ -25,39 +25,55 @@ document.addEventListener('DOMContentLoaded', () => {
   loadCustomers();
 });
 
-function initUserInfo() {
-  // Lấy dữ liệu đăng nhập từ localStorage
+// Hàm gọi API lấy danh sách nhân viên từ Sheet 'nhan_vien'
+async function loadNhanVienList() {
   const currentUser = JSON.parse(localStorage.getItem('user_info') || '{}');
-  const tenNdung = currentUser.ten_ndung || '';
-  const level = Number(currentUser.level || 3);
+  const loggedTenNdung = currentUser.ten_ndung || '';
+  const userLevel = Number(currentUser.level || 3);
 
   const selectUser = document.getElementById('userSelect');
   if (!selectUser) return;
 
-  // Lấy danh sách nhân viên từ danh sách đã lưu hoặc lấy mẫu từ hệ thống
-  const userList = JSON.parse(localStorage.getItem('users_list') || '[]');
-  
-  selectUser.innerHTML = '';
-  
-  if (userList.length > 0) {
-    userList.forEach(u => {
+  try {
+    let res;
+    try {
+      res = await fetchJSONP(`${API_URL}?action=getNhanVien`);
+    } catch (e) {
+      const response = await fetch(`${API_URL}?action=getNhanVien`);
+      res = await response.json();
+    }
+
+    selectUser.innerHTML = '';
+
+    if (res && res.success && Array.isArray(res.data) && res.data.length > 0) {
+      res.data.forEach(u => {
+        const opt = document.createElement('option');
+        opt.value = u.ten_ndung;
+        opt.textContent = u.ten_nvien ? `${u.ten_nvien} (${u.ten_ndung})` : u.ten_ndung;
+        
+        // Chọn mặc định nhân viên đang đăng nhập
+        if (u.ten_ndung.toLowerCase() === loggedTenNdung.toLowerCase()) {
+          opt.selected = true;
+        }
+        selectUser.appendChild(opt);
+      });
+    } else {
+      // Dùng fallback nếu không tải được danh sách
       const opt = document.createElement('option');
-      opt.value = u.ten_ndung;
-      opt.textContent = u.ten_nvien || u.ten_ndung;
-      if (u.ten_ndung === tenNdung) opt.selected = true;
+      opt.value = loggedTenNdung;
+      opt.textContent = currentUser.ten_nvien || loggedTenNdung;
+      opt.selected = true;
       selectUser.appendChild(opt);
-    });
-  } else if (tenNdung) {
-    const opt = document.createElement('option');
-    opt.value = tenNdung;
-    opt.textContent = currentUser.ten_nvien || tenNdung;
-    opt.selected = true;
-    selectUser.appendChild(opt);
+    }
+  } catch (err) {
+    console.warn('Lỗi tải danh sách nhân viên:', err);
   }
 
-  // Khóa Combobox nếu level = 3 (chỉ xem của mình), cho phép chọn nếu level = 1
-  if (level !== 1) {
+  // Phân quyền: Level = 1 được đổi nhân viên; Level = 3 bị khóa Combobox
+  if (userLevel !== 1) {
     selectUser.disabled = true;
+  } else {
+    selectUser.disabled = false;
   }
 }
 
