@@ -28,7 +28,6 @@ async function initApp() {
   loadCustomers();
 }
 
-// Đọc đúng phiên đăng nhập mà login.html đang lưu.
 function getCurrentUser() {
   const keys = ['cmis_user_session', 'user_info'];
 
@@ -37,7 +36,6 @@ function getCurrentUser() {
       try {
         const raw = storage.getItem(key);
         if (!raw) continue;
-
         const obj = JSON.parse(raw);
         if (obj && typeof obj === 'object') return obj;
       } catch (e) {
@@ -45,7 +43,6 @@ function getCurrentUser() {
       }
     }
   }
-
   return {};
 }
 
@@ -122,8 +119,6 @@ function fetchJSONP(url) {
   });
 }
 
-// Lấy danh sách nhân viên.
-// Backend tự xác định level thật từ sheet nhan_vien.
 async function loadNhanVienList() {
   if (nhanVienLoaded) return;
 
@@ -131,10 +126,8 @@ async function loadNhanVienList() {
   if (!selectUser) return;
 
   const currentUser = getCurrentUser();
-
   const loggedTenNdung = String(getUserField(
-    currentUser,
-    'ten_ndung', 'TEN_NDUNG', 'username', 'userName'
+    currentUser, 'ten_ndung', 'TEN_NDUNG', 'username', 'userName'
   ) || '').trim();
 
   if (!loggedTenNdung) {
@@ -145,14 +138,11 @@ async function loadNhanVienList() {
       'Không đọc được cmis_user_session. Bác hãy đăng nhập lại từ login.html.',
       true
     );
-    console.error(
-      'Không có cmis_user_session. localStorage keys:',
-      Object.keys(localStorage)
-    );
     return;
   }
 
   selectUser.disabled = true;
+  selectUser.style.display = '';
   selectUser.innerHTML = '<option value="">⏳ Đang tải nhân viên...</option>';
 
   try {
@@ -174,9 +164,6 @@ async function loadNhanVienList() {
       throw new Error(res?.message || 'Dữ liệu nhân viên không hợp lệ.');
     }
 
-    // Ưu tiên level backend trả về.
-    // Nếu bản Web App đang chạy chưa trả trường "level", lấy level
-    // trực tiếp từ dòng ten_ndung của người đăng nhập trong res.data.
     let actualLevel = Number(res.level);
 
     if (!Number.isFinite(actualLevel) || actualLevel <= 0) {
@@ -184,66 +171,56 @@ async function loadNhanVienList() {
         normalize(String(u.ten_ndung || '')) === normalize(loggedTenNdung)
       );
       const rowLevel = Number(loggedRow?.level);
-      if (Number.isFinite(rowLevel) && rowLevel > 0) {
-        actualLevel = rowLevel;
-      }
+      if (Number.isFinite(rowLevel) && rowLevel > 0) actualLevel = rowLevel;
     }
 
-    // Chỉ mặc định Level 3 khi hoàn toàn không xác định được.
-    const level = Number.isFinite(actualLevel) && actualLevel > 0
-      ? actualLevel
-      : 3;
+    const level = Number.isFinite(actualLevel) && actualLevel > 0 ? actualLevel : 3;
 
-    // Lưu level thật vào session để loadCustomers dùng cùng một quyền.
     currentUser.ten_ndung = loggedTenNdung;
     currentUser.level = level;
     localStorage.setItem('cmis_user_session', JSON.stringify(currentUser));
 
     selectUser.innerHTML = '';
 
-    if (res.data.length === 0) {
+    res.data.forEach(u => {
+      const tenNdung = String(u.ten_ndung ?? '').trim();
+      if (!tenNdung) return;
+
+      const tenNvien = String(u.ten_nvien ?? '').trim();
+      const opt = document.createElement('option');
+      opt.value = tenNdung;
+      opt.textContent = tenNvien ? `${tenNvien} (${tenNdung})` : tenNdung;
+
+      if (normalize(tenNdung) === normalize(loggedTenNdung)) {
+        opt.selected = true;
+      }
+      selectUser.appendChild(opt);
+    });
+
+    if (!selectUser.options.length) {
       const opt = document.createElement('option');
       opt.value = loggedTenNdung;
-      opt.textContent = getUserField(currentUser, 'ten_nvien', 'TEN_NVIEN') ||
-                        loggedTenNdung;
+      opt.textContent = getUserField(currentUser, 'ten_nvien', 'TEN_NVIEN') || loggedTenNdung;
       opt.selected = true;
       selectUser.appendChild(opt);
-    } else {
-      res.data.forEach(u => {
-        const tenNdung = String(u.ten_ndung ?? '').trim();
-        if (!tenNdung) return;
-
-        const tenNvien = String(u.ten_nvien ?? '').trim();
-        const opt = document.createElement('option');
-        opt.value = tenNdung;
-        opt.textContent = tenNvien
-          ? `${tenNvien} (${tenNdung})`
-          : tenNdung;
-
-        if (normalize(tenNdung) === normalize(loggedTenNdung)) {
-          opt.selected = true;
-        }
-
-        selectUser.appendChild(opt);
-      });
     }
 
-    // Level 1: hiện và cho phép chọn toàn bộ nhân viên.
-    // Level khác 1: vẫn hiện combobox nhưng khóa, chỉ có người đăng nhập.
+    // Không ẩn combobox.
+    // Level 1: chọn được tất cả nhân viên.
+    // Level khác 1: chỉ được xem người đăng nhập.
     selectUser.style.display = '';
     selectUser.disabled = level !== 1;
-    selectUser.title = level === 1
-      ? 'Level 1: được chọn tất cả nhân viên'
-      : 'Chỉ được xem nhân viên đang đăng nhập';
-    nhanVienLoaded = true;
 
     if (level === 1) {
       setStatus(`Đã tải ${res.data.length} nhân viên. Quyền Level 1.`);
     } else {
       setStatus(`Nhân viên: ${loggedTenNdung}. Quyền Level ${level}.`);
     }
+
+    nhanVienLoaded = true;
   } catch (err) {
     console.error('Lỗi tải danh sách nhân viên:', err);
+    selectUser.style.display = '';
     selectUser.innerHTML =
       `<option value="${escapeHtml(loggedTenNdung)}">${escapeHtml(
         getUserField(currentUser, 'ten_nvien', 'TEN_NVIEN') || loggedTenNdung
@@ -253,69 +230,6 @@ async function loadNhanVienList() {
   }
 }
 
-function setStatus(text, error = false) {
-  const el = document.getElementById('status');
-  if (!el) return;
-  el.textContent = text || '';
-  el.style.color = error ? '#c62828' : '#555';
-}
-
-function escapeHtml(value) {
-  return String(value ?? '')
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#039;');
-}
-
-function normalize(v) {
-  return String(v ?? '')
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .toLowerCase()
-    .trim();
-}
-
-function value(obj, ...names) {
-  for (const name of names) {
-    if (obj && obj[name] !== undefined && obj[name] !== null) return obj[name];
-  }
-  return '';
-}
-
-function fetchJSONP(url) {
-  return new Promise((resolve, reject) => {
-    const callbackName = 'jsonp_cb_' + Math.round(100000 * Math.random());
-    const script = document.createElement('script');
-    
-    const timeoutId = setTimeout(() => {
-      cleanup();
-      reject(new Error('KẾT NỐI QUÁ THỜI GIAN.'));
-    }, 10000);
-
-    function cleanup() {
-      clearTimeout(timeoutId);
-      if (window[callbackName]) delete window[callbackName];
-      if (script.parentNode) script.parentNode.removeChild(script);
-    }
-
-    window[callbackName] = function(data) {
-      cleanup();
-      resolve(data);
-    };
-
-    script.src = url + (url.indexOf('?') >= 0 ? '&' : '?') + 'callback=' + callbackName;
-    script.onerror = function() {
-      cleanup();
-      reject(new Error('Không thể kết nối đến Web App.'));
-    };
-
-    document.body.appendChild(script);
-  });
-}
-
-// Hàm tải danh sách khách hàng dựa vào date, combo value ten_ndung và level
 async function loadCustomers() {
   if (busy) return;
 
@@ -331,10 +245,10 @@ async function loadCustomers() {
   const selectedDate = document.getElementById('filterDate')?.value || '';
   const selectedUser =
     document.getElementById('userSelect')?.value || loggedTenNdung;
+
+  // Không cho client tự nâng quyền. Level phải là level đã được xác nhận từ backend.
   const parsedLevel = Number(currentUser.level);
-  const level = Number.isFinite(parsedLevel) && parsedLevel > 0
-    ? parsedLevel
-    : 3;
+  const level = Number.isFinite(parsedLevel) && parsedLevel > 0 ? parsedLevel : 3;
 
   const queryParams = new URLSearchParams({
     action: 'getList',
@@ -354,9 +268,6 @@ async function loadCustomers() {
       res = await response.json();
     }
 
-    busy = false;
-    if (btn) btn.disabled = false;
-
     if (!res || !res.success || !Array.isArray(res.data)) {
       throw new Error(res?.message || 'Dữ liệu trả về không hợp lệ.');
     }
@@ -365,9 +276,10 @@ async function loadCustomers() {
     renderFiltered();
     setStatus(`Đã tải ${allCustomers.length} khách hàng.`);
   } catch (err) {
+    setStatus('Lỗi lấy danh sách: ' + err.message, true);
+  } finally {
     busy = false;
     if (btn) btn.disabled = false;
-    setStatus('Lỗi lấy danh sách: ' + err.message, true);
   }
 }
 
@@ -403,7 +315,6 @@ function renderCustomers(items) {
   root.innerHTML = items.map((c, index) => {
     const key = String(value(c, 'MA_KHANG', 'ma_khang') || index);
     const safeKey = encodeURIComponent(key);
-
     const maKhang = value(c, 'MA_KHANG', 'ma_khang');
     const tenKhang = value(c, 'TEN_KHANG', 'ten_khang');
     const maSogcs = value(c, 'MA_SOGCS', 'ma_sogcs');
@@ -414,26 +325,11 @@ function renderCustomers(items) {
     const lat = String(value(c, 'LAT', 'lat') || '').trim();
     const lng = String(value(c, 'LNG', 'lng') || '').trim();
     const picture = value(c, 'HINH_ANH', 'hinh_anh', 'PICTUREBOX');
-
     const hasLocation = lat !== '' && lng !== '' && !isNaN(lat) && !isNaN(lng);
 
-    let locationHtml = '';
-    if (hasLocation) {
-      const mapUrl = `https://www.google.com/maps?q=${lat},${lng}`;
-      locationHtml = `
-        <a href="${mapUrl}" target="_blank" style="color: #1976d2; font-weight: bold; text-decoration: none;">
-          📍 Xem Google Maps
-        </a>
-      `;
-    } else {
-      locationHtml = `
-        <button id="btn-location-${safeKey}" 
-                onclick="getLocationAndSave(${index}, '${safeKey}')" 
-                style="background: #ef6c00; color: #fff; padding: 4px 8px; border-radius: 6px; font-size: 12px; border: 0; cursor: pointer;">
-          📍 Lấy tọa độ mới
-        </button>
-      `;
-    }
+    let locationHtml = hasLocation
+      ? `<a href="https://www.google.com/maps?q=${lat},${lng}" target="_blank" style="color:#1976d2;font-weight:bold;text-decoration:none;">📍 Xem Google Maps</a>`
+      : `<button id="btn-location-${safeKey}" onclick="getLocationAndSave(${index}, '${safeKey}')" style="background:#ef6c00;color:#fff;padding:4px 8px;border-radius:6px;font-size:12px;border:0;cursor:pointer;">📍 Lấy tọa độ mới</button>`;
 
     return `
       <div class="customer-box" id="box-${safeKey}" data-index="${index}">
@@ -441,7 +337,6 @@ function renderCustomers(items) {
           <div class="ma-khang">Mã KH: ${escapeHtml(maKhang)}</div>
           <div class="ten-khang">${escapeHtml(tenKhang)}</div>
         </div>
-
         <div class="grid">
           <div class="item"><label>MA_SOGCS</label><div>${escapeHtml(maSogcs)}</div></div>
           <div class="item"><label>DANH_SO</label><div>${escapeHtml(danhSo)}</div></div>
@@ -450,31 +345,21 @@ function renderCustomers(items) {
           <div class="item"><label>TEN_TRAM</label><div>${escapeHtml(tenTram)}</div></div>
           <div class="item"><label>TỌA ĐỘ</label><div id="loc-cell-${safeKey}">${locationHtml}</div></div>
         </div>
-
         <div class="photo-actions-container">
           <div class="picture-box" id="picture-${safeKey}">
             ${picture ? `<img src="${escapeHtml(picture)}" alt="Hình ảnh ${escapeHtml(maKhang)}">` : 'Chưa có hình ảnh'}
           </div>
-
           <div class="actions-right">
             <label class="check-wrap">
               <input type="checkbox" id="check-${safeKey}" ${Number(value(c, 'TINH_TRANG', 'tinh_trang')) === 1 ? 'checked' : ''}>
               Đã cắt điện
             </label>
-
             <button class="btn-photo" onclick="takePhoto(${index}, '${safeKey}')">📷 Chụp ảnh</button>
             <button class="btn-save" id="save-${safeKey}" onclick="saveCustomer(${index}, '${safeKey}')">💾 Lưu</button>
-
-            <input type="file"
-                   id="file-${safeKey}"
-                   accept="image/*"
-                   capture="environment"
-                   style="display:none"
-                   onchange="photoSelected(${index}, '${safeKey}', this)">
+            <input type="file" id="file-${safeKey}" accept="image/*" capture="environment" style="display:none" onchange="photoSelected(${index}, '${safeKey}', this)">
           </div>
         </div>
-      </div>
-    `;
+      </div>`;
   }).join('');
 }
 
@@ -497,47 +382,28 @@ async function getLocationAndSave(index, safeKey) {
   setStatus(`Đang định vị GPS cho ${maKhang}...`);
 
   navigator.geolocation.getCurrentPosition(
-    async (position) => {
-      const lat = position.coords.latitude;
-      const lng = position.coords.longitude;
-
+    async position => {
       try {
-        const payload = {
-          action: 'save',
-          payload: { MA_KHANG: maKhang, LAT: lat, LNG: lng }
-        };
-
+        const lat = position.coords.latitude;
+        const lng = position.coords.longitude;
         const response = await fetch(API_URL, {
           method: 'POST',
-          body: JSON.stringify(payload)
+          body: JSON.stringify({ action: 'save', payload: { MA_KHANG: maKhang, LAT: lat, LNG: lng } })
         });
-
         const result = await response.json();
         if (!result || result.success !== true) throw new Error(result?.message || 'Không thể lưu tọa độ.');
 
-        c.LAT = lat;
-        c.LNG = lng;
-
+        c.LAT = lat; c.LNG = lng;
         const cell = document.getElementById(`loc-cell-${safeKey}`);
-        if (cell) {
-          const mapUrl = `https://www.google.com/maps?q=${lat},${lng}`;
-          cell.innerHTML = `<a href="${mapUrl}" target="_blank" style="color: #1976d2; font-weight: bold; text-decoration: none;">📍 Xem Google Maps</a>`;
-        }
-
+        if (cell) cell.innerHTML = `<a href="https://www.google.com/maps?q=${lat},${lng}" target="_blank" style="color:#1976d2;font-weight:bold;text-decoration:none;">📍 Xem Google Maps</a>`;
         setStatus(`Đã lưu tọa độ cho ${maKhang}!`);
       } catch (err) {
-        if (btnLoc) {
-          btnLoc.disabled = false;
-          btnLoc.textContent = '📍 Lấy tọa độ mới';
-        }
+        if (btnLoc) { btnLoc.disabled = false; btnLoc.textContent = '📍 Lấy tọa độ mới'; }
         setStatus('Lỗi lưu tọa độ: ' + err.message, true);
       }
     },
-    (err) => {
-      if (btnLoc) {
-        btnLoc.disabled = false;
-        btnLoc.textContent = '📍 Lấy tọa độ mới';
-      }
+    err => {
+      if (btnLoc) { btnLoc.disabled = false; btnLoc.textContent = '📍 Lấy tọa độ mới'; }
       setStatus('Không thể lấy vị trí GPS: ' + err.message, true);
     },
     { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
@@ -557,7 +423,6 @@ function photoSelected(index, safeKey, input) {
   reader.onload = e => {
     const box = document.getElementById('picture-' + safeKey);
     if (box) box.innerHTML = `<img src="${e.target.result}" alt="Ảnh mới">`;
-
     allCustomers[index]._newPhotoFile = file;
     allCustomers[index]._newPhotoDataUrl = e.target.result;
     setStatus('Đã chọn ảnh. Nhấn Lưu để cập nhật.');
@@ -587,7 +452,6 @@ async function uploadToCloudinary(dataUrl, maKhang) {
     `https://api.cloudinary.com/v1_1/${encodeURIComponent(CLOUDINARY_CLOUD_NAME)}/image/upload`,
     { method: 'POST', body: form }
   );
-
   if (!response.ok) throw new Error('Cloudinary upload lỗi.');
   const result = await response.json();
   return result.secure_url || result.url || '';
@@ -602,10 +466,7 @@ async function saveCustomer(index, safeKey) {
   if (btn && btn.disabled) return;
 
   const oldText = btn ? btn.textContent : '';
-  if (btn) {
-    btn.disabled = true;
-    btn.textContent = '⏳ Đang lưu...';
-  }
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Đang lưu...'; }
 
   try {
     const maKhang = value(c, 'MA_KHANG', 'ma_khang');
@@ -617,40 +478,29 @@ async function saveCustomer(index, safeKey) {
     }
 
     const tinhTrang = checkbox && checkbox.checked ? 1 : 0;
-    const payload = {
-      action: 'save',
-      payload: {
-        MA_KHANG: maKhang,
-        HINH_ANH: imageUrl,
-        PICTUREBOX: imageUrl,
-        TINH_TRANG: tinhTrang
-      }
-    };
-
     const response = await fetch(API_URL, {
       method: 'POST',
-      body: JSON.stringify(payload)
+      body: JSON.stringify({
+        action: 'save',
+        payload: {
+          MA_KHANG: maKhang,
+          HINH_ANH: imageUrl,
+          PICTUREBOX: imageUrl,
+          TINH_TRANG: tinhTrang
+        }
+      })
     });
 
     const result = await response.json();
     if (!result || result.success !== true) throw new Error(result?.message || 'Lưu thất bại.');
 
-    if (btn) {
-      btn.disabled = false;
-      btn.textContent = oldText;
-    }
-
     c.HINH_ANH = imageUrl;
     c.TINH_TRANG = tinhTrang;
     delete c._newPhotoDataUrl;
-
     setStatus(`Đã lưu ${maKhang} thành công.`);
   } catch (err) {
-    if (btn) {
-      btn.disabled = false;
-      btn.textContent = oldText;
-    }
     setStatus(err.message || String(err), true);
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = oldText; }
   }
 }
-
