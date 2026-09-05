@@ -1,8 +1,3 @@
-/*
- * tamngung_capdien.js
- * Frontend độc lập gọi API Web App Apps Script
- */
-
 const API_URL = 'https://script.google.com/macros/s/AKfycbypH-vE7ctJxQObLPLvRrG71zbVx6_6E40foxkb4SS7e38kCmnyuj-09kuUGyFxcGhW/exec';
 const CLOUDINARY_CLOUD_NAME = 'jokzcdxt';
 const CLOUDINARY_UPLOAD_PRESET = 'image_catdien';
@@ -11,12 +6,59 @@ let allCustomers = [];
 let busy = false;
 
 document.addEventListener('DOMContentLoaded', () => {
+  // Tự động gán ngày hiện tại cho ô Date
+  const dateInput = document.getElementById('filterDate');
+  if (dateInput) {
+    const today = new Date().toISOString().split('T')[0];
+    dateInput.value = today;
+  }
+
+  // Khởi tạo thông tin người dùng từ localStorage khi đăng nhập
+  initUserInfo();
+
   const searchBox = document.getElementById('searchBox');
   if (searchBox) {
     searchBox.addEventListener('input', renderFiltered);
   }
+
   loadCustomers();
 });
+
+function initUserInfo() {
+  // Lấy dữ liệu đăng nhập từ localStorage
+  const currentUser = JSON.parse(localStorage.getItem('user_info') || '{}');
+  const tenNdung = currentUser.ten_ndung || '';
+  const level = Number(currentUser.level || 3);
+
+  const selectUser = document.getElementById('userSelect');
+  if (!selectUser) return;
+
+  // Lấy danh sách nhân viên từ danh sách đã lưu hoặc lấy mẫu từ hệ thống
+  const userList = JSON.parse(localStorage.getItem('users_list') || '[]');
+  
+  selectUser.innerHTML = '';
+  
+  if (userList.length > 0) {
+    userList.forEach(u => {
+      const opt = document.createElement('option');
+      opt.value = u.ten_ndung;
+      opt.textContent = u.ten_nvien || u.ten_ndung;
+      if (u.ten_ndung === tenNdung) opt.selected = true;
+      selectUser.appendChild(opt);
+    });
+  } else if (tenNdung) {
+    const opt = document.createElement('option');
+    opt.value = tenNdung;
+    opt.textContent = currentUser.ten_nvien || tenNdung;
+    opt.selected = true;
+    selectUser.appendChild(opt);
+  }
+
+  // Khóa Combobox nếu level = 3 (chỉ xem của mình), cho phép chọn nếu level = 1
+  if (level !== 1) {
+    selectUser.disabled = true;
+  }
+}
 
 function setStatus(text, error = false) {
   const el = document.getElementById('status');
@@ -56,7 +98,7 @@ function fetchJSONP(url) {
     
     const timeoutId = setTimeout(() => {
       cleanup();
-      reject(new Error('KẾT NỐI QUÁ THỜI GIAN (Kiểm tra mạng hoặc Safari/Chrome chặn).'));
+      reject(new Error('KẾT NỐI QUÁ THỜI GIAN.'));
     }, 10000);
 
     function cleanup() {
@@ -80,21 +122,35 @@ function fetchJSONP(url) {
   });
 }
 
+// 2 & 3. Hàm tải khách hàng dựa vào date, combo value ten_ndung và level
 async function loadCustomers() {
   if (busy) return;
 
   busy = true;
-  const btn = document.getElementById('btnLoad');
+  const btn = document.getElementById('btnSearch');
   if (btn) btn.disabled = true;
   setStatus('Đang kết nối server...');
+
+  const currentUser = JSON.parse(localStorage.getItem('user_info') || '{}');
+  const selectedDate = document.getElementById('filterDate')?.value || '';
+  const selectedUser = document.getElementById('userSelect')?.value || currentUser.ten_ndung || '';
+  const level = Number(currentUser.level || 3);
+
+  // Tạo URL truy vấn truyền kèm date, ten_ndung và level
+  const queryParams = new URLSearchParams({
+    action: 'getList',
+    date: selectedDate,
+    ten_ndung: selectedUser,
+    level: level
+  });
 
   try {
     let res;
     try {
-      res = await fetchJSONP(`${API_URL}?action=getList`);
+      res = await fetchJSONP(`${API_URL}?${queryParams.toString()}`);
     } catch (jsonpErr) {
-      console.warn('JSONP thất bại, thử chuyển sang Fetch tiêu chuẩn:', jsonpErr);
-      const response = await fetch(`${API_URL}?action=getList`);
+      console.warn('JSONP thất bại, thử Fetch:', jsonpErr);
+      const response = await fetch(`${API_URL}?${queryParams.toString()}`);
       if (!response.ok) throw new Error('Server Apps Script từ chối kết nối.');
       res = await response.json();
     }
@@ -162,13 +218,12 @@ function renderCustomers(items) {
 
     const hasLocation = lat !== '' && lng !== '' && !isNaN(lat) && !isNaN(lng);
 
-    // Hiển thị Link Google Maps hoặc Nút lấy tọa độ GPS
     let locationHtml = '';
     if (hasLocation) {
       const mapUrl = `https://www.google.com/maps?q=${lat},${lng}`;
       locationHtml = `
         <a href="${mapUrl}" target="_blank" style="color: #1976d2; font-weight: bold; text-decoration: none;">
-          📍 Xem trên Google Maps
+          📍 Xem Google Maps
         </a>
       `;
     } else {
@@ -197,28 +252,20 @@ function renderCustomers(items) {
           <div class="item"><label>TỌA ĐỘ</label><div id="loc-cell-${safeKey}">${locationHtml}</div></div>
         </div>
 
-        <!-- BỐ CỤC MỚI: Gom Ảnh + Nút vào cùng container 2 cột -->
         <div class="photo-actions-container">
-          <!-- Cột bên trái: Khung hiển thị hình ảnh -->
           <div class="picture-box" id="picture-${safeKey}">
             ${picture ? `<img src="${escapeHtml(picture)}" alt="Hình ảnh ${escapeHtml(maKhang)}">` : 'Chưa có hình ảnh'}
           </div>
 
-          <!-- Cột bên phải: Nút bấm xếp theo số thứ tự 1-2-3 -->
           <div class="actions-right">
-            <!-- 1. Checkbox Đã cắt điện -->
             <label class="check-wrap">
               <input type="checkbox" id="check-${safeKey}" ${Number(value(c, 'TINH_TRANG', 'tinh_trang')) === 1 ? 'checked' : ''}>
               Đã cắt điện
             </label>
 
-            <!-- 2. Nút Chụp ảnh -->
             <button class="btn-photo" onclick="takePhoto(${index}, '${safeKey}')">📷 Chụp ảnh</button>
-
-            <!-- 3. Nút Lưu -->
             <button class="btn-save" id="save-${safeKey}" onclick="saveCustomer(${index}, '${safeKey}')">💾 Lưu</button>
 
-            <!-- Thẻ input chọn ảnh ẩn -->
             <input type="file"
                    id="file-${safeKey}"
                    accept="image/*"
@@ -232,7 +279,6 @@ function renderCustomers(items) {
   }).join('');
 }
 
-// Lấy tọa độ GPS thiết bị và cập nhật về Sheet
 async function getLocationAndSave(index, safeKey) {
   const c = allCustomers[index];
   if (!c) return;
@@ -241,7 +287,7 @@ async function getLocationAndSave(index, safeKey) {
   const maKhang = value(c, 'MA_KHANG', 'ma_khang');
 
   if (!navigator.geolocation) {
-    setStatus('Trình duyệt hoặc thiết bị của bạn không hỗ trợ định vị GPS.', true);
+    setStatus('Trình duyệt không hỗ trợ GPS.', true);
     return;
   }
 
@@ -249,23 +295,17 @@ async function getLocationAndSave(index, safeKey) {
     btnLoc.disabled = true;
     btnLoc.textContent = '⏳ Đang lấy vị trí...';
   }
-  setStatus(`Đang định vị GPS cho khách hàng ${maKhang}...`);
+  setStatus(`Đang định vị GPS cho ${maKhang}...`);
 
   navigator.geolocation.getCurrentPosition(
     async (position) => {
       const lat = position.coords.latitude;
       const lng = position.coords.longitude;
 
-      setStatus(`Đã định vị (${lat.toFixed(5)}, ${lng.toFixed(5)}). Đang lưu vào Google Sheet...`);
-
       try {
         const payload = {
           action: 'save',
-          payload: {
-            MA_KHANG: maKhang,
-            LAT: lat,
-            LNG: lng
-          }
+          payload: { MA_KHANG: maKhang, LAT: lat, LNG: lng }
         };
 
         const response = await fetch(API_URL, {
@@ -274,28 +314,18 @@ async function getLocationAndSave(index, safeKey) {
         });
 
         const result = await response.json();
-
-        if (!result || result.success !== true) {
-          throw new Error(result?.message || 'Không thể lưu tọa độ.');
-        }
+        if (!result || result.success !== true) throw new Error(result?.message || 'Không thể lưu tọa độ.');
 
         c.LAT = lat;
-        c.lat = lat;
         c.LNG = lng;
-        c.lng = lng;
 
         const cell = document.getElementById(`loc-cell-${safeKey}`);
         if (cell) {
           const mapUrl = `https://www.google.com/maps?q=${lat},${lng}`;
-          cell.innerHTML = `
-            <a href="${mapUrl}" target="_blank" style="color: #1976d2; font-weight: bold; text-decoration: none;">
-              📍 Xem trên Google Maps
-            </a>
-          `;
+          cell.innerHTML = `<a href="${mapUrl}" target="_blank" style="color: #1976d2; font-weight: bold; text-decoration: none;">📍 Xem Google Maps</a>`;
         }
 
-        setStatus(`Đã lưu tọa độ mới cho khách hàng ${maKhang} thành công!`);
-
+        setStatus(`Đã lưu tọa độ cho ${maKhang}!`);
       } catch (err) {
         if (btnLoc) {
           btnLoc.disabled = false;
@@ -309,21 +339,9 @@ async function getLocationAndSave(index, safeKey) {
         btnLoc.disabled = false;
         btnLoc.textContent = '📍 Lấy tọa độ mới';
       }
-      let errorMsg = 'Không thể lấy vị trí GPS.';
-      if (err.code === err.PERMISSION_DENIED) {
-        errorMsg = 'Bạn đã từ chối cấp quyền truy cập vị trí (GPS) trên thiết bị.';
-      } else if (err.code === err.POSITION_UNAVAILABLE) {
-        errorMsg = 'Thông tin vị trí không khả dụng.';
-      } else if (err.code === err.TIMEOUT) {
-        errorMsg = 'Quá thời gian chờ lấy vị trí GPS.';
-      }
-      setStatus(errorMsg, true);
+      setStatus('Không thể lấy vị trí GPS: ' + err.message, true);
     },
-    {
-      enableHighAccuracy: true,
-      timeout: 10000,
-      maximumAge: 0
-    }
+    { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
   );
 }
 
@@ -334,24 +352,16 @@ function takePhoto(index, safeKey) {
 
 function photoSelected(index, safeKey, input) {
   const file = input.files?.[0];
-  if (!file) return;
-
-  if (!file.type.startsWith('image/')) {
-    setStatus('Vui lòng chọn file hình ảnh.', true);
-    return;
-  }
+  if (!file || !file.type.startsWith('image/')) return;
 
   const reader = new FileReader();
   reader.onload = e => {
     const box = document.getElementById('picture-' + safeKey);
-    if (box) {
-      box.innerHTML = `<img src="${e.target.result}" alt="Ảnh mới">`;
-    }
+    if (box) box.innerHTML = `<img src="${e.target.result}" alt="Ảnh mới">`;
 
     allCustomers[index]._newPhotoFile = file;
     allCustomers[index]._newPhotoDataUrl = e.target.result;
-
-    setStatus('Đã chọn ảnh. Nhấn Lưu để upload và cập nhật.');
+    setStatus('Đã chọn ảnh. Nhấn Lưu để cập nhật.');
   };
   reader.readAsDataURL(file);
 }
@@ -379,11 +389,7 @@ async function uploadToCloudinary(dataUrl, maKhang) {
     { method: 'POST', body: form }
   );
 
-  if (!response.ok) {
-    const txt = await response.text();
-    throw new Error('Cloudinary upload lỗi: ' + txt);
-  }
-
+  if (!response.ok) throw new Error('Cloudinary upload lỗi.');
   const result = await response.json();
   return result.secure_url || result.url || '';
 }
@@ -394,7 +400,6 @@ async function saveCustomer(index, safeKey) {
 
   const btn = document.getElementById('save-' + safeKey);
   const checkbox = document.getElementById('check-' + safeKey);
-
   if (btn && btn.disabled) return;
 
   const oldText = btn ? btn.textContent : '';
@@ -405,17 +410,14 @@ async function saveCustomer(index, safeKey) {
 
   try {
     const maKhang = value(c, 'MA_KHANG', 'ma_khang');
-    if (!maKhang) throw new Error('Thiếu MA_KHANG.');
-
     let imageUrl = value(c, 'HINH_ANH', 'hinh_anh', 'PICTUREBOX');
 
     if (c._newPhotoDataUrl) {
-      setStatus(`Đang upload hình ${maKhang} lên Cloudinary...`);
+      setStatus(`Đang upload hình ${maKhang}...`);
       imageUrl = await uploadToCloudinary(c._newPhotoDataUrl, maKhang);
     }
 
     const tinhTrang = checkbox && checkbox.checked ? 1 : 0;
-
     const payload = {
       action: 'save',
       payload: {
@@ -426,18 +428,13 @@ async function saveCustomer(index, safeKey) {
       }
     };
 
-    setStatus(`Đang cập nhật ${maKhang}...`);
-
     const response = await fetch(API_URL, {
       method: 'POST',
       body: JSON.stringify(payload)
     });
 
     const result = await response.json();
-
-    if (!result || result.success !== true) {
-      throw new Error(result?.message || 'Lưu thất bại.');
-    }
+    if (!result || result.success !== true) throw new Error(result?.message || 'Lưu thất bại.');
 
     if (btn) {
       btn.disabled = false;
@@ -445,14 +442,10 @@ async function saveCustomer(index, safeKey) {
     }
 
     c.HINH_ANH = imageUrl;
-    c.hinh_anh = imageUrl;
-    c.PICTUREBOX = imageUrl;
     c.TINH_TRANG = tinhTrang;
-    delete c._newPhotoFile;
     delete c._newPhotoDataUrl;
 
-    setStatus(`Đã lưu ${maKhang}. TINH_TRANG = ${tinhTrang}.`);
-
+    setStatus(`Đã lưu ${maKhang} thành công.`);
   } catch (err) {
     if (btn) {
       btn.disabled = false;
