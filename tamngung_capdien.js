@@ -475,3 +475,21 @@ async function saveCustomer(index, safeKey) {
     setStatus(err.message || String(err), true);
   }
 }
+
+// Đảm bảo DOM đã tải xong mới gọi hàm
+document.addEventListener('DOMContentLoaded', () => {
+  // 1. Kiểm tra session đăng nhập
+  const currentUser = JSON.parse(localStorage.getItem('user_info') || '{}');
+  if (!currentUser.ten_ndung) {
+    console.warn('Chưa đăng nhập! Chuyển hướng về trang login...');
+    // window.location.href = 'login.html'; 
+    return;
+  }
+
+  // 2. Kích hoạt tải danh sách nhân viên
+  if (typeof loadNhanVienList === 'function') {
+    loadNhanVienList();
+  } else {
+    console.error('Hàm loadNhanVienList chưa được định nghĩa!');
+  }
+});
