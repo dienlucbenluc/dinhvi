@@ -340,12 +340,12 @@ function renderCustomers(items) {
           <div class="ten-khang">${escapeHtml(tenKhang)}</div>
         </div>
         <div class="grid">
-          <div class="item"><label>MA_SOGCS</label><div>${escapeHtml(maSogcs)}</div></div>
-          <div class="item"><label>DANH_SO</label><div>${escapeHtml(danhSo)}</div></div>
-          <div class="item"><label>SO_CTO</label><div>${escapeHtml(soCto)}</div></div>
-          <div class="item"><label>VTRI_DNOI</label><div>${escapeHtml(vtriDnoi)}</div></div>
-          <div class="item"><label>TEN_TRAM</label><div>${escapeHtml(tenTram)}</div></div>
-          <div class="item"><label>TỌA ĐỘ</label><div id="loc-cell-${safeKey}">${locationHtml}</div></div>
+          <div class="item"><label>Sổ: </label>${escapeHtml(maSogcs)}</div>
+          <div class="item"><label>DS: </label>${escapeHtml(danhSo)}</div>
+          <div class="item"><label>Số CTơ: </label>${escapeHtml(soCto)}</div>
+          <div class="item"><label>Cột: </label>${escapeHtml(vtriDnoi)}</div>
+          <div class="item"><label>Trạm: </label>${escapeHtml(tenTram)}</div>
+          <div class="item"><label></label><a id="loc-cell-${safeKey}">${locationHtml}</a></div>
         </div>
         <div class="photo-actions-container">
           <div class="picture-box" id="picture-${safeKey}">
