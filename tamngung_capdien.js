@@ -317,6 +317,7 @@ function renderCustomers(items) {
     const tenKhang = value(c, 'TEN_KHANG', 'ten_khang');
     const maSogcs = value(c, 'MA_SOGCS', 'ma_sogcs');
     const danhSo = value(c, 'DANH_SO', 'danh_so');
+     const ngayCat = value(c, 'NGAY_CAT', 'ngay_cat');
     const soCto = value(c, 'SO_CTO', 'so_cto');
     const vtriDnoi = value(c, 'VTRI_DNOI', 'vtri_dnoi');
     const tenTram = value(c, 'TEN_TRAM', 'ten_tram');
@@ -344,9 +345,10 @@ function renderCustomers(items) {
           <div class="item">DS: ${escapeHtml(danhSo)}</div>
           <div class="item">Số CTơ: ${escapeHtml(soCto)}</div>
           <div class="item">Cột: ${escapeHtml(vtriDnoi)}</div>
-          <div class="item">Trạm: ${escapeHtml(tenTram)}</div>
+          <div class="item">Trạm: ${escapeHtml(ngayCat)}</div>
           <div class="item"><a id="loc-cell-${safeKey}">${locationHtml}</a></div>
         </div>
+        <div class="item">Trạm: ${escapeHtml(tenTram)}</div>
         <div class="photo-actions-container">
           <div class="picture-box" id="picture-${safeKey}">
             ${picture ? `<img src="${escapeHtml(picture)}" alt="Hình ảnh ${escapeHtml(maKhang)}">` : 'Chưa có hình ảnh'}
