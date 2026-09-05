@@ -350,8 +350,8 @@ function renderCustomers(items) {
     }
     
     let locationHtml = hasLocation
-      ? `<a href="https://www.google.com/maps?q=${lat},${lng}" target="_blank" style="color:#1976d2;font-weight:bold;text-decoration:none;">📍 Xem Google Maps</a>`
-      : `<a id="btn-location-${safeKey}" onclick="getLocationAndSave(${index}, '${safeKey}')" style="color:red;font-weight:bold;text-decoration:none;">📍 Lấy tọa độ mới</a>`;
+      ? `<span href="https://www.google.com/maps?q=${lat},${lng}" target="_blank" style="color:#1976d2;font-weight:bold;text-decoration:none;">📍 Xem Google Maps</span>`
+      : `<span id="btn-location-${safeKey}" onclick="getLocationAndSave(${index}, '${safeKey}')" style="color:red;font-weight:bold;text-decoration:none;">📍 Lấy tọa độ mới</span>`;
 
     return `
       <div class="customer-box" id="box-${safeKey}" data-index="${index}">
@@ -619,10 +619,10 @@ async function cancelCustomer(index, safeKey) {
 
     if (checkbox) checkbox.checked = false;
     if (pictureBox) pictureBox.innerHTML = 'Chưa có hình ảnh';
-    const cell = document.getElementById(`loc-cell-${safeKey}`);
-    if (cell) {
-      cell.innerHTML = `<a id="btn-location-${safeKey}" onclick="getLocationAndSave(${index}, '${safeKey}')" style="color:red;font-weight:bold;text-decoration:none;">📍 Lấy tọa độ mới</a>`;
-             }
+   const cell = document.getElementById(`loc-cell-${safeKey}`);
+if (cell) {
+  cell.innerHTML = `<a id="btn-location-${safeKey}" onclick="getLocationAndSave(${index}, '${safeKey}')" style="color:red;font-weight:bold;text-decoration:none;">📍 Lấy tọa độ mới</a>`;
+}
     setStatus(`Đã hủy thành công khách hàng ${maKhang}.`);
   } catch (err) {
     setStatus('Lỗi khi hủy: ' + (err.message || String(err)), true);
