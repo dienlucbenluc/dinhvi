@@ -6,6 +6,7 @@ let allCustomers = [];
 let busy = false;
 let appInitialized = false;
 let nhanVienLoaded = false;
+let pendingCancelArgs = null; // Biến lưu tạm thông tin khách hàng chờ hủy
 
 document.addEventListener('DOMContentLoaded', initApp);
 
@@ -317,7 +318,7 @@ function renderCustomers(items) {
     const tenKhang = value(c, 'TEN_KHANG', 'ten_khang');
     const maSogcs = value(c, 'MA_SOGCS', 'ma_sogcs');
     const danhSo = value(c, 'DANH_SO', 'danh_so');
-     const ngayCat = value(c, 'NGAY_CAT', 'ngay_cat');
+    const ngayCat = value(c, 'NGAY_CAT', 'ngay_cat');
     const soCto = value(c, 'SO_CTO', 'so_cto');
     const vtriDnoi = value(c, 'VTRI_DNOI', 'vtri_dnoi');
     const tenTram = value(c, 'TEN_TRAM', 'ten_tram');
@@ -325,11 +326,11 @@ function renderCustomers(items) {
     const lng = String(value(c, 'LNG', 'lng') || '').trim();
     const picture = value(c, 'HINH_ANH', 'hinh_anh', 'PICTUREBOX');
     const hasLocation = lat !== '' && lng !== '' && !isNaN(lat) && !isNaN(lng);
-let optimizedPicture = picture;
+    let optimizedPicture = picture;
     if (picture && picture.includes('cloudinary.com')) {
       optimizedPicture = picture.replace('/upload/', '/upload/q_auto,f_auto,w_800/');
     }
-   let dateOnly = "---";
+    let dateOnly = "---";
     if (ngayCat) {
         const strTime = String(ngayCat).trim();
         const dateMatch = strTime.match(/\d{1,2}\/\d{1,2}\/\d{4}/);
@@ -453,14 +454,13 @@ async function photoSelected(index, safeKey, input) {
   try {
     setStatus('Đang nén tối ưu dung lượng ảnh...');
     
-    // Nén ảnh: Chiều rộng tối đa 1000px, chất lượng 70%
     const compressedDataUrl = await compressImage(file, 1000, 0.7);
 
     const box = document.getElementById('picture-' + safeKey);
     if (box) box.innerHTML = `<img src="${compressedDataUrl}" alt="Ảnh mới">`;
     
     allCustomers[index]._newPhotoFile = file;
-    allCustomers[index]._newPhotoDataUrl = compressedDataUrl; // Lưu bản đã nén
+    allCustomers[index]._newPhotoDataUrl = compressedDataUrl;
     
     setStatus('Đã chọn và tối ưu ảnh. Nhấn Lưu để cập nhật.');
   } catch (err) {
@@ -494,41 +494,6 @@ async function uploadToCloudinary(dataUrl, maKhang) {
   if (!response.ok) throw new Error('Cloudinary upload lỗi.');
   const result = await response.json();
   return result.secure_url || result.url || '';
-}
-
-function getCloudinaryPublicId(url) {
-  if (!url || !url.includes('cloudinary.com')) return null;
-  try {
-    const parts = url.split('/upload/');
-    if (parts.length < 2) return null;
-    let path = parts[1];
-    path = path.replace(/^v\d+\//, '');
-    const lastDot = path.lastIndexOf('.');
-    if (lastDot !== -1) {
-      path = path.substring(0, lastDot);
-    }
-    return path;
-  } catch (e) {
-    return null;
-  }
-}
-
-async function deleteFromCloudinary(imageUrl) {
-  const publicId = getCloudinaryPublicId(imageUrl);
-  if (!publicId) return;
-
-  try {
-    const form = new FormData();
-    form.append('public_id', publicId);
-    form.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
-
-    await fetch(
-      `https://api.cloudinary.com/v1_1/${encodeURIComponent(CLOUDINARY_CLOUD_NAME)}/image/destroy`,
-      { method: 'POST', body: form }
-    );
-  } catch (err) {
-    console.warn('Không thể xóa ảnh trên Cloudinary:', err);
-  }
 }
 
 async function saveCustomer(index, safeKey) {
@@ -579,14 +544,42 @@ async function saveCustomer(index, safeKey) {
   }
 }
 
-async function cancelCustomer(index, safeKey) {
+// --- LOGIC MỚI CHO MODAL HỦY TRẠNG THÁI ---
+function closeCancelModal() {
+  const modal = document.getElementById('cancelModal');
+  if (modal) modal.style.display = 'none';
+  pendingCancelArgs = null;
+}
+
+function cancelCustomer(index, safeKey) {
   const c = allCustomers[index];
   if (!c) return;
 
-  if (!confirm('Bạn có chắc chắn muốn hủy trạng thái và xóa hình ảnh này?')) {
-    return;
+  const maKhang = value(c, 'MA_KHANG', 'ma_khang');
+  
+  const msgEl = document.getElementById('cancelModalMsg');
+  if (msgEl) {
+    msgEl.textContent = `Bạn có chắc chắn muốn hủy trạng thái và xóa hình ảnh của khách hàng ${maKhang}?`;
   }
 
+  pendingCancelArgs = { index, safeKey, maKhang };
+
+  const btnConfirm = document.getElementById('btnConfirmCancel');
+  if (btnConfirm) {
+    btnConfirm.onclick = executeCancel;
+  }
+
+  const modal = document.getElementById('cancelModal');
+  if (modal) modal.style.display = 'flex';
+}
+
+async function executeCancel() {
+  if (!pendingCancelArgs) return;
+
+  const { index, safeKey, maKhang } = pendingCancelArgs;
+  closeCancelModal();
+
+  const c = allCustomers[index];
   const btnCancel = document.getElementById('cancel-' + safeKey);
   const btnSave = document.getElementById('save-' + safeKey);
   const checkbox = document.getElementById('check-' + safeKey);
@@ -599,11 +592,8 @@ async function cancelCustomer(index, safeKey) {
   if (btnSave) btnSave.disabled = true;
 
   try {
-    const maKhang = value(c, 'MA_KHANG', 'ma_khang');
-
     setStatus(`Đang tiến hành hủy và xóa ảnh cho ${maKhang}...`);
 
-    // Gửi yêu cầu Hủy sang Backend Apps Script
     const response = await fetch(API_URL, {
       method: 'POST',
       body: JSON.stringify({
@@ -619,7 +609,6 @@ async function cancelCustomer(index, safeKey) {
       throw new Error(result?.message || 'Hủy thất bại.');
     }
 
-    // Cập nhật lại UI tại chỗ
     c.HINH_ANH = '';
     c.PICTUREBOX = '';
     c.TINH_TRANG = 0;
@@ -630,10 +619,10 @@ async function cancelCustomer(index, safeKey) {
 
     if (checkbox) checkbox.checked = false;
     if (pictureBox) pictureBox.innerHTML = 'Chưa có hình ảnh';
-   const cell = document.getElementById(`loc-cell-${safeKey}`);
-if (cell) {
-  cell.innerHTML = `<a id="btn-location-${safeKey}" onclick="getLocationAndSave(${index}, '${safeKey}')" style="color:red;font-weight:bold;text-decoration:none;">📍 Lấy tọa độ mới</a>`;
-}
+    const cell = document.getElementById(`loc-cell-${safeKey}`);
+    if (cell) {
+      cell.innerHTML = `<a id="btn-location-${safeKey}" onclick="getLocationAndSave(${index}, '${safeKey}')" style="color:red;font-weight:bold;text-decoration:none;">📍 Lấy tọa độ mới</a>`;
+    }
     setStatus(`Đã hủy thành công khách hàng ${maKhang}.`);
   } catch (err) {
     setStatus('Lỗi khi hủy: ' + (err.message || String(err)), true);
@@ -679,7 +668,6 @@ if (slider) {
   slider.style.cursor = 'grab';
 }
 
-// Hàm nén ảnh giảm dung lượng
 function compressImage(file, maxWidth = 1000, quality = 0.7) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -691,7 +679,6 @@ function compressImage(file, maxWidth = 1000, quality = 0.7) {
         let width = img.width;
         let height = img.height;
 
-        // Tính toán lại tỷ lệ kích thước nếu lớn hơn maxWidth
         if (width > maxWidth) {
           height = Math.round((height * maxWidth) / width);
           width = maxWidth;
@@ -704,7 +691,6 @@ function compressImage(file, maxWidth = 1000, quality = 0.7) {
         const ctx = canvas.getContext('2d');
         ctx.drawImage(img, 0, 0, width, height);
 
-        // Xuất ra Base64 với định dạng JPEG và độ nén quality (0.7 ~ 70%)
         const compressedDataUrl = canvas.toDataURL('image/jpeg', quality);
         resolve(compressedDataUrl);
       };
