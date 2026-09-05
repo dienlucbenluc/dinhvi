@@ -51,35 +51,22 @@ async function loadNhanVienList() {
     selectUser.innerHTML = '';
 
     if (res && res.success && Array.isArray(res.data) && res.data.length > 0) {
-      // Lọc lại ở Frontend một lần nữa để đảm bảo tính an toàn
-      const filteredList = userLevel === 1 
-        ? res.data 
-        : res.data.filter(u => u.ten_ndung.toLowerCase() === loggedTenNdung.toLowerCase());
-
-      if (filteredList.length === 0) {
-        // Nếu danh sách rỗng, chèn lại user đang đăng nhập
+      res.data.forEach(u => {
         const opt = document.createElement('option');
-        opt.value = loggedTenNdung;
-        opt.textContent = currentUser.ten_nvien ? `${currentUser.ten_nvien} (${loggedTenNdung})` : loggedTenNdung;
-        opt.selected = true;
+        opt.value = u.ten_ndung;
+        opt.textContent = u.ten_nvien ? `${u.ten_nvien} (${u.ten_ndung})` : u.ten_ndung;
+        
+        // Mặc định chọn tài khoản trùng với người đăng nhập
+        if (u.ten_ndung.toLowerCase() === loggedTenNdung.toLowerCase()) {
+          opt.selected = true;
+        }
         selectUser.appendChild(opt);
-      } else {
-        filteredList.forEach(u => {
-          const opt = document.createElement('option');
-          opt.value = u.ten_ndung;
-          opt.textContent = u.ten_nvien ? `${u.ten_nvien} (${u.ten_ndung})` : u.ten_ndung;
-          
-          if (u.ten_ndung.toLowerCase() === loggedTenNdung.toLowerCase()) {
-            opt.selected = true;
-          }
-          selectUser.appendChild(opt);
-        });
-      }
+      });
     } else {
-      // Fallback khi không lấy được API
+      // Dùng fallback nếu không tải được danh sách
       const opt = document.createElement('option');
       opt.value = loggedTenNdung;
-      opt.textContent = currentUser.ten_nvien ? `${currentUser.ten_nvien} (${loggedTenNdung})` : loggedTenNdung;
+      opt.textContent = currentUser.ten_nvien || loggedTenNdung;
       opt.selected = true;
       selectUser.appendChild(opt);
     }
@@ -87,7 +74,7 @@ async function loadNhanVienList() {
     console.warn('Lỗi tải danh sách nhân viên:', err);
   }
 
-  // Khóa Combobox nếu Level khác 1; mở Combobox nếu là Level 1
+  // Khóa Combobox nếu Level khác 1; Cho phép chọn nếu Level = 1
   if (userLevel !== 1) {
     selectUser.disabled = true;
   } else {
