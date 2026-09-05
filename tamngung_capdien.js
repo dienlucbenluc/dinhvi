@@ -564,14 +564,10 @@ async function cancelCustomer(index, safeKey) {
 
   try {
     const maKhang = value(c, 'MA_KHANG', 'ma_khang');
-    const currentImageUrl = value(c, 'HINH_ANH', 'hinh_anh', 'PICTUREBOX');
 
-    if (currentImageUrl) {
-      setStatus(`Đang xóa hình ảnh trên Cloudinary cho ${maKhang}...`);
-      await deleteFromCloudinary(currentImageUrl);
-    }
+    setStatus(`Đang tiến hành hủy và xóa ảnh cho ${maKhang}...`);
 
-    setStatus(`Đang hủy dữ liệu cho ${maKhang}...`);
+    // Gửi yêu cầu Hủy sang Backend Apps Script
     const response = await fetch(API_URL, {
       method: 'POST',
       body: JSON.stringify({
@@ -587,6 +583,7 @@ async function cancelCustomer(index, safeKey) {
       throw new Error(result?.message || 'Hủy thất bại.');
     }
 
+    // Cập nhật lại UI tại chỗ
     c.HINH_ANH = '';
     c.PICTUREBOX = '';
     c.TINH_TRANG = 0;
