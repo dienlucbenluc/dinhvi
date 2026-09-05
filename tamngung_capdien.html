@@ -94,6 +94,7 @@
       justify-content: center;
       gap: 6px;
     }
+     .menu-btn { background: #007bff; color: white; border: none; font-size: 18px; padding: 6px 12px; border-radius: 6px; cursor: pointer; width: auto; margin: 0; }
     .btn-photo { background: #455a64; color: #fff; width: 100%; }
     .btn-save { background: #2e7d32; color: #fff; width: 100%; }
     button:disabled { opacity: .55; cursor: not-allowed; }
@@ -216,6 +217,7 @@
   <div class="app-container">
     <div class="topbar">
       <div class="title">⚡ TẠM NGỪNG CẤP ĐIỆN</div>
+      <button class="menu-btn" onclick="window.location.href='home.html'">☰</button>
       <div class="toolbar">
         <div class="filter-row">
           <input type="date" id="filterDate" class="input-date">
