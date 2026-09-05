@@ -423,7 +423,7 @@ async function getLocationAndSave(index, safeKey) {
           VTRI_DNOI: value(c, 'VTRI_DNOI', 'vtri_dnoi', 'SO_COT', 'so_cot'),
           TEN_NDUNG: loggedTenNdung,
           TEN_NVIEN: loggedTenNvien,
-          TEN_CVIEC: 'Tạm ngừng cấp điện',
+          TEN_CVIEC: 'Tạm ngừng CĐ',
           LAT: lat,
           LNG: lng
         };
