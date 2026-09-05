@@ -631,8 +631,24 @@ if (slider) {
     if (!isDown) return;
     e.preventDefault();
     const x = e.pageX - slider.offsetLeft;
-    const walk = (x - startX) * 1.5;
+    const walk = (x - startX) * 1.5; // Tốc độ kéo
     slider.scrollLeft = scrollLeft - walk;
+
+    // --- XỬ LÝ XOAY VÒNG TRÒN (LOOP) ---
+    const maxScroll = slider.scrollWidth - slider.clientWidth;
+
+    // 1. Kéo quá mép trái (box đầu tiên) -> Nhảy về mép phải (box cuối)
+    if (slider.scrollLeft <= 0) {
+      slider.scrollLeft = maxScroll - 1;
+      startX = e.pageX - slider.offsetLeft;
+      scrollLeft = slider.scrollLeft;
+    } 
+    // 2. Kéo quá mép phải (box cuối cùng) -> Nhảy về mép trái (box đầu)
+    else if (slider.scrollLeft >= maxScroll) {
+      slider.scrollLeft = 1;
+      startX = e.pageX - slider.offsetLeft;
+      scrollLeft = slider.scrollLeft;
+    }
   });
 
   slider.style.cursor = 'grab';
