@@ -355,7 +355,7 @@ function renderCustomers(items) {
     
     let locationHtml = hasLocation
       ? `<span href="https://www.google.com/maps?q=${lat},${lng}" target="_blank" style="color:#1976d2;font-weight:bold;text-decoration:none;">📍 Xem Google Maps</span>`
-      : `<span id="btn-location-${safeKey}" onclick="getLocationAndSave(${index}, '${safeKey}')" style="color:red;font-weight:bold;text-decoration:none;">📍 Lấy tọa độ mới</span>`;
+      : `<span id="btn-location-${safeKey}" onclick="getLocationAndSave(${index}, '${safeKey}')" style="color:red;font-weight:bold;text-decoration:none;">📍 Bấm lấy tọa độ mới</span>`;
 
     return `
       <div class="customer-box" id="box-${safeKey}" data-index="${index}">
@@ -369,10 +369,10 @@ function renderCustomers(items) {
         </div>
         <div class="grid">
           <div class="item">Sổ: ${escapeHtml(maSogcs)}</div>
-          <div class="item">DS: ${escapeHtml(danhSo)}</div>
+          <div class="item">Danh số: ${escapeHtml(danhSo)}</div>
           <div class="item">Số CTơ: ${escapeHtml(soCto)}</div>
           <div class="item">Cột: ${escapeHtml(vtriDnoi)}</div>
-          <div class="item">Ngày: ${dateOnly}</div>
+          <div class="item">Ngày CĐ: ${dateOnly}</div>
           <div class="item"><a id="loc-cell-${safeKey}">${locationHtml}</a></div>
         </div>
          <div style="max-width: 400px; font-size:13px; padding:10px 12px;margin-top:-10px;white-space: nowrap;overflow: hidden; text-overflow: ellipsis;">Trạm: ${escapeHtml(tenTram)}</div>
