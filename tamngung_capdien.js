@@ -250,12 +250,12 @@ async function loadCustomers() {
   const parsedLevel = Number(currentUser.level);
   const level = Number.isFinite(parsedLevel) && parsedLevel > 0 ? parsedLevel : 3;
 
-  const queryParams = new URLSearchParams({
-    action: 'getList',
-    date: selectedDate,
-    ten_ndung: selectedUser,
-    level: level
-  });
+const queryParams = new URLSearchParams({
+  action: 'getList',
+  date: selectedDate,
+  ten_ndung: selectedUser,
+  logged_ten_ndung: loggedTenNdung
+});
 
   try {
     let res;
