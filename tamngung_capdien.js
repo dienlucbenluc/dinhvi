@@ -1,4 +1,9 @@
-// Khởi tạo ứng dụng: chỉ chạy 1 lần sau khi DOM sẵn sàng.
+const API_URL = 'https://script.google.com/macros/s/AKfycbypH-vE7ctJxQObLPLvRrG71zbVx6_6E40foxkb4SS7e38kCmnyuj-09kuUGyFxcGhW/exec';
+const CLOUDINARY_CLOUD_NAME = 'jokzcdxt';
+const CLOUDINARY_UPLOAD_PRESET = 'image_catdien';
+
+let allCustomers = [];
+let busy = false;
 let appInitialized = false;
 let nhanVienLoaded = false;
 
@@ -23,22 +28,9 @@ async function initApp() {
   loadCustomers();
 }
 
-// Đọc tài khoản đăng nhập từ bộ nhớ web.
-// Hỗ trợ cả localStorage và sessionStorage.
+// Đọc đúng phiên đăng nhập mà login.html đang lưu.
 function getCurrentUser() {
-  // Trang login hiện tại lưu:
-  // localStorage["cmis_user_session"] = {
-  //   ten_ndung, ten_nvien, mat_khau
-  // }
-  const keys = [
-    'cmis_user_session',
-    'user_info',
-    'currentUser',
-    'current_user',
-    'userInfo',
-    'loginUser',
-    'user'
-  ];
+  const keys = ['cmis_user_session', 'user_info'];
 
   for (const storage of [localStorage, sessionStorage]) {
     for (const key of keys) {
@@ -59,27 +51,90 @@ function getCurrentUser() {
 
 function getUserField(user, ...names) {
   for (const name of names) {
-    if (user && user[name] !== undefined && user[name] !== null &&
-        String(user[name]).trim() !== '') {
-      return user[name];
+    if (user && user[name] !== undefined && user[name] !== null) {
+      const v = String(user[name]).trim();
+      if (v !== '') return v;
     }
   }
   return '';
 }
 
-// Hàm lấy danh sách nhân viên từ sheet nhan_vien theo Level.
+function setStatus(text, error = false) {
+  const el = document.getElementById('status');
+  if (!el) return;
+  el.textContent = text || '';
+  el.style.color = error ? '#c62828' : '#555';
+}
+
+function escapeHtml(value) {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
+function normalize(v) {
+  return String(v ?? '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .trim();
+}
+
+function value(obj, ...names) {
+  for (const name of names) {
+    if (obj && obj[name] !== undefined && obj[name] !== null) return obj[name];
+  }
+  return '';
+}
+
+function fetchJSONP(url) {
+  return new Promise((resolve, reject) => {
+    const callbackName = 'jsonp_cb_' + Math.round(1000000 * Math.random());
+    const script = document.createElement('script');
+
+    const timeoutId = setTimeout(() => {
+      cleanup();
+      reject(new Error('KẾT NỐI QUÁ THỜI GIAN.'));
+    }, 10000);
+
+    function cleanup() {
+      clearTimeout(timeoutId);
+      try { delete window[callbackName]; } catch (_) {}
+      if (script.parentNode) script.parentNode.removeChild(script);
+    }
+
+    window[callbackName] = function(data) {
+      cleanup();
+      resolve(data);
+    };
+
+    script.src = url + (url.includes('?') ? '&' : '?') +
+                 'callback=' + encodeURIComponent(callbackName);
+    script.onerror = function() {
+      cleanup();
+      reject(new Error('Không thể kết nối đến Web App.'));
+    };
+
+    document.body.appendChild(script);
+  });
+}
+
+// Lấy danh sách nhân viên.
+// Backend tự xác định level thật từ sheet nhan_vien.
 async function loadNhanVienList() {
   if (nhanVienLoaded) return;
 
   const selectUser = document.getElementById('userSelect');
   if (!selectUser) return;
 
-  // LOGIN hiện tại lưu phiên bằng key "cmis_user_session",
-  // không phải "user_info".
   const currentUser = getCurrentUser();
-  let loggedTenNdung = String(getUserField(
+
+  const loggedTenNdung = String(getUserField(
     currentUser,
-    'ten_ndung', 'TEN_NDUNG', 'username', 'userName', 'username_login'
+    'ten_ndung', 'TEN_NDUNG', 'username', 'userName'
   ) || '').trim();
 
   if (!loggedTenNdung) {
@@ -87,8 +142,12 @@ async function loadNhanVienList() {
       '<option value="">-- Chưa có phiên đăng nhập --</option>';
     selectUser.disabled = true;
     setStatus(
-      'Không tìm thấy cmis_user_session. Bác hãy đăng nhập lại từ trang login.',
+      'Không đọc được cmis_user_session. Bác hãy đăng nhập lại từ login.html.',
       true
+    );
+    console.error(
+      'Không có cmis_user_session. localStorage keys:',
+      Object.keys(localStorage)
     );
     return;
   }
@@ -97,45 +156,36 @@ async function loadNhanVienList() {
   selectUser.innerHTML = '<option value="">⏳ Đang tải nhân viên...</option>';
 
   try {
-    // Không lấy level từ localStorage nữa.
-    // Backend tự đọc level thật của ten_ndung trong sheet nhan_vien.
-    const queryParams = new URLSearchParams({
+    const query = new URLSearchParams({
       action: 'getNhanVien',
       ten_ndung: loggedTenNdung
     });
 
     let res;
     try {
-      res = await fetchJSONP(`${API_URL}?${queryParams.toString()}`);
-    } catch (e) {
-      const response = await fetch(`${API_URL}?${queryParams.toString()}`);
-      if (!response.ok) {
-        throw new Error('Server Apps Script từ chối kết nối.');
-      }
+      res = await fetchJSONP(`${API_URL}?${query.toString()}`);
+    } catch (_) {
+      const response = await fetch(`${API_URL}?${query.toString()}`);
+      if (!response.ok) throw new Error('Server Apps Script từ chối kết nối.');
       res = await response.json();
     }
 
     if (!res || res.success !== true || !Array.isArray(res.data)) {
-      throw new Error(res?.message || 'Dữ liệu nhân viên trả về không hợp lệ.');
+      throw new Error(res?.message || 'Dữ liệu nhân viên không hợp lệ.');
     }
 
-    // Backend trả về level thật trong sheet nhan_vien.
     const actualLevel = Number(res.level);
-    const effectiveLevel =
-      Number.isFinite(actualLevel) && actualLevel > 0 ? actualLevel : 3;
-
-    // Ghi level thật vào phiên hiện tại để loadCustomers dùng đúng quyền.
-    currentUser.ten_ndung = loggedTenNdung;
-    currentUser.level = effectiveLevel;
-    localStorage.setItem('cmis_user_session', JSON.stringify(currentUser));
+    const level = Number.isFinite(actualLevel) && actualLevel > 0
+      ? actualLevel
+      : 3;
 
     selectUser.innerHTML = '';
 
     if (res.data.length === 0) {
       const opt = document.createElement('option');
       opt.value = loggedTenNdung;
-      opt.textContent =
-        getUserField(currentUser, 'ten_nvien', 'TEN_NVIEN') || loggedTenNdung;
+      opt.textContent = getUserField(currentUser, 'ten_nvien', 'TEN_NVIEN') ||
+                        loggedTenNdung;
       opt.selected = true;
       selectUser.appendChild(opt);
     } else {
@@ -145,7 +195,6 @@ async function loadNhanVienList() {
 
         const tenNvien = String(u.ten_nvien ?? '').trim();
         const opt = document.createElement('option');
-
         opt.value = tenNdung;
         opt.textContent = tenNvien
           ? `${tenNvien} (${tenNdung})`
@@ -159,23 +208,22 @@ async function loadNhanVienList() {
       });
     }
 
-    // Level 1: chọn được toàn bộ nhân viên.
-    // Level 3: chỉ có tài khoản đăng nhập và khóa combobox.
-    selectUser.disabled = effectiveLevel !== 1;
-
+    // Level 1: tất cả nhân viên + cho phép chọn.
+    // Level 3: chỉ người đăng nhập + khóa.
+    selectUser.disabled = level !== 1;
     nhanVienLoaded = true;
 
-    if (effectiveLevel === 1) {
+    if (level === 1) {
       setStatus(`Đã tải ${res.data.length} nhân viên. Quyền Level 1.`);
     } else {
-      setStatus(
-        `Nhân viên: ${loggedTenNdung}. Quyền Level ${effectiveLevel}.`
-      );
+      setStatus(`Nhân viên: ${loggedTenNdung}. Quyền Level ${level}.`);
     }
   } catch (err) {
     console.error('Lỗi tải danh sách nhân viên:', err);
     selectUser.innerHTML =
-      '<option value="">-- Không tải được danh sách --</option>';
+      `<option value="${escapeHtml(loggedTenNdung)}">${escapeHtml(
+        getUserField(currentUser, 'ten_nvien', 'TEN_NVIEN') || loggedTenNdung
+      )}</option>`;
     selectUser.disabled = true;
     setStatus('Lỗi tải danh sách nhân viên: ' + (err.message || err), true);
   }
@@ -254,15 +302,12 @@ async function loadCustomers() {
 
   const currentUser = getCurrentUser();
   const loggedTenNdung = String(getUserField(
-    currentUser, 'ten_ndung', 'TEN_NDUNG', 'username', 'userName', 'username_login'
+    currentUser, 'ten_ndung', 'TEN_NDUNG', 'username', 'userName'
   ) || '').trim();
   const selectedDate = document.getElementById('filterDate')?.value || '';
   const selectedUser =
     document.getElementById('userSelect')?.value || loggedTenNdung;
-  const levelRaw = getUserField(currentUser, 'level', 'LEVEL', 'quyen', 'QUYEN');
-  const parsedLevel = Number(levelRaw);
-  const level =
-    Number.isFinite(parsedLevel) && parsedLevel > 0 ? parsedLevel : 3;
+  const level = Number(currentUser.level || 3);
 
   const queryParams = new URLSearchParams({
     action: 'getList',
