@@ -371,7 +371,7 @@ function renderCustomers(items) {
           <div class="item">Ngày: ${dateOnly}</div>
           <div class="item"><a id="loc-cell-${safeKey}">${locationHtml}</a></div>
         </div>
-         <div style="font-size:13px;display:grid; gap:7px 12px; padding:10px 12px;  margin-top:-10px;">Trạm: ${escapeHtml(tenTram)}</div>
+         <div style="max-width: 400px; font-size:13px; padding:10px 12px;margin-top:-10px;white-space: nowrap;overflow: hidden; text-overflow: ellipsis;">Trạm: ${escapeHtml(tenTram)}</div>
         <div class="photo-actions-container">
           <div class="picture-box" id="picture-${safeKey}">
             ${picture ? `<img src="${escapeHtml(picture)}" alt="Hình ảnh ${escapeHtml(maKhang)}">` : 'Chưa có hình ảnh'}
