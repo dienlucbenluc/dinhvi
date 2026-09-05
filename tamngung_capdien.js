@@ -413,22 +413,45 @@ async function getLocationAndSave(index, safeKey) {
   }
   setStatus(`Đang định vị GPS cho ${maKhang}...`);
 
+  // Lấy thông tin user đăng nhập
+  const currentUser = getCurrentUser();
+  const loggedTenNdung = String(getUserField(currentUser, 'ten_ndung', 'TEN_NDUNG', 'username') || '').trim();
+  const loggedTenNvien = String(getUserField(currentUser, 'ten_nvien', 'TEN_NVIEN') || '').trim();
+
   navigator.geolocation.getCurrentPosition(
     async position => {
       try {
         const lat = position.coords.latitude;
         const lng = position.coords.longitude;
+
+        // Truyền đầy đủ dữ liệu khách hàng + tọa độ để server ghi vào sheet dinh_vi
+        const payload = {
+          MA_KHANG: maKhang,
+          TEN_KHANG: value(c, 'TEN_KHANG', 'ten_khang'),
+          SO_CTO: value(c, 'SO_CTO', 'so_cto'),
+          MA_TRAM: value(c, 'MA_TRAM', 'ma_tram'),
+          TEN_TRAM: value(c, 'TEN_TRAM', 'ten_tram'),
+          VTRI_DNOI: value(c, 'VTRI_DNOI', 'vtri_dnoi', 'SO_COT', 'so_cot'),
+          TEN_NDUNG: loggedTenNdung,
+          TEN_NVIEN: loggedTenNvien,
+          TEN_CVIEC: 'Tạm ngừng cấp điện',
+          LAT: lat,
+          LNG: lng
+        };
+
         const response = await fetch(API_URL, {
           method: 'POST',
-          body: JSON.stringify({ action: 'save', payload: { MA_KHANG: maKhang, LAT: lat, LNG: lng } })
+          body: JSON.stringify({ action: 'save', payload: payload })
         });
+
         const result = await response.json();
         if (!result || result.success !== true) throw new Error(result?.message || 'Không thể lưu tọa độ.');
 
-        c.LAT = lat; c.LNG = lng;
+        c.LAT = lat; 
+        c.LNG = lng;
         const cell = document.getElementById(`loc-cell-${safeKey}`);
         if (cell) cell.innerHTML = `<a href="https://www.google.com/maps?q=${lat},${lng}" target="_blank" style="color:#1976d2;font-weight:bold;text-decoration:none;">📍 Xem Google Maps</a>`;
-        setStatus(`Đã lưu tọa độ cho ${maKhang}!`);
+        setStatus(`Đã lưu tọa độ & ghi định vị thành công cho ${maKhang}!`);
       } catch (err) {
         if (btnLoc) { btnLoc.disabled = false; btnLoc.textContent = '📍 Lấy tọa độ mới'; }
         setStatus('Lỗi lưu tọa độ: ' + err.message, true);
