@@ -186,10 +186,10 @@ async function loadNhanVienList() {
       const tenNdung = String(u.ten_ndung ?? '').trim();
       if (!tenNdung) return;
 
-const tenNvien = String(u.ten_nvien ?? '').trim();
-const opt = document.createElement('option');
-opt.value = tenNdung;
-opt.textContent = tenNvien || tenNdung;
+      const tenNvien = String(u.ten_nvien ?? '').trim();
+      const opt = document.createElement('option');
+      opt.value = tenNdung;
+      opt.textContent = tenNvien || tenNdung;
 
       if (normalize(tenNdung) === normalize(loggedTenNdung)) {
         opt.selected = true;
@@ -205,9 +205,6 @@ opt.textContent = tenNvien || tenNdung;
       selectUser.appendChild(opt);
     }
 
-    // Không ẩn combobox.
-    // Level 1: chọn được tất cả nhân viên.
-    // Level khác 1: chỉ được xem người đăng nhập.
     selectUser.style.display = '';
     selectUser.disabled = level !== 1;
 
@@ -246,16 +243,15 @@ async function loadCustomers() {
   const selectedUser =
     document.getElementById('userSelect')?.value || loggedTenNdung;
 
-  // Không cho client tự nâng quyền. Level phải là level đã được xác nhận từ backend.
   const parsedLevel = Number(currentUser.level);
   const level = Number.isFinite(parsedLevel) && parsedLevel > 0 ? parsedLevel : 3;
 
-const queryParams = new URLSearchParams({
-  action: 'getList',
-  date: selectedDate,
-  ten_ndung: selectedUser,
-  logged_ten_ndung: loggedTenNdung
-});
+  const queryParams = new URLSearchParams({
+    action: 'getList',
+    date: selectedDate,
+    ten_ndung: selectedUser,
+    logged_ten_ndung: loggedTenNdung
+  });
 
   try {
     let res;
@@ -334,7 +330,7 @@ function renderCustomers(items) {
     return `
       <div class="customer-box" id="box-${safeKey}" data-index="${index}">
         <div class="box-head">
-          <div class="ma-khang">Mã KH: ${escapeHtml(maKhang)}</div>
+          <div class="ma-khang">Mã KH: ${escapeHtml(maKhang)} <span style="font-size:13px;font-weight:normal;color:#666;">(${index + 1}/${items.length})</span></div>
           <div class="ten-khang">${escapeHtml(tenKhang)}</div>
         </div>
         <div class="grid">
@@ -361,6 +357,37 @@ function renderCustomers(items) {
         </div>
       </div>`;
   }).join('');
+
+  // Kích hoạt tính năng vuốt xoay vòng cho danh sách
+  enableLoopScroll(root);
+}
+
+function enableLoopScroll(container) {
+  let isScrolling = false;
+  let scrollTimeout = null;
+
+  container.addEventListener('scroll', () => {
+    if (isScrolling) return;
+
+    clearTimeout(scrollTimeout);
+    scrollTimeout = setTimeout(() => {
+      const maxScroll = container.scrollWidth - container.clientWidth;
+      const currentScroll = container.scrollLeft;
+
+      // Vuốt lùi từ thẻ đầu tiên -> nhảy về thẻ cuối
+      if (currentScroll <= 0) {
+        isScrolling = true;
+        container.scrollTo({ left: maxScroll, behavior: 'smooth' });
+        setTimeout(() => { isScrolling = false; }, 300);
+      } 
+      // Vuốt tiến từ thẻ cuối cùng -> nhảy về thẻ đầu
+      else if (Math.ceil(currentScroll) >= maxScroll) {
+        isScrolling = true;
+        container.scrollTo({ left: 0, behavior: 'smooth' });
+        setTimeout(() => { isScrolling = false; }, 300);
+      }
+    }, 150);
+  });
 }
 
 async function getLocationAndSave(index, safeKey) {
