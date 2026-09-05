@@ -13,7 +13,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     dateInput.value = today;
   }
 
-  // Tải danh sách nhân viên vào Combobox từ Google Sheet
+  // Tải danh sách nhân viên vào Combobox từ Google Sheet theo quyền Level
   await loadNhanVienList();
 
   const searchBox = document.getElementById('searchBox');
@@ -34,33 +34,52 @@ async function loadNhanVienList() {
   if (!selectUser) return;
 
   try {
+    const queryParams = new URLSearchParams({
+      action: 'getNhanVien',
+      ten_ndung: loggedTenNdung,
+      level: userLevel
+    });
+
     let res;
     try {
-      res = await fetchJSONP(`${API_URL}?action=getNhanVien`);
+      res = await fetchJSONP(`${API_URL}?${queryParams.toString()}`);
     } catch (e) {
-      const response = await fetch(`${API_URL}?action=getNhanVien`);
+      const response = await fetch(`${API_URL}?${queryParams.toString()}`);
       res = await response.json();
     }
 
     selectUser.innerHTML = '';
 
     if (res && res.success && Array.isArray(res.data) && res.data.length > 0) {
-      res.data.forEach(u => {
+      // Lọc lại ở Frontend một lần nữa để đảm bảo tính an toàn
+      const filteredList = userLevel === 1 
+        ? res.data 
+        : res.data.filter(u => u.ten_ndung.toLowerCase() === loggedTenNdung.toLowerCase());
+
+      if (filteredList.length === 0) {
+        // Nếu danh sách rỗng, chèn lại user đang đăng nhập
         const opt = document.createElement('option');
-        opt.value = u.ten_ndung;
-        opt.textContent = u.ten_nvien ? `${u.ten_nvien} (${u.ten_ndung})` : u.ten_ndung;
-        
-        // Chọn mặc định nhân viên đang đăng nhập
-        if (u.ten_ndung.toLowerCase() === loggedTenNdung.toLowerCase()) {
-          opt.selected = true;
-        }
+        opt.value = loggedTenNdung;
+        opt.textContent = currentUser.ten_nvien ? `${currentUser.ten_nvien} (${loggedTenNdung})` : loggedTenNdung;
+        opt.selected = true;
         selectUser.appendChild(opt);
-      });
+      } else {
+        filteredList.forEach(u => {
+          const opt = document.createElement('option');
+          opt.value = u.ten_ndung;
+          opt.textContent = u.ten_nvien ? `${u.ten_nvien} (${u.ten_ndung})` : u.ten_ndung;
+          
+          if (u.ten_ndung.toLowerCase() === loggedTenNdung.toLowerCase()) {
+            opt.selected = true;
+          }
+          selectUser.appendChild(opt);
+        });
+      }
     } else {
-      // Dùng fallback nếu không tải được danh sách
+      // Fallback khi không lấy được API
       const opt = document.createElement('option');
       opt.value = loggedTenNdung;
-      opt.textContent = currentUser.ten_nvien || loggedTenNdung;
+      opt.textContent = currentUser.ten_nvien ? `${currentUser.ten_nvien} (${loggedTenNdung})` : loggedTenNdung;
       opt.selected = true;
       selectUser.appendChild(opt);
     }
@@ -68,7 +87,7 @@ async function loadNhanVienList() {
     console.warn('Lỗi tải danh sách nhân viên:', err);
   }
 
-  // Phân quyền: Level = 1 được đổi nhân viên; Level = 3 bị khóa Combobox
+  // Khóa Combobox nếu Level khác 1; mở Combobox nếu là Level 1
   if (userLevel !== 1) {
     selectUser.disabled = true;
   } else {
@@ -138,7 +157,7 @@ function fetchJSONP(url) {
   });
 }
 
-// 2 & 3. Hàm tải khách hàng dựa vào date, combo value ten_ndung và level
+// Hàm tải danh sách khách hàng dựa vào date, combo value ten_ndung và level
 async function loadCustomers() {
   if (busy) return;
 
@@ -152,7 +171,6 @@ async function loadCustomers() {
   const selectedUser = document.getElementById('userSelect')?.value || currentUser.ten_ndung || '';
   const level = Number(currentUser.level || 3);
 
-  // Tạo URL truy vấn truyền kèm date, ten_ndung và level
   const queryParams = new URLSearchParams({
     action: 'getList',
     date: selectedDate,
