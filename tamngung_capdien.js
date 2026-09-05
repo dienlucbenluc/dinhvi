@@ -601,3 +601,38 @@ async function cancelCustomer(index, safeKey) {
     if (btnSave) btnSave.disabled = false;
   }
 }
+
+// Bác thay 'danh-sach-container' bằng ID thẻ div chứa danh sách khách hàng của bác
+const slider = document.getElementById('customerList‎');
+
+if (slider) {
+  let isDown = false;
+  let startX;
+  let scrollLeft;
+
+  slider.addEventListener('mousedown', (e) => {
+    isDown = true;
+    slider.classList.add('active');
+    startX = e.pageX - slider.offsetLeft;
+    scrollLeft = slider.scrollLeft;
+    slider.style.cursor = 'grabbing'; // Đổi con trỏ chuột thành dạng bàn tay nắm
+  });
+
+  slider.addEventListener('mouseleave', () => {
+    isDown = false;
+    slider.style.cursor = 'default';
+  });
+
+  slider.addEventListener('mouseup', () => {
+    isDown = false;
+    slider.style.cursor = 'default';
+  });
+
+  slider.addEventListener('mousemove', (e) => {
+    if (!isDown) return;
+    e.preventDefault();
+    const x = e.pageX - slider.offsetLeft;
+    const walk = (x - startX) * 1.5; // Tốc độ kéo (bác có thể tăng/giảm số 1.5)
+    slider.scrollLeft = scrollLeft - walk;
+  });
+}
