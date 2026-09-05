@@ -340,12 +340,12 @@ function renderCustomers(items) {
           <div class="ten-khang">${escapeHtml(tenKhang)}</div>
         </div>
         <div class="grid">
-          <div class="item"><label>Sổ: </label>${escapeHtml(maSogcs)}</div>
-          <div class="item"><label>DS: </label>${escapeHtml(danhSo)}</div>
-          <div class="item"><label>Số CTơ: </label>${escapeHtml(soCto)}</div>
-          <div class="item"><label>Cột: </label>${escapeHtml(vtriDnoi)}</div>
-          <div class="item"><label>Trạm: </label>${escapeHtml(tenTram)}</div>
-          <div class="item"><label></label><a id="loc-cell-${safeKey}">${locationHtml}</a></div>
+          <div class="item">Sổ: ${escapeHtml(maSogcs)}</div>
+          <div class="item">DS: ${escapeHtml(danhSo)}</div>
+          <div class="item">Số CTơ: ${escapeHtml(soCto)}</div>
+          <div class="item">Cột: ${escapeHtml(vtriDnoi)}</div>
+          <div class="item">Trạm: ${escapeHtml(tenTram)}</div>
+          <div class="item"><a id="loc-cell-${safeKey}">${locationHtml}</a></div>
         </div>
         <div class="photo-actions-container">
           <div class="picture-box" id="picture-${safeKey}">
