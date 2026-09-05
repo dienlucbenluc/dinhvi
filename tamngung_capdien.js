@@ -612,7 +612,6 @@ async function cancelCustomer(index, safeKey) {
     c.HINH_ANH = '';
     c.PICTUREBOX = '';
     c.TINH_TRANG = 0;
-    <div class="item"><a id="loc-cell-${safeKey}">${locationHtml}</a></div>;
     delete c._newPhotoFile;
     delete c._newPhotoDataUrl;
 
