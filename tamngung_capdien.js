@@ -26,16 +26,34 @@ async function initApp() {
 // Đọc tài khoản đăng nhập từ bộ nhớ web.
 // Hỗ trợ cả localStorage và sessionStorage.
 function getCurrentUser() {
+  // Trang login hiện tại lưu:
+  // localStorage["cmis_user_session"] = {
+  //   ten_ndung, ten_nvien, mat_khau
+  // }
+  const keys = [
+    'cmis_user_session',
+    'user_info',
+    'currentUser',
+    'current_user',
+    'userInfo',
+    'loginUser',
+    'user'
+  ];
+
   for (const storage of [localStorage, sessionStorage]) {
-    try {
-      const raw = storage.getItem('user_info');
-      if (!raw) continue;
-      const obj = JSON.parse(raw);
-      if (obj && typeof obj === 'object') return obj;
-    } catch (e) {
-      console.warn('Không đọc được user_info:', e);
+    for (const key of keys) {
+      try {
+        const raw = storage.getItem(key);
+        if (!raw) continue;
+
+        const obj = JSON.parse(raw);
+        if (obj && typeof obj === 'object') return obj;
+      } catch (e) {
+        console.warn('Không đọc được phiên đăng nhập:', key, e);
+      }
     }
   }
+
   return {};
 }
 
@@ -56,21 +74,22 @@ async function loadNhanVienList() {
   const selectUser = document.getElementById('userSelect');
   if (!selectUser) return;
 
+  // LOGIN hiện tại lưu phiên bằng key "cmis_user_session",
+  // không phải "user_info".
   const currentUser = getCurrentUser();
-  const loggedTenNdung = String(getUserField(
-    currentUser, 'ten_ndung', 'TEN_NDUNG', 'username', 'userName', 'username_login'
+  let loggedTenNdung = String(getUserField(
+    currentUser,
+    'ten_ndung', 'TEN_NDUNG', 'username', 'userName', 'username_login'
   ) || '').trim();
-
-  const levelRaw = getUserField(currentUser, 'level', 'LEVEL', 'quyen', 'QUYEN');
-  const parsedLevel = Number(levelRaw);
-  const effectiveLevel =
-    Number.isFinite(parsedLevel) && parsedLevel > 0 ? parsedLevel : 3;
 
   if (!loggedTenNdung) {
     selectUser.innerHTML =
-      '<option value="">-- Chưa xác định tài khoản đăng nhập --</option>';
+      '<option value="">-- Chưa có phiên đăng nhập --</option>';
     selectUser.disabled = true;
-    setStatus('Không tìm thấy ten_ndung của tài khoản đăng nhập.', true);
+    setStatus(
+      'Không tìm thấy cmis_user_session. Bác hãy đăng nhập lại từ trang login.',
+      true
+    );
     return;
   }
 
@@ -78,10 +97,11 @@ async function loadNhanVienList() {
   selectUser.innerHTML = '<option value="">⏳ Đang tải nhân viên...</option>';
 
   try {
+    // Không lấy level từ localStorage nữa.
+    // Backend tự đọc level thật của ten_ndung trong sheet nhan_vien.
     const queryParams = new URLSearchParams({
       action: 'getNhanVien',
-      ten_ndung: loggedTenNdung,
-      level: String(effectiveLevel)
+      ten_ndung: loggedTenNdung
     });
 
     let res;
@@ -89,7 +109,9 @@ async function loadNhanVienList() {
       res = await fetchJSONP(`${API_URL}?${queryParams.toString()}`);
     } catch (e) {
       const response = await fetch(`${API_URL}?${queryParams.toString()}`);
-      if (!response.ok) throw new Error('Server Apps Script từ chối kết nối.');
+      if (!response.ok) {
+        throw new Error('Server Apps Script từ chối kết nối.');
+      }
       res = await response.json();
     }
 
@@ -97,10 +119,19 @@ async function loadNhanVienList() {
       throw new Error(res?.message || 'Dữ liệu nhân viên trả về không hợp lệ.');
     }
 
+    // Backend trả về level thật trong sheet nhan_vien.
+    const actualLevel = Number(res.level);
+    const effectiveLevel =
+      Number.isFinite(actualLevel) && actualLevel > 0 ? actualLevel : 3;
+
+    // Ghi level thật vào phiên hiện tại để loadCustomers dùng đúng quyền.
+    currentUser.ten_ndung = loggedTenNdung;
+    currentUser.level = effectiveLevel;
+    localStorage.setItem('cmis_user_session', JSON.stringify(currentUser));
+
     selectUser.innerHTML = '';
 
     if (res.data.length === 0) {
-      // Fallback an toàn: tài khoản đăng nhập.
       const opt = document.createElement('option');
       opt.value = loggedTenNdung;
       opt.textContent =
@@ -114,6 +145,7 @@ async function loadNhanVienList() {
 
         const tenNvien = String(u.ten_nvien ?? '').trim();
         const opt = document.createElement('option');
+
         opt.value = tenNdung;
         opt.textContent = tenNvien
           ? `${tenNvien} (${tenNdung})`
@@ -127,28 +159,24 @@ async function loadNhanVienList() {
       });
     }
 
-    // Level 1: xem/chọn tất cả nhân viên.
-    // Level khác 1: chỉ dùng nhân viên đang đăng nhập.
+    // Level 1: chọn được toàn bộ nhân viên.
+    // Level 3: chỉ có tài khoản đăng nhập và khóa combobox.
     selectUser.disabled = effectiveLevel !== 1;
+
     nhanVienLoaded = true;
 
     if (effectiveLevel === 1) {
       setStatus(`Đã tải ${res.data.length} nhân viên. Quyền Level 1.`);
     } else {
-      setStatus(`Nhân viên: ${loggedTenNdung}. Quyền Level ${effectiveLevel}.`);
+      setStatus(
+        `Nhân viên: ${loggedTenNdung}. Quyền Level ${effectiveLevel}.`
+      );
     }
   } catch (err) {
-    console.warn('Lỗi tải danh sách nhân viên:', err);
-
-    selectUser.innerHTML = '';
-    const opt = document.createElement('option');
-    opt.value = loggedTenNdung;
-    opt.textContent =
-      getUserField(currentUser, 'ten_nvien', 'TEN_NVIEN') || loggedTenNdung;
-    opt.selected = true;
-    selectUser.appendChild(opt);
+    console.error('Lỗi tải danh sách nhân viên:', err);
+    selectUser.innerHTML =
+      '<option value="">-- Không tải được danh sách --</option>';
     selectUser.disabled = true;
-
     setStatus('Lỗi tải danh sách nhân viên: ' + (err.message || err), true);
   }
 }
