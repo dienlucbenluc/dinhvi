@@ -132,7 +132,7 @@ async function loadNhanVienList() {
 
   if (!loggedTenNdung) {
     selectUser.innerHTML =
-      '<option value="">-- Chưa có phiên đăng nhập --</option>';
+      '<option value="">-- Chưa có đăng nhập --</option>';
     selectUser.disabled = true;
     setStatus(
       'Không đọc được cmis_user_session. Bác hãy đăng nhập lại từ login.html.',
@@ -186,10 +186,10 @@ async function loadNhanVienList() {
       const tenNdung = String(u.ten_ndung ?? '').trim();
       if (!tenNdung) return;
 
-      const tenNvien = String(u.ten_nvien ?? '').trim();
-      const opt = document.createElement('option');
-      opt.value = tenNdung;
-      opt.textContent = tenNvien ? `${tenNvien} (${tenNdung})` : tenNdung;
+const tenNvien = String(u.ten_nvien ?? '').trim();
+const opt = document.createElement('option');
+opt.value = tenNdung;
+opt.textContent = tenNvien || tenNdung;
 
       if (normalize(tenNdung) === normalize(loggedTenNdung)) {
         opt.selected = true;
