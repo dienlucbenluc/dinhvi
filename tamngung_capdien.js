@@ -2,8 +2,9 @@ const API_URL = 'https://script.google.com/macros/s/AKfycbypH-vE7ctJxQObLPLvRrG7
 const CLOUDINARY_CLOUD_NAME = 'jokzcdxt';
 const CLOUDINARY_UPLOAD_PRESET = 'image_catdien';
 
-const CACHE_CUSTOMERS_KEY = 'cache_tamngung_customers';
-const CACHE_SESSION_KEY = 'cache_tamngung_session_id';
+const CACHE_KEY_CUSTOMERS = 'tamngung_customers_cache';
+const CACHE_KEY_SESSION = 'tamngung_last_session';
+const CACHE_KEY_DATE = 'tamngung_last_date';
 
 let allCustomers = [];
 let busy = false;
@@ -89,27 +90,12 @@ function value(obj, ...names) {
   return '';
 }
 
-function saveLocalCustomers() {
+function saveCache() {
   try {
-    localStorage.setItem(CACHE_CUSTOMERS_KEY, JSON.stringify(allCustomers));
+    localStorage.setItem(CACHE_KEY_CUSTOMERS, JSON.stringify(allCustomers));
   } catch (e) {
-    console.warn('Không thể lưu cache khách hàng:', e);
+    console.warn('Không thể lưu bộ nhớ web:', e);
   }
-}
-
-function getLocalCustomers() {
-  try {
-    const raw = localStorage.getItem(CACHE_CUSTOMERS_KEY);
-    return raw ? JSON.parse(raw) : null;
-  } catch (e) {
-    return null;
-  }
-}
-
-function generateSessionId(currentUser, selectedDate) {
-  const username = getUserField(currentUser, 'ten_ndung', 'TEN_NDUNG', 'username', 'userName');
-  const token = currentUser.token || currentUser.sessionId || currentUser.session_id || '';
-  return `${username}_${selectedDate}_${token}`;
 }
 
 function fetchJSONP(url) {
@@ -144,31 +130,7 @@ function fetchJSONP(url) {
   });
 }
 
-async function fetchCustomersFromServer(loggedTenNdung, selectedDate) {
-  const queryParams = new URLSearchParams({
-    action: 'getList',
-    date: selectedDate,
-    ten_ndung: loggedTenNdung
-  });
-
-  let res;
-  try {
-    res = await fetchJSONP(`${API_URL}?${queryParams.toString()}`);
-  } catch (jsonpErr) {
-    console.warn('JSONP thất bại, thử Fetch:', jsonpErr);
-    const response = await fetch(`${API_URL}?${queryParams.toString()}`);
-    if (!response.ok) throw new Error('Server Apps Script từ chối kết nối.');
-    res = await response.json();
-  }
-
-  if (!res || !res.success || !Array.isArray(res.data)) {
-    throw new Error(res?.message || 'Dữ liệu trả về không hợp lệ.');
-  }
-
-  return res.data;
-}
-
-async function loadCustomers(forceRefresh = false) {
+async function loadCustomers(forceFetch = false) {
   if (busy) return;
 
   const currentUser = getCurrentUser();
@@ -182,39 +144,58 @@ async function loadCustomers(forceRefresh = false) {
   }
 
   const selectedDate = document.getElementById('filterDate')?.value || '';
-  const currentSessionId = generateSessionId(currentUser, selectedDate);
-  const cachedSessionId = localStorage.getItem(CACHE_SESSION_KEY);
-  const cachedData = getLocalCustomers();
+  const lastSession = localStorage.getItem(CACHE_KEY_SESSION);
+  const lastDate = localStorage.getItem(CACHE_KEY_DATE);
+  const cachedDataStr = localStorage.getItem(CACHE_KEY_CUSTOMERS);
 
-  // Yêu cầu 1 & 2: Nếu không có phiên mới và có cache thì lấy từ bộ nhớ web
-  if (!forceRefresh && currentSessionId === cachedSessionId && Array.isArray(cachedData) && cachedData.length > 0) {
-    allCustomers = cachedData;
-    renderFiltered();
-    setStatus(` Tổng khách hàng (tải từ bộ nhớ web): ${allCustomers.length}.`);
-    
-    // Âm thầm cập nhật dữ liệu mới nhất từ server ở nền
-    fetchCustomersFromServer(loggedTenNdung, selectedDate).then(freshData => {
-      allCustomers = freshData;
-      saveLocalCustomers();
+  const isNewSession = (lastSession !== loggedTenNdung || lastDate !== selectedDate);
+
+  if (!forceFetch && !isNewSession && cachedDataStr) {
+    try {
+      allCustomers = JSON.parse(cachedDataStr);
       renderFiltered();
-      setStatus(` Tổng khách hàng: ${allCustomers.length}.`);
-    }).catch(err => {
-      console.warn('Cập nhật ngầm thất bại:', err);
-    });
-    return;
+      setStatus(` Tổng khách hàng (từ bộ nhớ web): ${allCustomers.length}.`);
+      fetchServerDataInBackground(selectedDate, loggedTenNdung);
+      return;
+    } catch (e) {
+      console.warn('Lỗi đọc cache local, tải lại từ server...', e);
+    }
   }
 
-  // Nếu là phiên đăng nhập mới hoặc chọn Lấy danh sách lại
+  await fetchServerData(selectedDate, loggedTenNdung);
+}
+
+async function fetchServerData(selectedDate, loggedTenNdung) {
   busy = true;
   const btn = document.getElementById('btnSearch');
   if (btn) btn.disabled = true;
-  setStatus(`Đang tải dữ liệu từ server...`);
+  setStatus(`Đang tải dữ liệu...`);
+
+  const queryParams = new URLSearchParams({
+    action: 'getList',
+    date: selectedDate,
+    ten_ndung: loggedTenNdung
+  });
 
   try {
-    const data = await fetchCustomersFromServer(loggedTenNdung, selectedDate);
-    allCustomers = data;
-    localStorage.setItem(CACHE_SESSION_KEY, currentSessionId);
-    saveLocalCustomers();
+    let res;
+    try {
+      res = await fetchJSONP(`${API_URL}?${queryParams.toString()}`);
+    } catch (jsonpErr) {
+      console.warn('JSONP thất bại, thử Fetch:', jsonpErr);
+      const response = await fetch(`${API_URL}?${queryParams.toString()}`);
+      if (!response.ok) throw new Error('Server Apps Script từ chối kết nối.');
+      res = await response.json();
+    }
+
+    if (!res || !res.success || !Array.isArray(res.data)) {
+      throw new Error(res?.message || 'Dữ liệu trả về không hợp lệ.');
+    }
+
+    allCustomers = res.data;
+    localStorage.setItem(CACHE_KEY_SESSION, loggedTenNdung);
+    localStorage.setItem(CACHE_KEY_DATE, selectedDate);
+    saveCache();
 
     renderFiltered();
     setStatus(` Tổng khách hàng: ${allCustomers.length}.`);
@@ -223,6 +204,36 @@ async function loadCustomers(forceRefresh = false) {
   } finally {
     busy = false;
     if (btn) btn.disabled = false;
+  }
+}
+
+async function fetchServerDataInBackground(selectedDate, loggedTenNdung) {
+  const queryParams = new URLSearchParams({
+    action: 'getList',
+    date: selectedDate,
+    ten_ndung: loggedTenNdung
+  });
+
+  try {
+    let res;
+    try {
+      res = await fetchJSONP(`${API_URL}?${queryParams.toString()}`);
+    } catch (jsonpErr) {
+      const response = await fetch(`${API_URL}?${queryParams.toString()}`);
+      if (!response.ok) return;
+      res = await response.json();
+    }
+
+    if (res && res.success && Array.isArray(res.data)) {
+      allCustomers = res.data;
+      localStorage.setItem(CACHE_KEY_SESSION, loggedTenNdung);
+      localStorage.setItem(CACHE_KEY_DATE, selectedDate);
+      saveCache();
+      renderFiltered();
+      setStatus(` Tổng khách hàng: ${allCustomers.length}. (Đã cập nhật từ máy chủ)`);
+    }
+  } catch (err) {
+    console.warn('Cập nhật ngầm thất bại:', err);
   }
 }
 
@@ -368,16 +379,14 @@ async function getLocationAndSave(index, safeKey) {
       const lat = position.coords.latitude;
       const lng = position.coords.longitude;
 
-      // Yêu cầu 3: Cập nhật ngay lên giao diện và lưu cache local trước
       c.LAT = lat; 
       c.LNG = lng;
-      saveLocalCustomers();
+      saveCache();
 
       const cell = document.getElementById(`loc-cell-${safeKey}`);
       if (cell) cell.innerHTML = `<a href="https://www.google.com/maps?q=${lat},${lng}" target="_blank" style="color:#1976d2;font-weight:bold;text-decoration:none;">📍 Xem Google Maps</a>`;
-      setStatus(`Đã cập nhật tọa độ cho ${maKhang}. Đang lưu ngầm lên server...`);
+      setStatus(`Đã lưu tọa độ vào bộ nhớ web cho ${maKhang}! Đang đồng bộ server...`);
 
-      // Âm thầm gửi server
       const payload = {
         MA_KHANG: maKhang,
         TEN_KHANG: value(c, 'TEN_KHANG', 'ten_khang'),
@@ -395,14 +404,14 @@ async function getLocationAndSave(index, safeKey) {
       fetch(API_URL, {
         method: 'POST',
         body: JSON.stringify({ action: 'save', payload: payload })
-      })
-      .then(res => res.json())
-      .then(result => {
-        if (!result || result.success !== true) throw new Error(result?.message || 'Không thể lưu tọa độ.');
-        setStatus(`Đã lưu tọa độ thành công cho ${maKhang}!`);
-      })
-      .catch(err => {
-        setStatus('Lỗi lưu ngầm tọa độ: ' + err.message, true);
+      }).then(res => res.json()).then(result => {
+        if (result && result.success) {
+          setStatus(`Đã đồng bộ tọa độ & ghi định vị server thành công cho ${maKhang}!`);
+        } else {
+          setStatus('Đã lưu local, server chưa nhận được: ' + (result?.message || ''), true);
+        }
+      }).catch(err => {
+        setStatus('Đã lưu local, lỗi đồng bộ server: ' + err.message, true);
       });
     },
     err => {
@@ -430,14 +439,10 @@ async function photoSelected(index, safeKey, input) {
     const box = document.getElementById('picture-' + safeKey);
     if (box) box.innerHTML = `<img src="${compressedDataUrl}" alt="Ảnh mới">`;
     
-    // Yêu cầu 3: Cập nhật hình ảnh ngay lập tức lên bộ nhớ web và UI
     allCustomers[index]._newPhotoFile = file;
     allCustomers[index]._newPhotoDataUrl = compressedDataUrl;
-    allCustomers[index].HINH_ANH = compressedDataUrl;
-    allCustomers[index].PICTUREBOX = compressedDataUrl;
-    saveLocalCustomers();
     
-    setStatus('Đã chọn và cập nhật ảnh vào bộ nhớ web. Nhấn Lưu để đồng bộ server.');
+    setStatus('Đã chọn và tối ưu ảnh. Nhấn Lưu để cập nhật.');
   } catch (err) {
     console.error('Lỗi nén ảnh:', err);
     setStatus('Lỗi xử lý ảnh, vui lòng thử lại.', true);
@@ -479,51 +484,58 @@ async function saveCustomer(index, safeKey) {
   const checkbox = document.getElementById('check-' + safeKey);
   if (btn && btn.disabled) return;
 
-  const currentUser = getCurrentUser();
-  const loggedTenNdung = String(getUserField(currentUser, 'ten_ndung', 'TEN_NDUNG', 'username') || '').trim();
-  const maKhang = value(c, 'MA_KHANG', 'ma_khang');
-  const tinhTrang = checkbox && checkbox.checked ? 1 : 0;
+  const oldText = btn ? btn.textContent : '';
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Đang lưu...'; }
 
-  // Yêu cầu 3: Cập nhật ngay bộ nhớ local & giao diện trước
-  c.TINH_TRANG = tinhTrang;
-  saveLocalCustomers();
-  setStatus(`Đã lưu tạm ${maKhang} vào bộ nhớ web. Đang tải ngầm lên server...`);
+  try {
+    const currentUser = getCurrentUser();
+    const loggedTenNdung = String(getUserField(currentUser, 'ten_ndung', 'TEN_NDUNG', 'username') || '').trim();
 
-  // Chạy ngầm upload ảnh & lưu server
-  (async () => {
-    try {
-      let imageUrl = value(c, 'HINH_ANH', 'hinh_anh', 'PICTUREBOX');
+    const maKhang = value(c, 'MA_KHANG', 'ma_khang');
+    let imageUrl = value(c, 'HINH_ANH', 'hinh_anh', 'PICTUREBOX');
 
-      if (c._newPhotoDataUrl) {
-        imageUrl = await uploadToCloudinary(c._newPhotoDataUrl, maKhang);
-      }
-
-      const response = await fetch(API_URL, {
-        method: 'POST',
-        body: JSON.stringify({
-          action: 'save',
-          payload: {
-            MA_KHANG: maKhang,
-            HINH_ANH: imageUrl,
-            PICTUREBOX: imageUrl,
-            TINH_TRANG: tinhTrang,
-            NGUOI_SUA: loggedTenNdung
-          }
-        })
-      });
-
-      const result = await response.json();
-      if (!result || result.success !== true) throw new Error(result?.message || 'Lưu thất bại.');
-
-      c.HINH_ANH = imageUrl;
-      c.PICTUREBOX = imageUrl;
-      delete c._newPhotoDataUrl;
-      saveLocalCustomers();
-      setStatus(`Đã đồng bộ ${maKhang} lên server thành công.`);
-    } catch (err) {
-      setStatus('Lỗi đồng bộ server: ' + (err.message || String(err)), true);
+    if (c._newPhotoDataUrl) {
+      setStatus(`Đang upload hình ${maKhang}...`);
+      imageUrl = await uploadToCloudinary(c._newPhotoDataUrl, maKhang);
     }
-  })();
+
+    const tinhTrang = checkbox && checkbox.checked ? 1 : 0;
+
+    c.HINH_ANH = imageUrl;
+    c.PICTUREBOX = imageUrl;
+    c.TINH_TRANG = tinhTrang;
+    delete c._newPhotoDataUrl;
+    saveCache();
+
+    setStatus(`Đã lưu thành công ${maKhang} vào bộ nhớ web! Đang đồng bộ server...`);
+
+    fetch(API_URL, {
+      method: 'POST',
+      body: JSON.stringify({
+        action: 'save',
+        payload: {
+          MA_KHANG: maKhang,
+          HINH_ANH: imageUrl,
+          PICTUREBOX: imageUrl,
+          TINH_TRANG: tinhTrang,
+          NGUOI_SUA: loggedTenNdung
+        }
+      })
+    }).then(res => res.json()).then(result => {
+      if (result && result.success) {
+        setStatus(`Đã đồng bộ ${maKhang} lên server thành công.`);
+      } else {
+        setStatus('Đã lưu local, server báo lỗi: ' + (result?.message || ''), true);
+      }
+    }).catch(err => {
+      setStatus('Đã lưu local, chưa thể cập nhật server: ' + err.message, true);
+    });
+
+  } catch (err) {
+    setStatus(err.message || String(err), true);
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = oldText; }
+  }
 }
 
 function closeCancelModal() {
@@ -567,7 +579,6 @@ async function executeCancel() {
   const oldLat = c.LAT || '';
   const oldLng = c.LNG || '';
 
-  // Yêu cầu 3: Cập nhật tức thì bộ nhớ web & giao diện UI trước
   c.HINH_ANH = '';
   c.PICTUREBOX = '';
   c.TINH_TRANG = 0;
@@ -575,8 +586,7 @@ async function executeCancel() {
   c.LNG = ''; 
   delete c._newPhotoFile;
   delete c._newPhotoDataUrl;
-
-  saveLocalCustomers();
+  saveCache();
 
   if (checkbox) checkbox.checked = false;
   if (pictureBox) pictureBox.innerHTML = 'Chưa có hình ảnh';
@@ -585,9 +595,8 @@ async function executeCancel() {
     cell.innerHTML = `<span id="btn-location-${safeKey}" onclick="getLocationAndSave(${index}, '${safeKey}')" style="color:red;font-weight:bold;cursor:pointer;">📍 Bấm lấy tọa độ mới</span>`;
   }
 
-  setStatus(`Đã hủy dữ liệu ${maKhang} ở bộ nhớ web. Đang xử lý ngầm trên server...`);
+  setStatus(`Đã hủy dữ liệu local cho ${maKhang}. Đang xử lý ngầm server...`);
 
-  // Xử lý ngầm trên server
   fetch(API_URL, {
     method: 'POST',
     body: JSON.stringify({
@@ -598,16 +607,14 @@ async function executeCancel() {
         LNG: oldLng
       }
     })
-  })
-  .then(res => res.json())
-  .then(result => {
-    if (!result || result.success !== true) {
-      throw new Error(result?.message || 'Hủy thất bại.');
+  }).then(res => res.json()).then(result => {
+    if (result && result.success) {
+      setStatus(`Đã hủy và xóa định vị thành công trên server cho ${maKhang}.`);
+    } else {
+      setStatus('Đã hủy local, lỗi cập nhật server: ' + (result?.message || ''), true);
     }
-    setStatus(`Đã hủy và xóa dữ liệu trên server thành công cho ${maKhang}.`);
-  })
-  .catch(err => {
-    setStatus('Lỗi khi xử lý ngầm trên server: ' + (err.message || String(err)), true);
+  }).catch(err => {
+    setStatus('Lỗi đồng bộ server khi hủy: ' + (err.message || String(err)), true);
   });
 }
 
