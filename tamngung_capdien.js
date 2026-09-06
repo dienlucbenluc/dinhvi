@@ -257,7 +257,10 @@ function renderFiltered() {
   renderCustomers(list);
 }
 
-// Hàm kiểm tra và cập nhật trạng thái làm mờ / sáng của hai nút Lưu và Hủy
+// Kiểm tra ĐỦ CẢ 3 ĐIỀU KIỆN thì nút mới sáng:
+// 1. Đã có tọa độ (có link Google Maps, không phải chữ "Bấm lấy tọa độ mới")
+// 2. Checkbox "Đã cắt điện" được TÍCH (checked)
+// 3. Đã có hình ảnh (không chứa chữ "Chưa có hình ảnh")
 function updateActionButtonsState(safeKey) {
   const locCell = document.getElementById(`loc-cell-${safeKey}`);
   const checkbox = document.getElementById(`check-${safeKey}`);
@@ -267,22 +270,23 @@ function updateActionButtonsState(safeKey) {
 
   if (!btnSave || !btnCancel) return;
 
-  const isLocationDefault = locCell ? locCell.innerHTML.includes('📍 Bấm lấy tọa độ mới') : false;
-  const isCheckboxUnchecked = checkbox ? !checkbox.checked : true;
-  const isPictureEmpty = pictureBox ? pictureBox.innerHTML.includes('Chưa có hình ảnh') : true;
+  const hasLocation = locCell ? !locCell.innerHTML.includes('📍 Bấm lấy tọa độ mới') : false;
+  const isChecked = checkbox ? checkbox.checked : false;
+  const hasPicture = pictureBox ? !pictureBox.innerHTML.includes('Chưa có hình ảnh') : false;
 
-  if (isLocationDefault && isCheckboxUnchecked && isPictureEmpty) {
-    // Làm mờ hai nút khi cả 3 điều kiện đều thỏa mãn
-    btnSave.style.opacity = '0.5';
-    btnSave.style.pointerEvents = 'none';
-    btnCancel.style.opacity = '0.5';
-    btnCancel.style.pointerEvents = 'none';
-  } else {
-    // Làm sáng và kích hoạt lại hai nút khi có ít nhất 1 thay đổi
+  // Cả 3 điều kiện phải thỏa mãn
+  const isAllValid = hasLocation && isChecked && hasPicture;
+
+  if (isAllValid) {
     btnSave.style.opacity = '1';
     btnSave.style.pointerEvents = 'auto';
     btnCancel.style.opacity = '1';
     btnCancel.style.pointerEvents = 'auto';
+  } else {
+    btnSave.style.opacity = '0.5';
+    btnSave.style.pointerEvents = 'none';
+    btnCancel.style.opacity = '0.5';
+    btnCancel.style.pointerEvents = 'none';
   }
 }
 
@@ -380,7 +384,6 @@ function renderCustomers(items) {
       </div>`;
   }).join('');
 
-  // Kiểm tra và cập nhật trạng thái làm mờ / sáng cho tất cả thẻ sau khi render
   items.forEach((c, index) => {
     const key = String(value(c, 'MA_KHANG', 'ma_khang') || index);
     updateActionButtonsState(encodeURIComponent(key));
