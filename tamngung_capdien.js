@@ -385,7 +385,7 @@ async function getLocationAndSave(index, safeKey) {
 
       const cell = document.getElementById(`loc-cell-${safeKey}`);
       if (cell) cell.innerHTML = `<a href="https://www.google.com/maps?q=${lat},${lng}" target="_blank" style="color:#1976d2;font-weight:bold;text-decoration:none;">📍 Xem Google Maps</a>`;
-      setStatus(`Đã lưu tọa độ vào bộ nhớ web cho ${maKhang}! Đang đồng bộ server...`);
+      setStatus(`Lưu định vị thành công.`);
 
       const payload = {
         MA_KHANG: maKhang,
@@ -406,7 +406,7 @@ async function getLocationAndSave(index, safeKey) {
         body: JSON.stringify({ action: 'save', payload: payload })
       }).then(res => res.json()).then(result => {
         if (result && result.success) {
-          setStatus(`Đã đồng bộ tọa độ & ghi định vị server thành công cho ${maKhang}!`);
+          setStatus(`Lưu định vị thành công.`);
         } else {
           setStatus('Đã lưu local, server chưa nhận được: ' + (result?.message || ''), true);
         }
@@ -507,7 +507,7 @@ async function saveCustomer(index, safeKey) {
     delete c._newPhotoDataUrl;
     saveCache();
 
-    setStatus(`Đã lưu thành công ${maKhang} vào bộ nhớ web! Đang đồng bộ server...`);
+    setStatus(`Lưu dữ liệu thành công.`);
 
     fetch(API_URL, {
       method: 'POST',
@@ -552,7 +552,7 @@ function cancelCustomer(index, safeKey) {
   
   const msgEl = document.getElementById('cancelModalMsg');
   if (msgEl) {
-    msgEl.textContent = `Bạn có chắc chắn muốn hủy trạng thái, xóa hình ảnh và xóa thông tin định vị của khách hàng ${maKhang}?`;
+    msgEl.textContent = `Bạn có chắc chắn muốn xóa trạng thái, hình ảnh và định vị của khách hàng ${maKhang}?`;
   }
 
   pendingCancelArgs = { index, safeKey, maKhang };
@@ -595,7 +595,7 @@ async function executeCancel() {
     cell.innerHTML = `<span id="btn-location-${safeKey}" onclick="getLocationAndSave(${index}, '${safeKey}')" style="color:red;font-weight:bold;cursor:pointer;">📍 Bấm lấy tọa độ mới</span>`;
   }
 
-  setStatus(`Đã hủy dữ liệu local cho ${maKhang}. Đang xử lý ngầm server...`);
+  setStatus(`Hủy dữ liệu thành công.`);
 
   fetch(API_URL, {
     method: 'POST',
@@ -609,7 +609,7 @@ async function executeCancel() {
     })
   }).then(res => res.json()).then(result => {
     if (result && result.success) {
-      setStatus(`Đã hủy và xóa định vị thành công trên server cho ${maKhang}.`);
+      setStatus(`Hủy dữ liệu thành công.`);
     } else {
       setStatus('Đã hủy local, lỗi cập nhật server: ' + (result?.message || ''), true);
     }
