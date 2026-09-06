@@ -237,24 +237,6 @@ async function fetchServerDataInBackground(selectedDate, loggedTenNdung) {
   }
 }
 
-function updateSaveCancelButtonsState(safeKey) {
-  const checkbox = document.getElementById(`check-${safeKey}`);
-  const pictureBox = document.getElementById(`picture-${safeKey}`);
-  const locCell = document.getElementById(`loc-cell-${safeKey}`);
-
-  const isChecked = checkbox ? checkbox.checked : false;
-  const hasImage = pictureBox ? pictureBox.querySelector('img') !== null : false;
-  const isLocationPending = locCell ? locCell.innerHTML.includes('📍 Bấm lấy tọa độ mới') : false;
-
-  const shouldDisable = !isChecked && !hasImage && isLocationPending;
-
-  const btnSave = document.getElementById(`save-${safeKey}`);
-  const btnCancel = document.getElementById(`cancel-${safeKey}`);
-
-  if (btnSave) btnSave.disabled = shouldDisable;
-  if (btnCancel) btnCancel.disabled = shouldDisable;
-}
-
 function renderFiltered() {
   const searchBox = document.getElementById('searchBox');
   const keyword = searchBox ? normalize(searchBox.value) : '';
@@ -357,7 +339,7 @@ function renderCustomers(items) {
           </div>
           <div class="actions-right">
             <label class="check-wrap">
-              <input type="checkbox" id="check-${safeKey}" ${Number(value(c, 'TINH_TRANG', 'tinh_trang')) === 1 ? 'checked' : ''} onchange="updateSaveCancelButtonsState('${safeKey}')">
+              <input type="checkbox" id="check-${safeKey}" ${Number(value(c, 'TINH_TRANG', 'tinh_trang')) === 1 ? 'checked' : ''}>
               Đã cắt điện
             </label>
             <button class="btn-photo" onclick="takePhoto(${index}, '${safeKey}')">📷 Chụp ảnh</button>
@@ -368,12 +350,6 @@ function renderCustomers(items) {
         </div>
       </div>`;
   }).join('');
-
-  items.forEach((c, index) => {
-    const key = String(value(c, 'MA_KHANG', 'ma_khang') || index);
-    const safeKey = encodeURIComponent(key);
-    updateSaveCancelButtonsState(safeKey);
-  });
 }
 
 async function getLocationAndSave(index, safeKey) {
@@ -409,7 +385,6 @@ async function getLocationAndSave(index, safeKey) {
 
       const cell = document.getElementById(`loc-cell-${safeKey}`);
       if (cell) cell.innerHTML = `<a href="https://www.google.com/maps?q=${lat},${lng}" target="_blank" style="color:#1976d2;font-weight:bold;text-decoration:none;">📍 Xem Google Maps</a>`;
-      updateSaveCancelButtonsState(safeKey);
       setStatus(`Lưu định vị thành công.`);
 
       const payload = {
@@ -467,7 +442,6 @@ async function photoSelected(index, safeKey, input) {
     allCustomers[index]._newPhotoFile = file;
     allCustomers[index]._newPhotoDataUrl = compressedDataUrl;
     
-    updateSaveCancelButtonsState(safeKey);
     setStatus('Đã chọn và tối ưu ảnh. Nhấn Lưu để cập nhật.');
   } catch (err) {
     console.error('Lỗi nén ảnh:', err);
@@ -561,7 +535,6 @@ async function saveCustomer(index, safeKey) {
     setStatus(err.message || String(err), true);
   } finally {
     if (btn) { btn.disabled = false; btn.textContent = oldText; }
-    updateSaveCancelButtonsState(safeKey);
   }
 }
 
@@ -622,7 +595,6 @@ async function executeCancel() {
     cell.innerHTML = `<span id="btn-location-${safeKey}" onclick="getLocationAndSave(${index}, '${safeKey}')" style="color:red;font-weight:bold;cursor:pointer;">📍 Bấm lấy tọa độ mới</span>`;
   }
 
-  updateSaveCancelButtonsState(safeKey);
   setStatus(`Hủy dữ liệu thành công.`);
 
   fetch(API_URL, {
