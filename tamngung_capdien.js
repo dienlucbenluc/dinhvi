@@ -257,6 +257,35 @@ function renderFiltered() {
   renderCustomers(list);
 }
 
+// Hàm kiểm tra và cập nhật trạng thái làm mờ / sáng của hai nút Lưu và Hủy
+function updateActionButtonsState(safeKey) {
+  const locCell = document.getElementById(`loc-cell-${safeKey}`);
+  const checkbox = document.getElementById(`check-${safeKey}`);
+  const pictureBox = document.getElementById(`picture-${safeKey}`);
+  const btnSave = document.getElementById(`save-${safeKey}`);
+  const btnCancel = document.getElementById(`cancel-${safeKey}`);
+
+  if (!btnSave || !btnCancel) return;
+
+  const isLocationDefault = locCell ? locCell.innerHTML.includes('📍 Bấm lấy tọa độ mới') : false;
+  const isCheckboxUnchecked = checkbox ? !checkbox.checked : true;
+  const isPictureEmpty = pictureBox ? pictureBox.innerHTML.includes('Chưa có hình ảnh') : true;
+
+  if (isLocationDefault && isCheckboxUnchecked && isPictureEmpty) {
+    // Làm mờ hai nút khi cả 3 điều kiện đều thỏa mãn
+    btnSave.style.opacity = '0.5';
+    btnSave.style.pointerEvents = 'none';
+    btnCancel.style.opacity = '0.5';
+    btnCancel.style.pointerEvents = 'none';
+  } else {
+    // Làm sáng và kích hoạt lại hai nút khi có ít nhất 1 thay đổi
+    btnSave.style.opacity = '1';
+    btnSave.style.pointerEvents = 'auto';
+    btnCancel.style.opacity = '1';
+    btnCancel.style.pointerEvents = 'auto';
+  }
+}
+
 function renderCustomers(items) {
   const root = document.getElementById('customerList');
   if (!root) return;
@@ -339,7 +368,7 @@ function renderCustomers(items) {
           </div>
           <div class="actions-right">
             <label class="check-wrap">
-              <input type="checkbox" id="check-${safeKey}" ${Number(value(c, 'TINH_TRANG', 'tinh_trang')) === 1 ? 'checked' : ''}>
+              <input type="checkbox" id="check-${safeKey}" ${Number(value(c, 'TINH_TRANG', 'tinh_trang')) === 1 ? 'checked' : ''} onchange="updateActionButtonsState('${safeKey}')">
               Đã cắt điện
             </label>
             <button class="btn-photo" onclick="takePhoto(${index}, '${safeKey}')">📷 Chụp ảnh</button>
@@ -350,6 +379,12 @@ function renderCustomers(items) {
         </div>
       </div>`;
   }).join('');
+
+  // Kiểm tra và cập nhật trạng thái làm mờ / sáng cho tất cả thẻ sau khi render
+  items.forEach((c, index) => {
+    const key = String(value(c, 'MA_KHANG', 'ma_khang') || index);
+    updateActionButtonsState(encodeURIComponent(key));
+  });
 }
 
 async function getLocationAndSave(index, safeKey) {
@@ -385,6 +420,8 @@ async function getLocationAndSave(index, safeKey) {
 
       const cell = document.getElementById(`loc-cell-${safeKey}`);
       if (cell) cell.innerHTML = `<a href="https://www.google.com/maps?q=${lat},${lng}" target="_blank" style="color:#1976d2;font-weight:bold;text-decoration:none;">📍 Xem Google Maps</a>`;
+      
+      updateActionButtonsState(safeKey);
       setStatus(`Lưu định vị thành công.`);
 
       const payload = {
@@ -442,6 +479,7 @@ async function photoSelected(index, safeKey, input) {
     allCustomers[index]._newPhotoFile = file;
     allCustomers[index]._newPhotoDataUrl = compressedDataUrl;
     
+    updateActionButtonsState(safeKey);
     setStatus('Đã chọn và tối ưu ảnh. Nhấn Lưu để cập nhật.');
   } catch (err) {
     console.error('Lỗi nén ảnh:', err);
@@ -507,6 +545,7 @@ async function saveCustomer(index, safeKey) {
     delete c._newPhotoDataUrl;
     saveCache();
 
+    updateActionButtonsState(safeKey);
     setStatus(`Lưu dữ liệu thành công.`);
 
     fetch(API_URL, {
@@ -595,6 +634,7 @@ async function executeCancel() {
     cell.innerHTML = `<span id="btn-location-${safeKey}" onclick="getLocationAndSave(${index}, '${safeKey}')" style="color:red;font-weight:bold;cursor:pointer;">📍 Bấm lấy tọa độ mới</span>`;
   }
 
+  updateActionButtonsState(safeKey);
   setStatus(`Hủy dữ liệu thành công.`);
 
   fetch(API_URL, {
