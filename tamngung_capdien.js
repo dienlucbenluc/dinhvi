@@ -523,7 +523,7 @@ async function saveCustomer(index, safeKey) {
       })
     }).then(res => res.json()).then(result => {
       if (result && result.success) {
-        setStatus(`Đã đồng bộ ${maKhang} lên server thành công.`);
+        setStatus(`Lưu dữ liệu thành công.`);
       } else {
         setStatus('Đã lưu local, server báo lỗi: ' + (result?.message || ''), true);
       }
