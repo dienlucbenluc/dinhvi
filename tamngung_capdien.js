@@ -2,10 +2,6 @@ const API_URL = 'https://script.google.com/macros/s/AKfycbypH-vE7ctJxQObLPLvRrG7
 const CLOUDINARY_CLOUD_NAME = 'jokzcdxt';
 const CLOUDINARY_UPLOAD_PRESET = 'image_catdien';
 
-const CACHE_KEY_CUSTOMERS = 'tamngung_customers_cache';
-const CACHE_KEY_SESSION = 'tamngung_last_session';
-const CACHE_KEY_DATE = 'tamngung_last_date';
-
 let allCustomers = [];
 let busy = false;
 let appInitialized = false;
@@ -90,14 +86,6 @@ function value(obj, ...names) {
   return '';
 }
 
-function saveCache() {
-  try {
-    localStorage.setItem(CACHE_KEY_CUSTOMERS, JSON.stringify(allCustomers));
-  } catch (e) {
-    console.warn('Không thể lưu bộ nhớ web:', e);
-  }
-}
-
 function fetchJSONP(url) {
   return new Promise((resolve, reject) => {
     const callbackName = 'jsonp_cb_' + Math.round(1000000 * Math.random());
@@ -130,7 +118,7 @@ function fetchJSONP(url) {
   });
 }
 
-async function loadCustomers(forceFetch = false) {
+async function loadCustomers() {
   if (busy) return;
 
   const currentUser = getCurrentUser();
@@ -143,33 +131,12 @@ async function loadCustomers(forceFetch = false) {
     return;
   }
 
-  const selectedDate = document.getElementById('filterDate')?.value || '';
-  const lastSession = localStorage.getItem(CACHE_KEY_SESSION);
-  const lastDate = localStorage.getItem(CACHE_KEY_DATE);
-  const cachedDataStr = localStorage.getItem(CACHE_KEY_CUSTOMERS);
-
-  const isNewSession = (lastSession !== loggedTenNdung || lastDate !== selectedDate);
-
-  if (!forceFetch && !isNewSession && cachedDataStr) {
-    try {
-      allCustomers = JSON.parse(cachedDataStr);
-      renderFiltered();
-      setStatus(` Tổng khách hàng (từ bộ nhớ web): ${allCustomers.length}.`);
-      fetchServerDataInBackground(selectedDate, loggedTenNdung);
-      return;
-    } catch (e) {
-      console.warn('Lỗi đọc cache local, tải lại từ server...', e);
-    }
-  }
-
-  await fetchServerData(selectedDate, loggedTenNdung);
-}
-
-async function fetchServerData(selectedDate, loggedTenNdung) {
   busy = true;
   const btn = document.getElementById('btnSearch');
   if (btn) btn.disabled = true;
   setStatus(`Đang tải dữ liệu...`);
+
+  const selectedDate = document.getElementById('filterDate')?.value || '';
 
   const queryParams = new URLSearchParams({
     action: 'getList',
@@ -193,10 +160,6 @@ async function fetchServerData(selectedDate, loggedTenNdung) {
     }
 
     allCustomers = res.data;
-    localStorage.setItem(CACHE_KEY_SESSION, loggedTenNdung);
-    localStorage.setItem(CACHE_KEY_DATE, selectedDate);
-    saveCache();
-
     renderFiltered();
     setStatus(` Tổng khách hàng: ${allCustomers.length}.`);
   } catch (err) {
@@ -204,36 +167,6 @@ async function fetchServerData(selectedDate, loggedTenNdung) {
   } finally {
     busy = false;
     if (btn) btn.disabled = false;
-  }
-}
-
-async function fetchServerDataInBackground(selectedDate, loggedTenNdung) {
-  const queryParams = new URLSearchParams({
-    action: 'getList',
-    date: selectedDate,
-    ten_ndung: loggedTenNdung
-  });
-
-  try {
-    let res;
-    try {
-      res = await fetchJSONP(`${API_URL}?${queryParams.toString()}`);
-    } catch (jsonpErr) {
-      const response = await fetch(`${API_URL}?${queryParams.toString()}`);
-      if (!response.ok) return;
-      res = await response.json();
-    }
-
-    if (res && res.success && Array.isArray(res.data)) {
-      allCustomers = res.data;
-      localStorage.setItem(CACHE_KEY_SESSION, loggedTenNdung);
-      localStorage.setItem(CACHE_KEY_DATE, selectedDate);
-      saveCache();
-      renderFiltered();
-      setStatus(` Tổng khách hàng: ${allCustomers.length}. (Đã cập nhật từ máy chủ)`);
-    }
-  } catch (err) {
-    console.warn('Cập nhật ngầm thất bại:', err);
   }
 }
 
@@ -255,6 +188,28 @@ function renderFiltered() {
     : allCustomers;
 
   renderCustomers(list);
+}
+
+function checkActionButtonsState(index, safeKey) {
+  const c = allCustomers[index];
+  if (!c) return;
+
+  const checkbox = document.getElementById(`check-${safeKey}`);
+  const isChecked = checkbox ? checkbox.checked : Number(value(c, 'TINH_TRANG', 'tinh_trang')) === 1;
+
+  const hasPhoto = !!(c._newPhotoDataUrl || value(c, 'HINH_ANH', 'hinh_anh', 'PICTUREBOX'));
+
+  const lat = String(value(c, 'LAT', 'lat') || '').trim();
+  const lng = String(value(c, 'LNG', 'lng') || '').trim();
+  const hasLocation = lat !== '' && lng !== '' && !isNaN(lat) && !isNaN(lng);
+
+  const isValid = isChecked && hasPhoto && hasLocation;
+
+  const btnSave = document.getElementById(`save-${safeKey}`);
+  const btnCancel = document.getElementById(`cancel-${safeKey}`);
+
+  if (btnSave) btnSave.disabled = !isValid;
+  if (btnCancel) btnCancel.disabled = !isValid;
 }
 
 function renderCustomers(items) {
@@ -339,7 +294,7 @@ function renderCustomers(items) {
           </div>
           <div class="actions-right">
             <label class="check-wrap">
-              <input type="checkbox" id="check-${safeKey}" ${Number(value(c, 'TINH_TRANG', 'tinh_trang')) === 1 ? 'checked' : ''}>
+              <input type="checkbox" id="check-${safeKey}" ${Number(value(c, 'TINH_TRANG', 'tinh_trang')) === 1 ? 'checked' : ''} onchange="checkActionButtonsState(${index}, '${safeKey}')">
               Đã cắt điện
             </label>
             <button class="btn-photo" onclick="takePhoto(${index}, '${safeKey}')">📷 Chụp ảnh</button>
@@ -350,6 +305,12 @@ function renderCustomers(items) {
         </div>
       </div>`;
   }).join('');
+
+  items.forEach((c, index) => {
+    const key = String(value(c, 'MA_KHANG', 'ma_khang') || index);
+    const safeKey = encodeURIComponent(key);
+    checkActionButtonsState(index, safeKey);
+  });
 }
 
 async function getLocationAndSave(index, safeKey) {
@@ -376,47 +337,48 @@ async function getLocationAndSave(index, safeKey) {
 
   navigator.geolocation.getCurrentPosition(
     async position => {
-      const lat = position.coords.latitude;
-      const lng = position.coords.longitude;
+      try {
+        const lat = position.coords.latitude;
+        const lng = position.coords.longitude;
 
-      c.LAT = lat; 
-      c.LNG = lng;
-      saveCache();
+        const payload = {
+          MA_KHANG: maKhang,
+          TEN_KHANG: value(c, 'TEN_KHANG', 'ten_khang'),
+          SO_CTO: value(c, 'SO_CTO', 'so_cto'),
+          MA_TRAM: value(c, 'MA_TRAM', 'ma_tram'),
+          TEN_TRAM: value(c, 'TEN_TRAM', 'ten_tram'),
+          VTRI_DNOI: value(c, 'VTRI_DNOI', 'vtri_dnoi', 'SO_COT', 'so_cot'),
+          TEN_NDUNG: loggedTenNdung,
+          TEN_NVIEN: loggedTenNvien,
+          TEN_CVIEC: 'Tạm ngừng CĐ',
+          LAT: lat,
+          LNG: lng
+        };
 
-      const cell = document.getElementById(`loc-cell-${safeKey}`);
-      if (cell) cell.innerHTML = `<a href="https://www.google.com/maps?q=${lat},${lng}" target="_blank" style="color:#1976d2;font-weight:bold;text-decoration:none;">📍 Xem Google Maps</a>`;
-      setStatus(`Lưu định vị thành công.`);
+        const response = await fetch(API_URL, {
+          method: 'POST',
+          body: JSON.stringify({ action: 'save', payload: payload })
+        });
 
-      const payload = {
-        MA_KHANG: maKhang,
-        TEN_KHANG: value(c, 'TEN_KHANG', 'ten_khang'),
-        SO_CTO: value(c, 'SO_CTO', 'so_cto'),
-        MA_TRAM: value(c, 'MA_TRAM', 'ma_tram'),
-        TEN_TRAM: value(c, 'TEN_TRAM', 'ten_tram'),
-        VTRI_DNOI: value(c, 'VTRI_DNOI', 'vtri_dnoi', 'SO_COT', 'so_cot'),
-        TEN_NDUNG: loggedTenNdung,
-        TEN_NVIEN: loggedTenNvien,
-        TEN_CVIEC: 'Tạm ngừng CĐ',
-        LAT: lat,
-        LNG: lng
-      };
+        const result = await response.json();
+        if (!result || result.success !== true) throw new Error(result?.message || 'Không thể lưu tọa độ.');
 
-      fetch(API_URL, {
-        method: 'POST',
-        body: JSON.stringify({ action: 'save', payload: payload })
-      }).then(res => res.json()).then(result => {
-        if (result && result.success) {
-          setStatus(`Lưu định vị thành công.`);
-        } else {
-          setStatus('Đã lưu local, server chưa nhận được: ' + (result?.message || ''), true);
-        }
-      }).catch(err => {
-        setStatus('Đã lưu local, lỗi đồng bộ server: ' + err.message, true);
-      });
+        c.LAT = lat; 
+        c.LNG = lng;
+        const cell = document.getElementById(`loc-cell-${safeKey}`);
+        if (cell) cell.innerHTML = `<a href="https://www.google.com/maps?q=${lat},${lng}" target="_blank" style="color:#1976d2;font-weight:bold;text-decoration:none;">📍 Xem Google Maps</a>`;
+        setStatus(`Đã lưu tọa độ & ghi định vị thành công cho ${maKhang}!`);
+        checkActionButtonsState(index, safeKey);
+      } catch (err) {
+        if (btnLoc) { btnLoc.style.pointerEvents = 'auto'; btnLoc.textContent = '📍 Bấm lấy tọa độ mới'; }
+        setStatus('Lỗi lưu tọa độ: ' + err.message, true);
+        checkActionButtonsState(index, safeKey);
+      }
     },
     err => {
       if (btnLoc) { btnLoc.style.pointerEvents = 'auto'; btnLoc.textContent = '📍 Bấm lấy tọa độ mới'; }
       setStatus('Không thể lấy vị trí GPS: ' + err.message, true);
+      checkActionButtonsState(index, safeKey);
     },
     { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
   );
@@ -443,9 +405,11 @@ async function photoSelected(index, safeKey, input) {
     allCustomers[index]._newPhotoDataUrl = compressedDataUrl;
     
     setStatus('Đã chọn và tối ưu ảnh. Nhấn Lưu để cập nhật.');
+    checkActionButtonsState(index, safeKey);
   } catch (err) {
     console.error('Lỗi nén ảnh:', err);
     setStatus('Lỗi xử lý ảnh, vui lòng thử lại.', true);
+    checkActionButtonsState(index, safeKey);
   }
 }
 
@@ -500,16 +464,7 @@ async function saveCustomer(index, safeKey) {
     }
 
     const tinhTrang = checkbox && checkbox.checked ? 1 : 0;
-
-    c.HINH_ANH = imageUrl;
-    c.PICTUREBOX = imageUrl;
-    c.TINH_TRANG = tinhTrang;
-    delete c._newPhotoDataUrl;
-    saveCache();
-
-    setStatus(`Lưu dữ liệu thành công.`);
-
-    fetch(API_URL, {
+    const response = await fetch(API_URL, {
       method: 'POST',
       body: JSON.stringify({
         action: 'save',
@@ -521,20 +476,20 @@ async function saveCustomer(index, safeKey) {
           NGUOI_SUA: loggedTenNdung
         }
       })
-    }).then(res => res.json()).then(result => {
-      if (result && result.success) {
-        setStatus(`Lưu dữ liệu thành công.`);
-      } else {
-        setStatus('Đã lưu local, server báo lỗi: ' + (result?.message || ''), true);
-      }
-    }).catch(err => {
-      setStatus('Đã lưu local, chưa thể cập nhật server: ' + err.message, true);
     });
 
+    const result = await response.json();
+    if (!result || result.success !== true) throw new Error(result?.message || 'Lưu thất bại.');
+
+    c.HINH_ANH = imageUrl;
+    c.TINH_TRANG = tinhTrang;
+    delete c._newPhotoDataUrl;
+    setStatus(`Đã lưu ${maKhang} thành công.`);
   } catch (err) {
     setStatus(err.message || String(err), true);
   } finally {
-    if (btn) { btn.disabled = false; btn.textContent = oldText; }
+    if (btn) { btn.textContent = oldText; }
+    checkActionButtonsState(index, safeKey);
   }
 }
 
@@ -552,7 +507,7 @@ function cancelCustomer(index, safeKey) {
   
   const msgEl = document.getElementById('cancelModalMsg');
   if (msgEl) {
-    msgEl.textContent = `Bạn có chắc chắn muốn xóa trạng thái, hình ảnh và định vị của khách hàng ${maKhang}?`;
+    msgEl.textContent = `Bạn có chắc chắn muốn hủy trạng thái, xóa hình ảnh và xóa thông tin định vị của khách hàng ${maKhang}?`;
   }
 
   pendingCancelArgs = { index, safeKey, maKhang };
@@ -573,49 +528,58 @@ async function executeCancel() {
   closeCancelModal();
 
   const c = allCustomers[index];
+  const btnCancel = document.getElementById('cancel-' + safeKey);
+  const btnSave = document.getElementById('save-' + safeKey);
   const checkbox = document.getElementById('check-' + safeKey);
   const pictureBox = document.getElementById('picture-' + safeKey);
 
-  const oldLat = c.LAT || '';
-  const oldLng = c.LNG || '';
+  if (btnCancel && btnCancel.disabled) return;
 
-  c.HINH_ANH = '';
-  c.PICTUREBOX = '';
-  c.TINH_TRANG = 0;
-  c.LAT = ''; 
-  c.LNG = ''; 
-  delete c._newPhotoFile;
-  delete c._newPhotoDataUrl;
-  saveCache();
+  const oldText = btnCancel ? btnCancel.textContent : '';
+  if (btnCancel) { btnCancel.disabled = true; btnCancel.textContent = '⏳ Đang hủy...'; }
+  if (btnSave) btnSave.disabled = true;
 
-  if (checkbox) checkbox.checked = false;
-  if (pictureBox) pictureBox.innerHTML = 'Chưa có hình ảnh';
-  const cell = document.getElementById(`loc-cell-${safeKey}`);
-  if (cell) {
-    cell.innerHTML = `<span id="btn-location-${safeKey}" onclick="getLocationAndSave(${index}, '${safeKey}')" style="color:red;font-weight:bold;cursor:pointer;">📍 Bấm lấy tọa độ mới</span>`;
-  }
+  try {
+    setStatus(`Đang tiến hành hủy và xóa dữ liệu cho ${maKhang}...`);
 
-  setStatus(`Hủy dữ liệu thành công.`);
+    const response = await fetch(API_URL, {
+      method: 'POST',
+      body: JSON.stringify({
+        action: 'cancel',
+        payload: {
+          MA_KHANG: maKhang,
+          LAT: c.LAT || '',
+          LNG: c.LNG || ''
+        }
+      })
+    });
 
-  fetch(API_URL, {
-    method: 'POST',
-    body: JSON.stringify({
-      action: 'cancel',
-      payload: {
-        MA_KHANG: maKhang,
-        LAT: oldLat,
-        LNG: oldLng
-      }
-    })
-  }).then(res => res.json()).then(result => {
-    if (result && result.success) {
-      setStatus(`Hủy dữ liệu thành công.`);
-    } else {
-      setStatus('Đã hủy local, lỗi cập nhật server: ' + (result?.message || ''), true);
+    const result = await response.json();
+    if (!result || result.success !== true) {
+      throw new Error(result?.message || 'Hủy thất bại.');
     }
-  }).catch(err => {
-    setStatus('Lỗi đồng bộ server khi hủy: ' + (err.message || String(err)), true);
-  });
+
+    c.HINH_ANH = '';
+    c.PICTUREBOX = '';
+    c.TINH_TRANG = 0;
+    c.LAT = ''; 
+    c.LNG = ''; 
+    delete c._newPhotoFile;
+    delete c._newPhotoDataUrl;
+
+    if (checkbox) checkbox.checked = false;
+    if (pictureBox) pictureBox.innerHTML = 'Chưa có hình ảnh';
+    const cell = document.getElementById(`loc-cell-${safeKey}`);
+    if (cell) {
+      cell.innerHTML = `<span id="btn-location-${safeKey}" onclick="getLocationAndSave(${index}, '${safeKey}')" style="color:red;font-weight:bold;cursor:pointer;">📍 Bấm lấy tọa độ mới</span>`;
+    }
+    setStatus(`Đã hủy và xóa định vị thành công cho ${maKhang}.`);
+  } catch (err) {
+    setStatus('Lỗi khi hủy: ' + (err.message || String(err)), true);
+  } finally {
+    if (btnCancel) { btnCancel.textContent = oldText; }
+    checkActionButtonsState(index, safeKey);
+  }
 }
 
 const slider = document.getElementById('customerList');
