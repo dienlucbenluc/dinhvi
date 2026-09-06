@@ -190,27 +190,28 @@ function renderFiltered() {
   renderCustomers(list);
 }
 
-// Bổ sung kiểm tra trạng thái mờ/sáng cho nút Lưu và Hủy
-function updateButtonState(index, safeKey) {
+// Bổ sung kiểm tra đủ 3 điều kiện: Tick cắt điện + Có ảnh + Có vị trí GPS
+function validateButtons(index, safeKey) {
   const c = allCustomers[index];
   if (!c) return;
 
-  const chk = document.getElementById(`check-${safeKey}`);
-  const isChecked = chk ? chk.checked : Number(value(c, 'TINH_TRANG', 'tinh_trang')) === 1;
+  const checkbox = document.getElementById('check-' + safeKey);
+  const isChecked = checkbox ? checkbox.checked : Number(value(c, 'TINH_TRANG', 'tinh_trang')) === 1;
 
-  const hasPhoto = !!(c._newPhotoDataUrl || value(c, 'HINH_ANH', 'hinh_anh', 'PICTUREBOX'));
+  const photoUrl = value(c, 'HINH_ANH', 'hinh_anh', 'PICTUREBOX');
+  const hasPhoto = !!(c._newPhotoDataUrl || photoUrl);
 
   const lat = String(value(c, 'LAT', 'lat') || '').trim();
   const lng = String(value(c, 'LNG', 'lng') || '').trim();
   const hasLocation = lat !== '' && lng !== '' && !isNaN(lat) && !isNaN(lng);
 
-  const isValid = isChecked && hasPhoto && hasLocation;
+  const canAction = isChecked && hasPhoto && hasLocation;
 
-  const btnSave = document.getElementById(`save-${safeKey}`);
-  const btnCancel = document.getElementById(`cancel-${safeKey}`);
+  const btnSave = document.getElementById('save-' + safeKey);
+  const btnCancel = document.getElementById('cancel-' + safeKey);
 
-  if (btnSave) btnSave.disabled = !isValid;
-  if (btnCancel) btnCancel.disabled = !isValid;
+  if (btnSave) btnSave.disabled = !canAction;
+  if (btnCancel) btnCancel.disabled = !canAction;
 }
 
 function renderCustomers(items) {
@@ -295,7 +296,7 @@ function renderCustomers(items) {
           </div>
           <div class="actions-right">
             <label class="check-wrap">
-              <input type="checkbox" id="check-${safeKey}" ${Number(value(c, 'TINH_TRANG', 'tinh_trang')) === 1 ? 'checked' : ''} onchange="updateButtonState(${index}, '${safeKey}')">
+              <input type="checkbox" id="check-${safeKey}" ${Number(value(c, 'TINH_TRANG', 'tinh_trang')) === 1 ? 'checked' : ''} onchange="validateButtons(${index}, '${safeKey}')">
               Đã cắt điện
             </label>
             <button class="btn-photo" onclick="takePhoto(${index}, '${safeKey}')">📷 Chụp ảnh</button>
@@ -307,11 +308,11 @@ function renderCustomers(items) {
       </div>`;
   }).join('');
 
-  // Kiểm tra khóa nút ngay sau khi render xong danh sách
+  // Cập nhật mờ/sáng nút Lưu, Hủy ngay khi tạo xong giao diện
   items.forEach((c, index) => {
     const key = String(value(c, 'MA_KHANG', 'ma_khang') || index);
     const safeKey = encodeURIComponent(key);
-    updateButtonState(index, safeKey);
+    validateButtons(index, safeKey);
   });
 }
 
@@ -370,17 +371,17 @@ async function getLocationAndSave(index, safeKey) {
         const cell = document.getElementById(`loc-cell-${safeKey}`);
         if (cell) cell.innerHTML = `<a href="https://www.google.com/maps?q=${lat},${lng}" target="_blank" style="color:#1976d2;font-weight:bold;text-decoration:none;">📍 Xem Google Maps</a>`;
         setStatus(`Đã lưu tọa độ & ghi định vị thành công cho ${maKhang}!`);
-        updateButtonState(index, safeKey);
+        validateButtons(index, safeKey);
       } catch (err) {
         if (btnLoc) { btnLoc.style.pointerEvents = 'auto'; btnLoc.textContent = '📍 Bấm lấy tọa độ mới'; }
         setStatus('Lỗi lưu tọa độ: ' + err.message, true);
-        updateButtonState(index, safeKey);
+        validateButtons(index, safeKey);
       }
     },
     err => {
       if (btnLoc) { btnLoc.style.pointerEvents = 'auto'; btnLoc.textContent = '📍 Bấm lấy tọa độ mới'; }
       setStatus('Không thể lấy vị trí GPS: ' + err.message, true);
-      updateButtonState(index, safeKey);
+      validateButtons(index, safeKey);
     },
     { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
   );
@@ -407,11 +408,11 @@ async function photoSelected(index, safeKey, input) {
     allCustomers[index]._newPhotoDataUrl = compressedDataUrl;
     
     setStatus('Đã chọn và tối ưu ảnh. Nhấn Lưu để cập nhật.');
-    updateButtonState(index, safeKey);
+    validateButtons(index, safeKey);
   } catch (err) {
     console.error('Lỗi nén ảnh:', err);
     setStatus('Lỗi xử lý ảnh, vui lòng thử lại.', true);
-    updateButtonState(index, safeKey);
+    validateButtons(index, safeKey);
   }
 }
 
@@ -483,6 +484,7 @@ async function saveCustomer(index, safeKey) {
     const result = await response.json();
     if (!result || result.success !== true) throw new Error(result?.message || 'Lưu thất bại.');
 
+    // Cập nhật lại biến mảng dữ liệu ngay trên Web hệt như gốc
     c.HINH_ANH = imageUrl;
     c.TINH_TRANG = tinhTrang;
     delete c._newPhotoDataUrl;
@@ -490,8 +492,8 @@ async function saveCustomer(index, safeKey) {
   } catch (err) {
     setStatus(err.message || String(err), true);
   } finally {
-    if (btn) { btn.disabled = false; btn.textContent = oldText; }
-    updateButtonState(index, safeKey);
+    if (btn) { btn.textContent = oldText; }
+    validateButtons(index, safeKey);
   }
 }
 
@@ -561,6 +563,7 @@ async function executeCancel() {
       throw new Error(result?.message || 'Hủy thất bại.');
     }
 
+    // Xóa sạch dữ liệu mảng và DOM trực tiếp trên trang đúng gốc
     c.HINH_ANH = '';
     c.PICTUREBOX = '';
     c.TINH_TRANG = 0;
@@ -579,9 +582,8 @@ async function executeCancel() {
   } catch (err) {
     setStatus('Lỗi khi hủy: ' + (err.message || String(err)), true);
   } finally {
-    if (btnCancel) { btnCancel.disabled = false; btnCancel.textContent = oldText; }
-    if (btnSave) btnSave.disabled = false;
-    updateButtonState(index, safeKey);
+    if (btnCancel) { btnCancel.textContent = oldText; }
+    validateButtons(index, safeKey);
   }
 }
 
