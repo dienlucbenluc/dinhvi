@@ -190,12 +190,13 @@ function renderFiltered() {
   renderCustomers(list);
 }
 
-function checkActionButtonsState(index, safeKey) {
+// Bổ sung kiểm tra trạng thái mờ/sáng cho nút Lưu và Hủy
+function updateButtonState(index, safeKey) {
   const c = allCustomers[index];
   if (!c) return;
 
-  const checkbox = document.getElementById(`check-${safeKey}`);
-  const isChecked = checkbox ? checkbox.checked : Number(value(c, 'TINH_TRANG', 'tinh_trang')) === 1;
+  const chk = document.getElementById(`check-${safeKey}`);
+  const isChecked = chk ? chk.checked : Number(value(c, 'TINH_TRANG', 'tinh_trang')) === 1;
 
   const hasPhoto = !!(c._newPhotoDataUrl || value(c, 'HINH_ANH', 'hinh_anh', 'PICTUREBOX'));
 
@@ -294,7 +295,7 @@ function renderCustomers(items) {
           </div>
           <div class="actions-right">
             <label class="check-wrap">
-              <input type="checkbox" id="check-${safeKey}" ${Number(value(c, 'TINH_TRANG', 'tinh_trang')) === 1 ? 'checked' : ''} onchange="checkActionButtonsState(${index}, '${safeKey}')">
+              <input type="checkbox" id="check-${safeKey}" ${Number(value(c, 'TINH_TRANG', 'tinh_trang')) === 1 ? 'checked' : ''} onchange="updateButtonState(${index}, '${safeKey}')">
               Đã cắt điện
             </label>
             <button class="btn-photo" onclick="takePhoto(${index}, '${safeKey}')">📷 Chụp ảnh</button>
@@ -306,10 +307,11 @@ function renderCustomers(items) {
       </div>`;
   }).join('');
 
+  // Kiểm tra khóa nút ngay sau khi render xong danh sách
   items.forEach((c, index) => {
     const key = String(value(c, 'MA_KHANG', 'ma_khang') || index);
     const safeKey = encodeURIComponent(key);
-    checkActionButtonsState(index, safeKey);
+    updateButtonState(index, safeKey);
   });
 }
 
@@ -368,17 +370,17 @@ async function getLocationAndSave(index, safeKey) {
         const cell = document.getElementById(`loc-cell-${safeKey}`);
         if (cell) cell.innerHTML = `<a href="https://www.google.com/maps?q=${lat},${lng}" target="_blank" style="color:#1976d2;font-weight:bold;text-decoration:none;">📍 Xem Google Maps</a>`;
         setStatus(`Đã lưu tọa độ & ghi định vị thành công cho ${maKhang}!`);
-        checkActionButtonsState(index, safeKey);
+        updateButtonState(index, safeKey);
       } catch (err) {
         if (btnLoc) { btnLoc.style.pointerEvents = 'auto'; btnLoc.textContent = '📍 Bấm lấy tọa độ mới'; }
         setStatus('Lỗi lưu tọa độ: ' + err.message, true);
-        checkActionButtonsState(index, safeKey);
+        updateButtonState(index, safeKey);
       }
     },
     err => {
       if (btnLoc) { btnLoc.style.pointerEvents = 'auto'; btnLoc.textContent = '📍 Bấm lấy tọa độ mới'; }
       setStatus('Không thể lấy vị trí GPS: ' + err.message, true);
-      checkActionButtonsState(index, safeKey);
+      updateButtonState(index, safeKey);
     },
     { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
   );
@@ -405,11 +407,11 @@ async function photoSelected(index, safeKey, input) {
     allCustomers[index]._newPhotoDataUrl = compressedDataUrl;
     
     setStatus('Đã chọn và tối ưu ảnh. Nhấn Lưu để cập nhật.');
-    checkActionButtonsState(index, safeKey);
+    updateButtonState(index, safeKey);
   } catch (err) {
     console.error('Lỗi nén ảnh:', err);
     setStatus('Lỗi xử lý ảnh, vui lòng thử lại.', true);
-    checkActionButtonsState(index, safeKey);
+    updateButtonState(index, safeKey);
   }
 }
 
@@ -488,8 +490,8 @@ async function saveCustomer(index, safeKey) {
   } catch (err) {
     setStatus(err.message || String(err), true);
   } finally {
-    if (btn) { btn.textContent = oldText; }
-    checkActionButtonsState(index, safeKey);
+    if (btn) { btn.disabled = false; btn.textContent = oldText; }
+    updateButtonState(index, safeKey);
   }
 }
 
@@ -577,8 +579,9 @@ async function executeCancel() {
   } catch (err) {
     setStatus('Lỗi khi hủy: ' + (err.message || String(err)), true);
   } finally {
-    if (btnCancel) { btnCancel.textContent = oldText; }
-    checkActionButtonsState(index, safeKey);
+    if (btnCancel) { btnCancel.disabled = false; btnCancel.textContent = oldText; }
+    if (btnSave) btnSave.disabled = false;
+    updateButtonState(index, safeKey);
   }
 }
 
