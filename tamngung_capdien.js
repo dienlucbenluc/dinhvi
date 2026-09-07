@@ -361,7 +361,7 @@ function renderCustomers(items) {
         <div class="cust-row-group">
          Sổ: ${escapeHtml(maSogcs)}-DS: ${escapeHtml(danhSo)}-Số CTơ: ${escapeHtml(soCto)}
         </div>
-        <div style="max-width: 400px; font-size:13px; padding:10px 12px;margin-top:-10px;white-space: nowrap;overflow: hidden; text-overflow: ellipsis;">
+        <div style="max-width: 400px; white-space: nowrap;overflow: hidden; text-overflow: ellipsis;">
           Cột-Trạm: ${escapeHtml(vtriDnoi)} - ${escapeHtml(tenTram)}
         </div>
         <div class="cust-row-group">
