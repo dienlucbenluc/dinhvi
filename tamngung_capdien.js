@@ -366,7 +366,7 @@ function renderCustomers(items) {
           Cột-Trạm: ${escapeHtml(vtriDnoi)} - ${escapeHtml(tenTram)}
         </div>
         <div class="cust-row-group">
-         Ngày CĐ: ${dateOnly}, Chi phí ĐC: <span style="color:red;">${escapeHtml(CphiDcat)}</span>
+         Ngày CĐ: ${dateOnly}, <span style="color:red;">${escapeHtml(CphiDcat)}</span>
         </div>
          <div class="cust-row-group">
          <span id="loc-cell-${safeKey}">${locationHtml}</span>
