@@ -312,7 +312,7 @@ function renderCustomers(items) {
     const soCto = value(c, 'SO_CTO', 'so_cto');
     const vtriDnoi = value(c, 'VTRI_DNOI', 'vtri_dnoi');
     const tenTram = value(c, 'TEN_TRAM', 'ten_tram');
-    const CphiDcat = value(c, 'CPHI_DCAT', 'cphi_dcat');
+    const CphiDcat = String(value(c, 'CPHI_DCAT', 'cphi_dcat')|| 'Chưa nhập CPĐC lên CMIS').trim();
     const lat = String(value(c, 'LAT', 'lat') || '').trim();
     const lng = String(value(c, 'LNG', 'lng') || '').trim();
     const picture = value(c, 'HINH_ANH', 'hinh_anh', 'PICTUREBOX');
