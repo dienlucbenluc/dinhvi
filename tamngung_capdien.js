@@ -357,15 +357,23 @@ function renderCustomers(items) {
           <div class="ma-khang">Mã KH: ${escapeHtml(maKhang)}</div>
           <div class="ten-khang">${escapeHtml(tenKhang)}</div>
         </div>
-        <div class="grid">
-          <div class="item">Sổ: ${escapeHtml(maSogcs)}</div>
-          <div class="item">Danh số: ${escapeHtml(danhSo)}</div>
-          <div class="item">Số CTơ: ${escapeHtml(soCto)}</div>
-          <div class="item">Cột: ${escapeHtml(vtriDnoi)}</div>
-          <div class="item">Ngày CĐ: ${dateOnly}</div>
-          <div class="item"><span id="loc-cell-${safeKey}">${locationHtml}</span></div>
+//*******************************************************************          
+        <div class="cust-row-group">
+         Sổ: ${escapeHtml(maSogcs)} - DS: ${escapeHtml(danhSo)} - Số CTơ: ${escapeHtml(soCto)}
         </div>
-        <div style="max-width: 400px; font-size:13px; padding:10px 12px;margin-top:-10px;white-space: nowrap;overflow: hidden; text-overflow: ellipsis;">Trạm: ${escapeHtml(tenTram)}</div>
+        <div class="cust-row-group" style="max-width: 400px; font-size:13px; padding:10px 12px;margin-top:-10px;white-space: nowrap;overflow: hidden; text-overflow: ellipsis;">
+          Cột-Trạm: ${escapeHtml(vtriDnoi)} - ${escapeHtml(tenTram)}
+        </div>
+        <div class="cust-row-group">
+         Ngày CĐ: ${dateOnly}, TT:</span>
+        </div>
+         <div class="cust-row-group">
+         <span id="loc-cell-${safeKey}">${locationHtml}</span></span>
+        </div>   
+//*******************************************************************          
+        
+        
+        
         <div class="photo-actions-container">
           <div class="picture-box" id="picture-${safeKey}">
             ${optimizedPicture ? `<img src="${escapeHtml(optimizedPicture)}" alt="Hình ảnh ${escapeHtml(maKhang)}">` : 'Chưa có hình ảnh'}
