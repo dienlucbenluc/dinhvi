@@ -357,6 +357,7 @@ function renderCustomers(items) {
           <div class="ma-khang">Mã KH: ${escapeHtml(maKhang)}</div>
           <div class="ten-khang">${escapeHtml(tenKhang)}</div>
         </div>
+         <div class="grid">
         <div class="cust-row-group">
          Sổ: ${escapeHtml(maSogcs)}-DS: ${escapeHtml(danhSo)}-Số CTơ: ${escapeHtml(soCto)}
         </div>
@@ -369,6 +370,7 @@ function renderCustomers(items) {
          <div class="cust-row-group">
          <span id="loc-cell-${safeKey}">${locationHtml}</span>
         </div>   
+         </div>
         <div class="photo-actions-container">
           <div class="picture-box" id="picture-${safeKey}">
             ${optimizedPicture ? `<img src="${escapeHtml(optimizedPicture)}" alt="Hình ảnh ${escapeHtml(maKhang)}">` : 'Chưa có hình ảnh'}
