@@ -312,6 +312,7 @@ function renderCustomers(items) {
     const soCto = value(c, 'SO_CTO', 'so_cto');
     const vtriDnoi = value(c, 'VTRI_DNOI', 'vtri_dnoi');
     const tenTram = value(c, 'TEN_TRAM', 'ten_tram');
+    const CphiDcat = value(c, 'CPHI_DCAT', 'cphi_dcat');
     const lat = String(value(c, 'LAT', 'lat') || '').trim();
     const lng = String(value(c, 'LNG', 'lng') || '').trim();
     const picture = value(c, 'HINH_ANH', 'hinh_anh', 'PICTUREBOX');
@@ -365,7 +366,7 @@ function renderCustomers(items) {
           Cột-Trạm: ${escapeHtml(vtriDnoi)} - ${escapeHtml(tenTram)}
         </div>
         <div class="cust-row-group">
-         Ngày CĐ: ${dateOnly}, TT:
+         Ngày CĐ: ${dateOnly}, Chi phí ĐC: ${escapeHtml(CphiDcat)}
         </div>
          <div class="cust-row-group">
          <span id="loc-cell-${safeKey}">${locationHtml}</span>
