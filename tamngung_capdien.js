@@ -306,6 +306,7 @@ function renderCustomers(items) {
     const safeKey = encodeURIComponent(key);
     const maKhang = value(c, 'MA_KHANG', 'ma_khang');
     const tenKhang = value(c, 'TEN_KHANG', 'ten_khang');
+    const soTien = value(c, 'SO_TIEN', 'so_tien');
     const maSogcs = value(c, 'MA_SOGCS', 'ma_sogcs');
     const danhSo = value(c, 'DANH_SO', 'danh_so');
     const ngayCat = value(c, 'NGAY_CAT', 'ngay_cat');
@@ -368,7 +369,8 @@ function renderCustomers(items) {
         <div class="cust-row-group">
          Ngày CĐ: ${dateOnly}, <span style="color:blue;">${escapeHtml(CphiDcat)}</span>
         </div>
-         <div class="cust-row-group">
+         <div class="maps-row">
+         <span>${escapeHtml(soTien)}</span>
          <span id="loc-cell-${safeKey}">${locationHtml}</span>
         </div>   
          </div>
