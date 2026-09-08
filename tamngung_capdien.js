@@ -741,7 +741,10 @@ async function executeCancel() {
   const c = allCustomers[index];
   const checkbox = document.getElementById('check-' + safeKey);
   const pictureBox = document.getElementById('picture-' + safeKey);
-  const selectedDate = localStorage.getItem(CACHE_KEY_DATE) || ''; // Lấy ngày thao tác
+  
+  // Lấy chính xác ngày đang lọc trên giao diện (hoặc ngày cắt điện của khách hàng này)
+  const selectedDate = document.getElementById('filterDate')?.value || localStorage.getItem(CACHE_KEY_DATE) || '';
+  const ngayCat = value(c, 'NGAY_CAT', 'ngay_cat') || selectedDate;
 
   const oldLat = c.LAT || '';
   const oldLng = c.LNG || '';
@@ -771,7 +774,9 @@ async function executeCancel() {
       action: 'cancel',
       payload: {
         MA_KHANG: maKhang,
-        NGAY: selectedDate, // Truyền thêm ngày lên Server
+        NGAY: selectedDate,
+        NGAY_CAT: ngayCat,
+        NGAY_SUA: selectedDate,
         LAT: oldLat,
         LNG: oldLng
       }
