@@ -390,7 +390,7 @@ if (ngaySua && String(ngaySua).trim() !== '' && String(ngaySua).trim().toLowerCa
          <span>${escapeHtml(soTien)}</span>
         </div>   
        <div class="cust-row-group">
-         Đã TT tiền điện: <span style="color: red;">${escapeHtml(SotienTtoan)}</span>      <span style="margin-left: 20px; margin-righ: 5px;"Đã TT CPĐC:</span> <span style="color: red;">${escapeHtml(SotienCpdc)}</span>
+         Đã TT tiền điện: <span style="color: red;">${escapeHtml(SotienTtoan)}</span>      <span style="margin-left: 20px; margin-righ: 5px;">Đã TT CPĐC:</span><span style="color: red;">${escapeHtml(SotienCpdc)}</span>
         </div> 
        <div class="box-maps">
        <span id="loc-cell-${safeKey}">${locationHtml}</span>
