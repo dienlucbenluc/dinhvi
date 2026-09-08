@@ -316,6 +316,8 @@ function renderCustomers(items) {
     const tenTram = value(c, 'TEN_TRAM', 'ten_tram');
     const ngaySua = value(c, 'NGAY_SUA', 'ngay_sua');
     const CphiDcat = value(c, 'CPHI_DCAT', 'cphi_dcat');
+    const SotienTtoan = String(value(c, 'SOTIEN_TTOAN', 'sotien_ttoan') || 'Chưa TT').trim();
+    const SotienCpdc = String(value(c, 'SOTIEN_CPDC', 'sotien_cpdc')|| 'Chưa TT').trim();
     const lat = String(value(c, 'LAT', 'lat') || '').trim();
     const lng = String(value(c, 'LNG', 'lng') || '').trim();
     const picture = value(c, 'HINH_ANH', 'hinh_anh', 'PICTUREBOX');
@@ -387,6 +389,9 @@ if (ngaySua && String(ngaySua).trim() !== '' && String(ngaySua).trim().toLowerCa
          <div class="cust-row-group">
          <span>${escapeHtml(soTien)}</span>
         </div>   
+       <div class="cust-row-group">
+         Đã TT tiền điện: ${escapeHtml(SotienTtoan)}, Đã TT CPĐC: ${escapeHtml(SotienCpdc)}
+        </div> 
        <div class="box-maps">
        <span id="loc-cell-${safeKey}">${locationHtml}</span>
        </div> 
