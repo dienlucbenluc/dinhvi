@@ -96,7 +96,9 @@ function value(obj, ...names) {
 
 function saveCache() {
   try {
-    localStorage.setItem(CACHE_KEY_CUSTOMERS, JSON.stringify(allCustomers));
+    // Tách cache theo ngày để tránh ghi đè dữ liệu của ngày khác
+    const selectedDate = localStorage.getItem(CACHE_KEY_DATE) || '';
+    localStorage.setItem(`${CACHE_KEY_CUSTOMERS}_${selectedDate}`, JSON.stringify(allCustomers));
   } catch (e) {
     console.warn('Không thể lưu bộ nhớ web:', e);
   }
@@ -150,7 +152,8 @@ async function loadCustomers(forceFetch = false) {
   const selectedDate = document.getElementById('filterDate')?.value || '';
   const lastSession = localStorage.getItem(CACHE_KEY_SESSION);
   const lastDate = localStorage.getItem(CACHE_KEY_DATE);
-  const cachedDataStr = localStorage.getItem(CACHE_KEY_CUSTOMERS);
+  // Lấy cache tương ứng với ngày đang chọn
+  const cachedDataStr = localStorage.getItem(`${CACHE_KEY_CUSTOMERS}_${selectedDate}`);
 
   const isNewSession = (lastSession !== loggedTenNdung || lastDate !== selectedDate);
 
@@ -512,6 +515,7 @@ async function getLocationAndSave(index, safeKey) {
 
   const btnLoc = document.getElementById(`btn-location-${safeKey}`);
   const maKhang = value(c, 'MA_KHANG', 'ma_khang');
+  const selectedDate = localStorage.getItem(CACHE_KEY_DATE) || ''; // Lấy ngày thao tác
 
   if (!navigator.geolocation) {
     setStatus('Trình duyệt không hỗ trợ GPS.', true);
@@ -545,6 +549,7 @@ async function getLocationAndSave(index, safeKey) {
 
       const payload = {
         MA_KHANG: maKhang,
+        NGAY: selectedDate, // Truyền thêm ngày lên Server
         TEN_KHANG: value(c, 'TEN_KHANG', 'ten_khang'),
         SO_CTO: value(c, 'SO_CTO', 'so_cto'),
         MA_TRAM: value(c, 'MA_TRAM', 'ma_tram'),
@@ -649,6 +654,7 @@ async function saveCustomer(index, safeKey) {
     const loggedTenNdung = String(getUserField(currentUser, 'ten_ndung', 'TEN_NDUNG', 'username') || '').trim();
 
     const maKhang = value(c, 'MA_KHANG', 'ma_khang');
+    const selectedDate = localStorage.getItem(CACHE_KEY_DATE) || ''; // Lấy ngày thao tác
     let imageUrl = value(c, 'HINH_ANH', 'hinh_anh', 'PICTUREBOX');
 
     if (c._newPhotoDataUrl) {
@@ -673,6 +679,7 @@ async function saveCustomer(index, safeKey) {
         action: 'save',
         payload: {
           MA_KHANG: maKhang,
+          NGAY: selectedDate, // Truyền thêm ngày lên Server
           HINH_ANH: imageUrl,
           PICTUREBOX: imageUrl,
           TINH_TRANG: tinhTrang,
@@ -734,6 +741,7 @@ async function executeCancel() {
   const c = allCustomers[index];
   const checkbox = document.getElementById('check-' + safeKey);
   const pictureBox = document.getElementById('picture-' + safeKey);
+  const selectedDate = localStorage.getItem(CACHE_KEY_DATE) || ''; // Lấy ngày thao tác
 
   const oldLat = c.LAT || '';
   const oldLng = c.LNG || '';
@@ -763,6 +771,7 @@ async function executeCancel() {
       action: 'cancel',
       payload: {
         MA_KHANG: maKhang,
+        NGAY: selectedDate, // Truyền thêm ngày lên Server
         LAT: oldLat,
         LNG: oldLng
       }
