@@ -324,8 +324,9 @@ function renderCustomers(items) {
     if (picture && picture.includes('cloudinary.com')) {
       optimizedPicture = picture.replace('/upload/', '/upload/q_auto,f_auto,w_800/');
     }
-   let dateOnly = "---";
 
+    
+let dateOnly = '<a style="color:red;">Chưa thực hiện</a>';
 if (ngaySua) {
     const strTime = String(ngaySua).trim();
 
