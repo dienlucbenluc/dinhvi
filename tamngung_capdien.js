@@ -31,7 +31,7 @@ async function initApp() {
   const searchBox = document.getElementById('searchBox');
   if (searchBox) searchBox.addEventListener('input', renderFiltered);
 
-  setupSwipeEvents(); // Đăng ký sự kiện vuốt giống nhap_chiso.js
+  setupSwipeEvents(); // Đăng ký sự kiện vuốt
   loadCustomers();
 }
 
@@ -262,13 +262,14 @@ function renderFiltered() {
   renderCurrentCustomerCard();
 }
 
-// Render thẻ khách hàng hiện tại theo index (tương tự renderCurrentCustomerCard của nhap_chiso.js)
+// Render thẻ khách hàng hiện tại theo index có Animation chuyển động
 function renderCurrentCustomerCard(slideDirection = null) {
   const root = document.getElementById('customerList');
   if (!root) return;
 
   if (!currentFilteredList.length) {
     root.innerHTML = '<div class="empty">Không có khách hàng phù hợp.</div>';
+    isAnimating = false;
     return;
   }
 
@@ -342,7 +343,7 @@ function renderCurrentCustomerCard(slideDirection = null) {
     ? `<a href="https://www.google.com/maps?q=${lat},${lng}" target="_blank" style="color:#1976d2;font-weight:bold;text-decoration:none;">📍 Xem Google Maps</a>`
     : `<span id="btn-location-${safeKey}" onclick="getLocationAndSave(${realIndex}, '${safeKey}')" style="color:red;font-weight:bold;cursor:pointer;">📍 Bấm lấy tọa độ mới</span>`;
 
-  // Class chuẩn bị cho Animation trượt
+  // Gán class xuất phát cho Card mới trước khi trượt vào
   let initialClass = "";
   if (slideDirection === "left") initialClass = "slide-left-in";
   else if (slideDirection === "right") initialClass = "slide-right-in";
@@ -396,18 +397,23 @@ function renderCurrentCustomerCard(slideDirection = null) {
 
   updateActionButtonsState(safeKey);
 
+  // Thực hiện kích hoạt hiệu ứng trượt mượt vào trong
   if (slideDirection) {
     const activeCard = document.getElementById("activeCustomerCard");
-    setTimeout(() => {
-      if (activeCard) activeCard.classList.remove("slide-left-in", "slide-right-in");
-      setTimeout(() => { isAnimating = false; }, 250);
-    }, 20);
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        if (activeCard) {
+          activeCard.classList.remove("slide-left-in", "slide-right-in");
+        }
+        setTimeout(() => { isAnimating = false; }, 220);
+      });
+    });
   } else {
     isAnimating = false;
   }
 }
 
-// Chuyển sang KH tiếp theo (Animation & Logic giống nhap_chiso.js)
+// Chuyển sang KH tiếp theo (Vuốt từ phải sang trái)
 function nextCustomer() {
   if (isAnimating || currentFilteredList.length === 0) return;
 
@@ -425,7 +431,7 @@ function nextCustomer() {
   }
 }
 
-// Chuyển về KH phía trước (Animation & Logic giống nhap_chiso.js)
+// Chuyển về KH phía trước (Vuốt từ trái sang phải)
 function prevCustomer() {
   if (isAnimating || currentFilteredList.length === 0) return;
 
@@ -443,7 +449,7 @@ function prevCustomer() {
   }
 }
 
-// Thiết lập sự kiện Vuốt màn hình chuẩn từ nhap_chiso.js
+// Bắt sự kiện Vuốt màn hình
 function setupSwipeEvents() {
   const container = document.getElementById("customerList");
   if (!container) return;
@@ -452,7 +458,7 @@ function setupSwipeEvents() {
   let startY = 0;
 
   container.addEventListener('touchstart', (e) => {
-    if (e.target.tagName === "INPUT" || e.target.tagName === "BUTTON") return;
+    if (e.target.tagName === "INPUT" || e.target.tagName === "BUTTON" || e.target.closest('label')) return;
     startX = e.touches[0].clientX;
     startY = e.touches[0].clientY;
   }, { passive: true });
@@ -682,7 +688,7 @@ async function saveCustomer(index, safeKey) {
     }).then(res => res.json()).then(result => {
       if (result && result.success) {
         setStatus(`Lưu dữ liệu thành công.`);
-        setTimeout(() => nextCustomer(), 400); // Tự động chuyển thẻ kế tiếp sau khi lưu xong giống nhap_chiso
+        setTimeout(() => nextCustomer(), 400); // Tự động chuyển qua KH tiếp theo
       } else {
         setStatus('Đã lưu local, server báo lỗi: ' + (result?.message || ''), true);
       }
