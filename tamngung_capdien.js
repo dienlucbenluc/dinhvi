@@ -257,10 +257,6 @@ function renderFiltered() {
   renderCustomers(list);
 }
 
-// Kiểm tra ĐỦ CẢ 3 ĐIỀU KIỆN thì nút mới sáng:
-// 1. Đã có tọa độ (có link Google Maps, không phải chữ "Bấm lấy tọa độ mới")
-// 2. Checkbox "Đã cắt điện" được TÍCH (checked)
-// 3. Đã có hình ảnh (không chứa chữ "Chưa có hình ảnh")
 function updateActionButtonsState(safeKey) {
   const locCell = document.getElementById(`loc-cell-${safeKey}`);
   const checkbox = document.getElementById(`check-${safeKey}`);
@@ -274,7 +270,6 @@ function updateActionButtonsState(safeKey) {
   const isChecked = checkbox ? checkbox.checked : false;
   const hasPicture = pictureBox ? !pictureBox.innerHTML.includes('Chưa có hình ảnh') : false;
 
-  // Cả 3 điều kiện phải thỏa mãn
   const isAllValid = hasLocation && isChecked && hasPicture;
 
   if (isAllValid) {
@@ -301,8 +296,14 @@ function renderCustomers(items) {
 
   const total = items.length;
 
-  root.innerHTML = items.map((c, index) => {
-    const key = String(value(c, 'MA_KHANG', 'ma_khang') || index);
+  root.innerHTML = items.map((c, filteredIndex) => {
+    // Tìm chỉ số thực sự của c trong mảng gốc allCustomers
+    const originalIndex = allCustomers.findIndex(item => 
+      value(item, 'MA_KHANG', 'ma_khang') === value(c, 'MA_KHANG', 'ma_khang')
+    );
+    const realIndex = originalIndex !== -1 ? originalIndex : filteredIndex;
+
+    const key = String(value(c, 'MA_KHANG', 'ma_khang') || realIndex);
     const safeKey = encodeURIComponent(key);
     const maKhang = value(c, 'MA_KHANG', 'ma_khang');
     const tenKhang = value(c, 'TEN_KHANG', 'ten_khang');
@@ -347,12 +348,12 @@ function renderCustomers(items) {
     
     let locationHtml = hasLocation
       ? `<a href="https://www.google.com/maps?q=${lat},${lng}" target="_blank" style="color:#1976d2;font-weight:bold;text-decoration:none;">📍 Xem Google Maps</a>`
-      : `<span id="btn-location-${safeKey}" onclick="getLocationAndSave(${index}, '${safeKey}')" style="color:red;font-weight:bold;cursor:pointer;">📍 Bấm lấy tọa độ mới</span>`;
+      : `<span id="btn-location-${safeKey}" onclick="getLocationAndSave(${realIndex}, '${safeKey}')" style="color:red;font-weight:bold;cursor:pointer;">📍 Bấm lấy tọa độ mới</span>`;
 
     return `
-      <div class="customer-box" id="box-${safeKey}" data-index="${index}">
+      <div class="customer-box" id="box-${safeKey}" data-index="${filteredIndex}">
         <div class="box-stt-bar">
-          <span class="stt-badge">STT: ${index + 1} / ${total}</span>
+          <span class="stt-badge">STT: ${filteredIndex + 1} / ${total}</span>
           <span class="swipe-hint">⬅️ Vuốt để đổi KH ➡️</span>
         </div>
         <div class="box-head">
@@ -383,17 +384,21 @@ function renderCustomers(items) {
               <input type="checkbox" id="check-${safeKey}" ${Number(value(c, 'TINH_TRANG', 'tinh_trang')) === 1 ? 'checked' : ''} onchange="updateActionButtonsState('${safeKey}')">
               Đã cắt điện
             </label>
-            <button class="btn-photo" onclick="takePhoto(${index}, '${safeKey}')">📷 Chụp ảnh</button>
-            <button class="btn-save" id="save-${safeKey}" onclick="saveCustomer(${index}, '${safeKey}')">💾 Lưu</button>
-            <button class="btn-cancel" id="cancel-${safeKey}" onclick="cancelCustomer(${index}, '${safeKey}')">❌ Hủy</button>
-            <input type="file" id="file-${safeKey}" accept="image/*" capture="environment" style="display:none" onchange="photoSelected(${index}, '${safeKey}', this)">
+            <button class="btn-photo" onclick="takePhoto(${realIndex}, '${safeKey}')">📷 Chụp ảnh</button>
+            <button class="btn-save" id="save-${safeKey}" onclick="saveCustomer(${realIndex}, '${safeKey}')">💾 Lưu</button>
+            <button class="btn-cancel" id="cancel-${safeKey}" onclick="cancelCustomer(${realIndex}, '${safeKey}')">❌ Hủy</button>
+            <input type="file" id="file-${safeKey}" accept="image/*" capture="environment" style="display:none" onchange="photoSelected(${realIndex}, '${safeKey}', this)">
           </div>
         </div>
       </div>`;
   }).join('');
 
-  items.forEach((c, index) => {
-    const key = String(value(c, 'MA_KHANG', 'ma_khang') || index);
+  items.forEach((c, filteredIndex) => {
+    const originalIndex = allCustomers.findIndex(item => 
+      value(item, 'MA_KHANG', 'ma_khang') === value(c, 'MA_KHANG', 'ma_khang')
+    );
+    const realIndex = originalIndex !== -1 ? originalIndex : filteredIndex;
+    const key = String(value(c, 'MA_KHANG', 'ma_khang') || realIndex);
     updateActionButtonsState(encodeURIComponent(key));
   });
 }
