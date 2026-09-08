@@ -384,7 +384,7 @@ if (ngaySua && String(ngaySua).trim() !== '' && String(ngaySua).trim().toLowerCa
         <div class="cust-row-group">
           TGian CĐ: ${dateOnly}    <span style="color:blue;">${escapeHtml(CphiDcat)}</span>
         </div>
-         <div class="maps-row">
+         <div class="cust-row-group">
          <span>${escapeHtml(soTien)}</span>
         </div>   
        <div class="box-maps">
