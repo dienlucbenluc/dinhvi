@@ -314,7 +314,7 @@ function renderCustomers(items) {
     const soCto = value(c, 'SO_CTO', 'so_cto');
     const vtriDnoi = value(c, 'VTRI_DNOI', 'vtri_dnoi');
     const tenTram = value(c, 'TEN_TRAM', 'ten_tram');
-    const ngaySua = String(value(c, 'NGAY_SUA', 'ngay_sua')|| '<span style="color:red;">Chưa thực hiện cắt điện</span>').trim();
+    const ngaySua = value(c, 'NGAY_SUA', 'ngay_sua');
     const CphiDcat = value(c, 'CPHI_DCAT', 'cphi_dcat');
     const lat = String(value(c, 'LAT', 'lat') || '').trim();
     const lng = String(value(c, 'LNG', 'lng') || '').trim();
@@ -326,7 +326,7 @@ function renderCustomers(items) {
     }
 
     
-let dateOnly = '<a style="color:red;">Chưa thực hiện</a>';
+let dateOnly = '<a style="color:red;">Chưa thực hiện cắt điện</a>';
 
 // Kiểm tra ngaySua có giá trị hợp lệ (loại bỏ null, undefined, chuỗi rỗng hoặc "null"/"undefined")
 if (ngaySua && String(ngaySua).trim() !== '' && String(ngaySua).trim().toLowerCase() !== 'null' && String(ngaySua).trim().toLowerCase() !== 'undefined') {
@@ -382,7 +382,7 @@ if (ngaySua && String(ngaySua).trim() !== '' && String(ngaySua).trim().toLowerCa
           Cột-Trạm: ${escapeHtml(vtriDnoi)} - ${escapeHtml(tenTram)}
         </div>
         <div class="cust-row-group">
-          TGian CĐ: ${dateOnly}, <span style="color:blue;">${escapeHtml(CphiDcat)}</span>
+          TGian CĐ: ${dateOnly}    <span style="color:blue;">${escapeHtml(CphiDcat)}</span>
         </div>
          <div class="maps-row">
          <span>${escapeHtml(soTien)}</span>
