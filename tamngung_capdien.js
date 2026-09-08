@@ -389,7 +389,7 @@ function renderCurrentCustomerCard(slideDirection = null) {
           <button class="btn-photo" onclick="takePhoto(${realIndex}, '${safeKey}')">📷 Chụp ảnh</button>
           <button class="btn-save" id="save-${safeKey}" onclick="saveCustomer(${realIndex}, '${safeKey}')">💾 Lưu</button>
           <button class="btn-cancel" id="cancel-${safeKey}" onclick="cancelCustomer(${realIndex}, '${safeKey}')">❌ Hủy</button>
-          <input type="file" id="file-${safeKey}" accept="image/*" capture="environment" style="display:none" onchange="photoSelected(${realIndex}, '${safeKey}', this)">
+          <input type="file" id="file-${safeKey}" accept="image/*" style="display:none" onchange="photoSelected(${realIndex}, '${safeKey}', this)">
         </div>
       </div>
     </div>`;
