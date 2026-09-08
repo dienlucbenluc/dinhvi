@@ -386,9 +386,10 @@ if (ngaySua && String(ngaySua).trim() !== '' && String(ngaySua).trim().toLowerCa
         </div>
          <div class="maps-row">
          <span>${escapeHtml(soTien)}</span>
-         <span id="loc-cell-${safeKey}">${locationHtml}</span>
         </div>   
-         </div>
+       <div class="box-head">
+       <span id="loc-cell-${safeKey}">${locationHtml}</span>
+       </div> 
         <div class="photo-actions-container">
           <div class="picture-box" id="picture-${safeKey}">
             ${optimizedPicture ? `<img src="${escapeHtml(optimizedPicture)}" alt="Hình ảnh ${escapeHtml(maKhang)}">` : 'Chưa có hình ảnh'}
