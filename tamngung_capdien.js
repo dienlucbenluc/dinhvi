@@ -315,7 +315,7 @@ function renderCustomers(items) {
     const vtriDnoi = value(c, 'VTRI_DNOI', 'vtri_dnoi');
     const tenTram = value(c, 'TEN_TRAM', 'ten_tram');
     const ngaySua = String(value(c, 'NGAY_SUA', 'ngay_sua')|| '<span style="color:red;">Chưa thực hiện</span>').trim();
-    const CphiDcat = String(value(c, 'CPHI_DCAT', 'cphi_dcat')|| 'Chưa nhập CPĐC lên CMIS').trim();
+    const CphiDcat = value(c, 'CPHI_DCAT', 'cphi_dcat');
     const lat = String(value(c, 'LAT', 'lat') || '').trim();
     const lng = String(value(c, 'LNG', 'lng') || '').trim();
     const picture = value(c, 'HINH_ANH', 'hinh_anh', 'PICTUREBOX');
