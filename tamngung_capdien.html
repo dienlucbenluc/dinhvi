@@ -42,33 +42,36 @@
     #status { margin-top:7px; font-size:13px; color:#555; min-height:18px; }
 
     /* --- CẤU TRÚC KÉO NGANG (CAROUSEL) --- */
-    .list {
+.list {
       padding: 10px;
-      display: flex !important;
-      overflow-x: auto;
-      scroll-snap-type: x mandatory;
-      scroll-behavior: smooth;
-      gap: 12px;
-      -webkit-overflow-scrolling: touch;
-      -ms-overflow-style: none;
-      scrollbar-width: none;
+      position: relative;
+      overflow: hidden; /* Ẩn phần thẻ trượt ra ngoài lề */
+      min-height: 400px;
     }
 
     .list::-webkit-scrollbar {
       display: none;
     }
 
-    .customer-box {
-      flex: 0 0 100%;
-      max-width: 100%;
-      scroll-snap-align: center;
+.customer-box {
+      width: 100%;
       background: #fff;
       border: 2px solid #0056b3;
       border-radius: 12px;
       box-shadow: 0 1px 4px rgba(0,0,0,.08);
       overflow: hidden;
+      user-select: none;
+      /* Khai báo animation mượt giống nhap_chiso */
+      transition: transform 0.22s ease-out, opacity 0.22s ease-out;
+      will-change: transform, opacity;
     }
 
+    /* Các class hiệu ứng trượt khớp với file tamngung_capdien.js */
+    .slide-left-out  { transform: translateX(-120%); opacity: 0; }
+    .slide-right-out { transform: translateX(120%);  opacity: 0; }
+    .slide-left-in   { transform: translateX(100%);  opacity: 0; }
+    .slide-right-in  { transform: translateX(-100%); opacity: 0; }
+    
     .cust-row-group { 
       display: flex; 
       flex-wrap: wrap; 
