@@ -7,6 +7,9 @@ const CACHE_KEY_SESSION = 'tamngung_last_session';
 const CACHE_KEY_DATE = 'tamngung_last_date';
 
 let allCustomers = [];
+let currentFilteredList = []; // Mảng danh sách hiện tại sau khi filter/search
+let currentCardIndex = 0;     // Chỉ số thẻ đang xem hiện tại
+let isAnimating = false;      // Chống vuốt quá nhanh gây lỗi animation
 let busy = false;
 let appInitialized = false;
 let pendingCancelArgs = null;
@@ -28,6 +31,7 @@ async function initApp() {
   const searchBox = document.getElementById('searchBox');
   if (searchBox) searchBox.addEventListener('input', renderFiltered);
 
+  setupSwipeEvents(); // Đăng ký sự kiện vuốt giống nhap_chiso.js
   loadCustomers();
 }
 
@@ -240,7 +244,7 @@ async function fetchServerDataInBackground(selectedDate, loggedTenNdung) {
 function renderFiltered() {
   const searchBox = document.getElementById('searchBox');
   const keyword = searchBox ? normalize(searchBox.value) : '';
-  const list = keyword
+  currentFilteredList = keyword
     ? allCustomers.filter(c => {
         const text = [
           value(c, 'MA_KHANG', 'ma_khang'),
@@ -254,7 +258,224 @@ function renderFiltered() {
       })
     : allCustomers;
 
-  renderCustomers(list);
+  currentCardIndex = 0;
+  renderCurrentCustomerCard();
+}
+
+// Render thẻ khách hàng hiện tại theo index (tương tự renderCurrentCustomerCard của nhap_chiso.js)
+function renderCurrentCustomerCard(slideDirection = null) {
+  const root = document.getElementById('customerList');
+  if (!root) return;
+
+  if (!currentFilteredList.length) {
+    root.innerHTML = '<div class="empty">Không có khách hàng phù hợp.</div>';
+    return;
+  }
+
+  if (currentCardIndex < 0) currentCardIndex = currentFilteredList.length - 1;
+  if (currentCardIndex >= currentFilteredList.length) currentCardIndex = 0;
+
+  const c = currentFilteredList[currentCardIndex];
+  const filteredIndex = currentCardIndex;
+  const total = currentFilteredList.length;
+
+  const originalIndex = allCustomers.findIndex(item => 
+    value(item, 'MA_KHANG', 'ma_khang') === value(c, 'MA_KHANG', 'ma_khang')
+  );
+  const realIndex = originalIndex !== -1 ? originalIndex : filteredIndex;
+
+  const key = String(value(c, 'MA_KHANG', 'ma_khang') || realIndex);
+  const safeKey = encodeURIComponent(key);
+  const maKhang = value(c, 'MA_KHANG', 'ma_khang');
+  const tenKhang = value(c, 'TEN_KHANG', 'ten_khang');
+  const soTien = value(c, 'SO_TIEN', 'so_tien');
+  const maSogcs = value(c, 'MA_SOGCS', 'ma_sogcs');
+  const danhSo = value(c, 'DANH_SO', 'danh_so');
+  const ngayCat = value(c, 'NGAY_CAT', 'ngay_cat');
+  const soCto = value(c, 'SO_CTO', 'so_cto');
+  const vtriDnoi = value(c, 'VTRI_DNOI', 'vtri_dnoi');
+  const tenTram = value(c, 'TEN_TRAM', 'ten_tram');
+  const ngaySua = value(c, 'NGAY_SUA', 'ngay_sua');
+  const CphiDcat = value(c, 'CPHI_DCAT', 'cphi_dcat');
+  const SotienTtoan = String(value(c, 'SOTIEN_TTOAN', 'sotien_ttoan') || 'Chưa TT').trim();
+  const SotienCpdc = String(value(c, 'SOTIEN_CPDC', 'sotien_cpdc')|| 'Chưa TT').trim();
+  const lat = String(value(c, 'LAT', 'lat') || '').trim();
+  const lng = String(value(c, 'LNG', 'lng') || '').trim();
+  const picture = value(c, 'HINH_ANH', 'hinh_anh', 'PICTUREBOX');
+  const hasLocation = lat !== '' && lng !== '' && !isNaN(lat) && !isNaN(lng);
+  let optimizedPicture = picture;
+  if (picture && picture.includes('cloudinary.com')) {
+    optimizedPicture = picture.replace('/upload/', '/upload/q_auto,f_auto,w_800/');
+  }
+
+  let dateOnly = '<a style="color:red;">Chưa thực hiện cắt điện</a>';
+
+  if (ngaySua && String(ngaySua).trim() !== '' && String(ngaySua).trim().toLowerCase() !== 'null' && String(ngaySua).trim().toLowerCase() !== 'undefined') {
+      const strTime = String(ngaySua).trim();
+      const dateTimeMatch = strTime.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})(?:\s+(\d{1,2}):(\d{1,2})(?::(\d{1,2}))?)?$/);
+
+      if (dateTimeMatch) {
+          const day = dateTimeMatch[1].padStart(2, '0');
+          const month = dateTimeMatch[2].padStart(2, '0');
+          const year = dateTimeMatch[3];
+          const hours = (dateTimeMatch[4] || '0').padStart(2, '0');
+          const minutes = (dateTimeMatch[5] || '0').padStart(2, '0');
+          const seconds = (dateTimeMatch[6] || '0').padStart(2, '0');
+
+          dateOnly = `${day}/${month}/${year} ${hours}:${minutes}:${seconds}`;
+      } else {
+          const d = new Date(strTime);
+          if (!isNaN(d.getTime())) {
+              const day = d.getDate().toString().padStart(2, '0');
+              const month = (d.getMonth() + 1).toString().padStart(2, '0');
+              const year = d.getFullYear();
+              const hours = d.getHours().toString().padStart(2, '0');
+              const minutes = d.getMinutes().toString().padStart(2, '0');
+              const seconds = d.getSeconds().toString().padStart(2, '0');
+
+              dateOnly = `${day}/${month}/${year} ${hours}:${minutes}:${seconds}`;
+          }
+      }
+  }
+
+  let locationHtml = hasLocation
+    ? `<a href="https://www.google.com/maps?q=${lat},${lng}" target="_blank" style="color:#1976d2;font-weight:bold;text-decoration:none;">📍 Xem Google Maps</a>`
+    : `<span id="btn-location-${safeKey}" onclick="getLocationAndSave(${realIndex}, '${safeKey}')" style="color:red;font-weight:bold;cursor:pointer;">📍 Bấm lấy tọa độ mới</span>`;
+
+  // Class chuẩn bị cho Animation trượt
+  let initialClass = "";
+  if (slideDirection === "left") initialClass = "slide-left-in";
+  else if (slideDirection === "right") initialClass = "slide-right-in";
+
+  root.innerHTML = `
+    <div class="customer-box ${initialClass}" id="activeCustomerCard" data-index="${filteredIndex}">
+      <div class="box-stt-bar">
+        <span class="stt-badge">STT: ${filteredIndex + 1} / ${total}</span>
+        <span class="swipe-hint">⬅️ Vuốt để đổi KH ➡️</span>
+      </div>
+      <div class="box-head">
+        <div class="ma-khang">Mã KH: ${escapeHtml(maKhang)}</div>
+        <div class="ten-khang">${escapeHtml(tenKhang)}</div>
+      </div>
+      <div class="grid">
+        <div class="cust-row-group">
+          Sổ: ${escapeHtml(maSogcs)}-DS: ${escapeHtml(danhSo)}-Số CTơ: ${escapeHtml(soCto)}
+        </div>
+        <div style="max-width: 400px; margin-top: 5px; white-space: nowrap;overflow: hidden; text-overflow: ellipsis;">
+          Cột-Trạm: ${escapeHtml(vtriDnoi)} - ${escapeHtml(tenTram)}
+        </div>
+        <div class="cust-row-group">
+          TGian CĐ: ${dateOnly}    <span style="color:blue;">${escapeHtml(CphiDcat)}</span>
+        </div>
+        <div class="cust-row-group">
+          <span>${escapeHtml(soTien)}</span>
+        </div>   
+        <div class="cust-row-group">
+          Đã TT tiền điện: <span style="color: red;">${escapeHtml(SotienTtoan)}</span>      <span style="margin-left: 20px; margin-righ: 5px;">Đã TT CPĐC:</span><span style="color: red;">${escapeHtml(SotienCpdc)}</span>
+        </div> 
+        <div class="box-maps">
+          <span id="loc-cell-${safeKey}">${locationHtml}</span>
+        </div> 
+      </div>
+      <div class="photo-actions-container">
+        <div class="picture-box" id="picture-${safeKey}">
+          ${optimizedPicture ? `<img src="${escapeHtml(optimizedPicture)}" alt="Hình ảnh ${escapeHtml(maKhang)}">` : 'Chưa có hình ảnh'}
+        </div>
+        <div class="actions-right">
+          <label class="check-wrap">
+            <input type="checkbox" id="check-${safeKey}" ${Number(value(c, 'TINH_TRANG', 'tinh_trang')) === 1 ? 'checked' : ''} onchange="updateActionButtonsState('${safeKey}')">
+            Đã cắt điện
+          </label>
+          <button class="btn-photo" onclick="takePhoto(${realIndex}, '${safeKey}')">📷 Chụp ảnh</button>
+          <button class="btn-save" id="save-${safeKey}" onclick="saveCustomer(${realIndex}, '${safeKey}')">💾 Lưu</button>
+          <button class="btn-cancel" id="cancel-${safeKey}" onclick="cancelCustomer(${realIndex}, '${safeKey}')">❌ Hủy</button>
+          <input type="file" id="file-${safeKey}" accept="image/*" capture="environment" style="display:none" onchange="photoSelected(${realIndex}, '${safeKey}', this)">
+        </div>
+      </div>
+    </div>`;
+
+  updateActionButtonsState(safeKey);
+
+  if (slideDirection) {
+    const activeCard = document.getElementById("activeCustomerCard");
+    setTimeout(() => {
+      if (activeCard) activeCard.classList.remove("slide-left-in", "slide-right-in");
+      setTimeout(() => { isAnimating = false; }, 250);
+    }, 20);
+  } else {
+    isAnimating = false;
+  }
+}
+
+// Chuyển sang KH tiếp theo (Animation & Logic giống nhap_chiso.js)
+function nextCustomer() {
+  if (isAnimating || currentFilteredList.length === 0) return;
+
+  isAnimating = true;
+  const activeCard = document.getElementById("activeCustomerCard");
+  if (activeCard) {
+    activeCard.classList.add("slide-left-out");
+    setTimeout(() => {
+      currentCardIndex = (currentCardIndex >= currentFilteredList.length - 1) ? 0 : currentCardIndex + 1;
+      renderCurrentCustomerCard("left");
+    }, 200);
+  } else {
+    currentCardIndex = (currentCardIndex >= currentFilteredList.length - 1) ? 0 : currentCardIndex + 1;
+    renderCurrentCustomerCard();
+  }
+}
+
+// Chuyển về KH phía trước (Animation & Logic giống nhap_chiso.js)
+function prevCustomer() {
+  if (isAnimating || currentFilteredList.length === 0) return;
+
+  isAnimating = true;
+  const activeCard = document.getElementById("activeCustomerCard");
+  if (activeCard) {
+    activeCard.classList.add("slide-right-out");
+    setTimeout(() => {
+      currentCardIndex = (currentCardIndex <= 0) ? currentFilteredList.length - 1 : currentCardIndex - 1;
+      renderCurrentCustomerCard("right");
+    }, 200);
+  } else {
+    currentCardIndex = (currentCardIndex <= 0) ? currentFilteredList.length - 1 : currentCardIndex - 1;
+    renderCurrentCustomerCard();
+  }
+}
+
+// Thiết lập sự kiện Vuốt màn hình chuẩn từ nhap_chiso.js
+function setupSwipeEvents() {
+  const container = document.getElementById("customerList");
+  if (!container) return;
+
+  let startX = 0;
+  let startY = 0;
+
+  container.addEventListener('touchstart', (e) => {
+    if (e.target.tagName === "INPUT" || e.target.tagName === "BUTTON") return;
+    startX = e.touches[0].clientX;
+    startY = e.touches[0].clientY;
+  }, { passive: true });
+
+  container.addEventListener('touchend', (e) => {
+    if (!startX || !startY || isAnimating) return;
+
+    let endX = e.changedTouches[0].clientX;
+    let endY = e.changedTouches[0].clientY;
+
+    let diffX = startX - endX;
+    let diffY = startY - endY;
+
+    if (Math.abs(diffX) > Math.abs(diffY) && Math.abs(diffX) > 40) {
+      if (diffX > 0) {
+        nextCustomer();
+      } else {
+        prevCustomer();
+      }
+    }
+    startX = 0;
+    startY = 0;
+  }, { passive: true });
 }
 
 function updateActionButtonsState(safeKey) {
@@ -283,145 +504,6 @@ function updateActionButtonsState(safeKey) {
     btnCancel.style.opacity = '0.5';
     btnCancel.style.pointerEvents = 'none';
   }
-}
-
-function renderCustomers(items) {
-  const root = document.getElementById('customerList');
-  if (!root) return;
-
-  if (!items.length) {
-    root.innerHTML = '<div class="empty">Không có khách hàng phù hợp.</div>';
-    return;
-  }
-
-  const total = items.length;
-
-  root.innerHTML = items.map((c, filteredIndex) => {
-    // Tìm chỉ số thực sự của c trong mảng gốc allCustomers
-    const originalIndex = allCustomers.findIndex(item => 
-      value(item, 'MA_KHANG', 'ma_khang') === value(c, 'MA_KHANG', 'ma_khang')
-    );
-    const realIndex = originalIndex !== -1 ? originalIndex : filteredIndex;
-
-    const key = String(value(c, 'MA_KHANG', 'ma_khang') || realIndex);
-    const safeKey = encodeURIComponent(key);
-    const maKhang = value(c, 'MA_KHANG', 'ma_khang');
-    const tenKhang = value(c, 'TEN_KHANG', 'ten_khang');
-    const soTien = value(c, 'SO_TIEN', 'so_tien');
-    const maSogcs = value(c, 'MA_SOGCS', 'ma_sogcs');
-    const danhSo = value(c, 'DANH_SO', 'danh_so');
-    const ngayCat = value(c, 'NGAY_CAT', 'ngay_cat');
-    const soCto = value(c, 'SO_CTO', 'so_cto');
-    const vtriDnoi = value(c, 'VTRI_DNOI', 'vtri_dnoi');
-    const tenTram = value(c, 'TEN_TRAM', 'ten_tram');
-    const ngaySua = value(c, 'NGAY_SUA', 'ngay_sua');
-    const CphiDcat = value(c, 'CPHI_DCAT', 'cphi_dcat');
-    const SotienTtoan = String(value(c, 'SOTIEN_TTOAN', 'sotien_ttoan') || 'Chưa TT').trim();
-    const SotienCpdc = String(value(c, 'SOTIEN_CPDC', 'sotien_cpdc')|| 'Chưa TT').trim();
-    const lat = String(value(c, 'LAT', 'lat') || '').trim();
-    const lng = String(value(c, 'LNG', 'lng') || '').trim();
-    const picture = value(c, 'HINH_ANH', 'hinh_anh', 'PICTUREBOX');
-    const hasLocation = lat !== '' && lng !== '' && !isNaN(lat) && !isNaN(lng);
-    let optimizedPicture = picture;
-    if (picture && picture.includes('cloudinary.com')) {
-      optimizedPicture = picture.replace('/upload/', '/upload/q_auto,f_auto,w_800/');
-    }
-
-    
-let dateOnly = '<a style="color:red;">Chưa thực hiện cắt điện</a>';
-
-// Kiểm tra ngaySua có giá trị hợp lệ (loại bỏ null, undefined, chuỗi rỗng hoặc "null"/"undefined")
-if (ngaySua && String(ngaySua).trim() !== '' && String(ngaySua).trim().toLowerCase() !== 'null' && String(ngaySua).trim().toLowerCase() !== 'undefined') {
-    const strTime = String(ngaySua).trim();
-
-    // 1. Khớp dạng DD/MM/YYYY hoặc DD/MM/YYYY HH:mm:ss
-    const dateTimeMatch = strTime.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})(?:\s+(\d{1,2}):(\d{1,2})(?::(\d{1,2}))?)?$/);
-
-    if (dateTimeMatch) {
-        const day = dateTimeMatch[1].padStart(2, '0');
-        const month = dateTimeMatch[2].padStart(2, '0');
-        const year = dateTimeMatch[3];
-        const hours = (dateTimeMatch[4] || '0').padStart(2, '0');
-        const minutes = (dateTimeMatch[5] || '0').padStart(2, '0');
-        const seconds = (dateTimeMatch[6] || '0').padStart(2, '0');
-
-        dateOnly = `${day}/${month}/${year} ${hours}:${minutes}:${seconds}`;
-    } else {
-        // 2. Thử parse dạng chuẩn Date (ISO string, YYYY-MM-DD, Timestamp, v.v.)
-        const d = new Date(strTime);
-        if (!isNaN(d.getTime())) {
-            const day = d.getDate().toString().padStart(2, '0');
-            const month = (d.getMonth() + 1).toString().padStart(2, '0');
-            const year = d.getFullYear();
-            const hours = d.getHours().toString().padStart(2, '0');
-            const minutes = d.getMinutes().toString().padStart(2, '0');
-            const seconds = d.getSeconds().toString().padStart(2, '0');
-
-            dateOnly = `${day}/${month}/${year} ${hours}:${minutes}:${seconds}`;
-        }
-    }
-}
-    
-    let locationHtml = hasLocation
-      ? `<a href="https://www.google.com/maps?q=${lat},${lng}" target="_blank" style="color:#1976d2;font-weight:bold;text-decoration:none;">📍 Xem Google Maps</a>`
-      : `<span id="btn-location-${safeKey}" onclick="getLocationAndSave(${realIndex}, '${safeKey}')" style="color:red;font-weight:bold;cursor:pointer;">📍 Bấm lấy tọa độ mới</span>`;
-
-    return `
-      <div class="customer-box" id="box-${safeKey}" data-index="${filteredIndex}">
-        <div class="box-stt-bar">
-          <span class="stt-badge">STT: ${filteredIndex + 1} / ${total}</span>
-          <span class="swipe-hint">⬅️ Vuốt để đổi KH ➡️</span>
-        </div>
-        <div class="box-head">
-          <div class="ma-khang">Mã KH: ${escapeHtml(maKhang)}</div>
-          <div class="ten-khang">${escapeHtml(tenKhang)}</div>
-        </div>
-         <div class="grid">
-        <div class="cust-row-group">
-         Sổ: ${escapeHtml(maSogcs)}-DS: ${escapeHtml(danhSo)}-Số CTơ: ${escapeHtml(soCto)}
-        </div>
-        <div style="max-width: 400px; margin-top: 5px; white-space: nowrap;overflow: hidden; text-overflow: ellipsis;">
-          Cột-Trạm: ${escapeHtml(vtriDnoi)} - ${escapeHtml(tenTram)}
-        </div>
-        <div class="cust-row-group">
-          TGian CĐ: ${dateOnly}    <span style="color:blue;">${escapeHtml(CphiDcat)}</span>
-        </div>
-         <div class="cust-row-group">
-         <span>${escapeHtml(soTien)}</span>
-        </div>   
-       <div class="cust-row-group">
-         Đã TT tiền điện: <span style="color: red;">${escapeHtml(SotienTtoan)}</span>      <span style="margin-left: 20px; margin-righ: 5px;">Đã TT CPĐC:</span><span style="color: red;">${escapeHtml(SotienCpdc)}</span>
-        </div> 
-       <div class="box-maps">
-       <span id="loc-cell-${safeKey}">${locationHtml}</span>
-       </div> 
-        </div>
-        <div class="photo-actions-container">
-          <div class="picture-box" id="picture-${safeKey}">
-            ${optimizedPicture ? `<img src="${escapeHtml(optimizedPicture)}" alt="Hình ảnh ${escapeHtml(maKhang)}">` : 'Chưa có hình ảnh'}
-          </div>
-          <div class="actions-right">
-            <label class="check-wrap">
-              <input type="checkbox" id="check-${safeKey}" ${Number(value(c, 'TINH_TRANG', 'tinh_trang')) === 1 ? 'checked' : ''} onchange="updateActionButtonsState('${safeKey}')">
-              Đã cắt điện
-            </label>
-            <button class="btn-photo" onclick="takePhoto(${realIndex}, '${safeKey}')">📷 Chụp ảnh</button>
-            <button class="btn-save" id="save-${safeKey}" onclick="saveCustomer(${realIndex}, '${safeKey}')">💾 Lưu</button>
-            <button class="btn-cancel" id="cancel-${safeKey}" onclick="cancelCustomer(${realIndex}, '${safeKey}')">❌ Hủy</button>
-            <input type="file" id="file-${safeKey}" accept="image/*" capture="environment" style="display:none" onchange="photoSelected(${realIndex}, '${safeKey}', this)">
-          </div>
-        </div>
-      </div>`;
-  }).join('');
-
-  items.forEach((c, filteredIndex) => {
-    const originalIndex = allCustomers.findIndex(item => 
-      value(item, 'MA_KHANG', 'ma_khang') === value(c, 'MA_KHANG', 'ma_khang')
-    );
-    const realIndex = originalIndex !== -1 ? originalIndex : filteredIndex;
-    const key = String(value(c, 'MA_KHANG', 'ma_khang') || realIndex);
-    updateActionButtonsState(encodeURIComponent(key));
-  });
 }
 
 async function getLocationAndSave(index, safeKey) {
@@ -600,6 +682,7 @@ async function saveCustomer(index, safeKey) {
     }).then(res => res.json()).then(result => {
       if (result && result.success) {
         setStatus(`Lưu dữ liệu thành công.`);
+        setTimeout(() => nextCustomer(), 400); // Tự động chuyển thẻ kế tiếp sau khi lưu xong giống nhap_chiso
       } else {
         setStatus('Đã lưu local, server báo lỗi: ' + (result?.message || ''), true);
       }
@@ -693,42 +776,6 @@ async function executeCancel() {
   }).catch(err => {
     setStatus('Lỗi đồng bộ server khi hủy: ' + (err.message || String(err)), true);
   });
-}
-
-const slider = document.getElementById('customerList');
-
-if (slider) {
-  let isDown = false;
-  let startX;
-  let scrollLeft;
-
-  slider.addEventListener('mousedown', (e) => {
-    isDown = true;
-    startX = e.pageX - slider.offsetLeft;
-    scrollLeft = slider.scrollLeft;
-    slider.style.cursor = 'grabbing';
-    slider.style.userSelect = 'none';
-  });
-
-  slider.addEventListener('mouseleave', () => {
-    isDown = false;
-    slider.style.cursor = 'grab';
-  });
-
-  slider.addEventListener('mouseup', () => {
-    isDown = false;
-    slider.style.cursor = 'grab';
-  });
-
-  slider.addEventListener('mousemove', (e) => {
-    if (!isDown) return;
-    e.preventDefault();
-    const x = e.pageX - slider.offsetLeft;
-    const walk = (x - startX) * 1.5;
-    slider.scrollLeft = scrollLeft - walk;
-  });
-
-  slider.style.cursor = 'grab';
 }
 
 function compressImage(file, maxWidth = 1000, quality = 0.7) {
