@@ -378,7 +378,7 @@ if (ngaySua && String(ngaySua).trim() !== '' && String(ngaySua).trim().toLowerCa
         <div class="cust-row-group">
          Sổ: ${escapeHtml(maSogcs)}-DS: ${escapeHtml(danhSo)}-Số CTơ: ${escapeHtml(soCto)}
         </div>
-        <div style="max-width: 400px; white-space: nowrap;overflow: hidden; text-overflow: ellipsis;">
+        <div style="max-width: 400px; margin-top: 5px; white-space: nowrap;overflow: hidden; text-overflow: ellipsis;">
           Cột-Trạm: ${escapeHtml(vtriDnoi)} - ${escapeHtml(tenTram)}
         </div>
         <div class="cust-row-group">
