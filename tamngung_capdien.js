@@ -314,6 +314,7 @@ function renderCustomers(items) {
     const soCto = value(c, 'SO_CTO', 'so_cto');
     const vtriDnoi = value(c, 'VTRI_DNOI', 'vtri_dnoi');
     const tenTram = value(c, 'TEN_TRAM', 'ten_tram');
+    const ngaySua = value(c, 'NGAY_SUA', 'ngay_sua');
     const CphiDcat = String(value(c, 'CPHI_DCAT', 'cphi_dcat')|| 'Chưa nhập CPĐC lên CMIS').trim();
     const lat = String(value(c, 'LAT', 'lat') || '').trim();
     const lng = String(value(c, 'LNG', 'lng') || '').trim();
@@ -323,28 +324,42 @@ function renderCustomers(items) {
     if (picture && picture.includes('cloudinary.com')) {
       optimizedPicture = picture.replace('/upload/', '/upload/q_auto,f_auto,w_800/');
     }
-    let dateOnly = "---";
-    if (ngayCat) {
-        const strTime = String(ngayCat).trim();
-        const dateMatch = strTime.match(/\d{1,2}\/\d{1,2}\/\d{4}/);
-        
-        if (dateMatch) {
-            dateOnly = dateMatch[0]; 
-            let parts = dateOnly.split('/');
-            if(parts.length === 3) {
-                dateOnly = `${parts[0].padStart(2, '0')}/${parts[1].padStart(2, '0')}/${parts[2]}`;
-            }
+   let dateOnly = "---";
+
+if (ngaySua) {
+    const strTime = String(ngaySua).trim();
+
+    // 1. Kiểm tra định dạng có ngày và giờ dạng DD/MM/YYYY HH:mm:ss (hoặc D/M/YYYY H:m:s)
+    const dateTimeMatch = strTime.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})(?:\s+(\d{1,2}):(\d{1,2})(?::(\d{1,2}))?)?/);
+
+    if (dateTimeMatch) {
+        const day = dateTimeMatch[1].padStart(2, '0');
+        const month = dateTimeMatch[2].padStart(2, '0');
+        const year = dateTimeMatch[3];
+        const hours = (dateTimeMatch[4] || '0').padStart(2, '0');
+        const minutes = (dateTimeMatch[5] || '0').padStart(2, '0');
+        const seconds = (dateTimeMatch[6] || '0').padStart(2, '0');
+
+        dateOnly = `${day}/${month}/${year} ${hours}:${minutes}:${seconds}`;
+    } else {
+        // 2. Thử parse dạng Date standard (ISO string, Timestamp, v.v.)
+        const d = new Date(strTime);
+        if (!isNaN(d.getTime())) {
+            const day = d.getDate().toString().padStart(2, '0');
+            const month = (d.getMonth() + 1).toString().padStart(2, '0');
+            const year = d.getFullYear();
+            const hours = d.getHours().toString().padStart(2, '0');
+            const minutes = d.getMinutes().toString().padStart(2, '0');
+            const seconds = d.getSeconds().toString().padStart(2, '0');
+
+            dateOnly = `${day}/${month}/${year} ${hours}:${minutes}:${seconds}`;
         } else {
-            const d = new Date(strTime);
-            if (!isNaN(d.getTime())) {
-                const day = d.getDate().toString().padStart(2, '0');
-                const month = (d.getMonth() + 1).toString().padStart(2, '0');
-                dateOnly = `${day}/${month}/${d.getFullYear()}`;
-            } else {
-                dateOnly = strTime.split(/[ T]/)[0]; 
-            }
+            // 3. Dự phòng nếu dữ liệu là chuỗi như "YYYY-MM-DD" hoặc không nhận diện được giờ
+            const baseDate = strTime.split(/[ T]/)[0];
+            dateOnly = baseDate ? `${baseDate} 00:00:00` : strTime;
         }
     }
+}
     
     let locationHtml = hasLocation
       ? `<a href="https://www.google.com/maps?q=${lat},${lng}" target="_blank" style="color:#1976d2;font-weight:bold;text-decoration:none;">📍 Xem Google Maps</a>`
@@ -368,7 +383,7 @@ function renderCustomers(items) {
           Cột-Trạm: ${escapeHtml(vtriDnoi)} - ${escapeHtml(tenTram)}
         </div>
         <div class="cust-row-group">
-         Ngày CĐ: ${dateOnly}, <span style="color:blue;">${escapeHtml(CphiDcat)}</span>
+         TGian CĐ: ${dateOnly}, <span style="color:blue;">${escapeHtml(CphiDcat)}</span>
         </div>
          <div class="maps-row">
          <span>${escapeHtml(soTien)}</span>
