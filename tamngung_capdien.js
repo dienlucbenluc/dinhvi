@@ -387,7 +387,7 @@ if (ngaySua && String(ngaySua).trim() !== '' && String(ngaySua).trim().toLowerCa
          <div class="maps-row">
          <span>${escapeHtml(soTien)}</span>
         </div>   
-       <div class="box-head">
+       <div class="box-maps">
        <span id="loc-cell-${safeKey}">${locationHtml}</span>
        </div> 
         </div>
