@@ -327,11 +327,13 @@ function renderCustomers(items) {
 
     
 let dateOnly = '<a style="color:red;">Chưa thực hiện</a>';
-if (ngaySua) {
+
+// Kiểm tra ngaySua có giá trị hợp lệ (loại bỏ null, undefined, chuỗi rỗng hoặc "null"/"undefined")
+if (ngaySua && String(ngaySua).trim() !== '' && String(ngaySua).trim().toLowerCase() !== 'null' && String(ngaySua).trim().toLowerCase() !== 'undefined') {
     const strTime = String(ngaySua).trim();
 
-    // 1. Kiểm tra định dạng có ngày và giờ dạng DD/MM/YYYY HH:mm:ss (hoặc D/M/YYYY H:m:s)
-    const dateTimeMatch = strTime.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})(?:\s+(\d{1,2}):(\d{1,2})(?::(\d{1,2}))?)?/);
+    // 1. Khớp dạng DD/MM/YYYY hoặc DD/MM/YYYY HH:mm:ss
+    const dateTimeMatch = strTime.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})(?:\s+(\d{1,2}):(\d{1,2})(?::(\d{1,2}))?)?$/);
 
     if (dateTimeMatch) {
         const day = dateTimeMatch[1].padStart(2, '0');
@@ -343,7 +345,7 @@ if (ngaySua) {
 
         dateOnly = `${day}/${month}/${year} ${hours}:${minutes}:${seconds}`;
     } else {
-        // 2. Thử parse dạng Date standard (ISO string, Timestamp, v.v.)
+        // 2. Thử parse dạng chuẩn Date (ISO string, YYYY-MM-DD, Timestamp, v.v.)
         const d = new Date(strTime);
         if (!isNaN(d.getTime())) {
             const day = d.getDate().toString().padStart(2, '0');
@@ -354,10 +356,6 @@ if (ngaySua) {
             const seconds = d.getSeconds().toString().padStart(2, '0');
 
             dateOnly = `${day}/${month}/${year} ${hours}:${minutes}:${seconds}`;
-        } else {
-            // 3. Dự phòng nếu dữ liệu là chuỗi như "YYYY-MM-DD" hoặc không nhận diện được giờ
-            const baseDate = strTime.split(/[ T]/)[0];
-            dateOnly = baseDate ? `${baseDate} 00:00:00` : strTime;
         }
     }
 }
