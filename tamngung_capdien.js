@@ -383,7 +383,7 @@ if (ngaySua) {
           Cột-Trạm: ${escapeHtml(vtriDnoi)} - ${escapeHtml(tenTram)}
         </div>
         <div class="cust-row-group">
-          TGian CĐ: String(${dateOnly}|| '<span style="color:red;">Chưa thực hiện</span>').trim(), <span style="color:blue;">${escapeHtml(CphiDcat)}</span>
+          TGian CĐ: ${dateOnly}, <span style="color:blue;">${escapeHtml(CphiDcat)}</span>
         </div>
          <div class="maps-row">
          <span>${escapeHtml(soTien)}</span>
