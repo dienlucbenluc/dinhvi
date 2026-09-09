@@ -7,9 +7,9 @@ const CACHE_KEY_SESSION = 'tamngung_last_session';
 const CACHE_KEY_DATE = 'tamngung_last_date';
 
 let allCustomers = [];
-let currentFilteredList = []; // Mảng danh sách hiện tại sau khi filter/search
-let currentCardIndex = 0;     // Chỉ số thẻ đang xem hiện tại
-let isAnimating = false;      // Chống vuốt quá nhanh gây lỗi animation
+let currentFilteredList = []; 
+let currentCardIndex = 0;     
+let isAnimating = false;      
 let busy = false;
 let appInitialized = false;
 let pendingCancelArgs = null;
@@ -31,7 +31,7 @@ async function initApp() {
   const searchBox = document.getElementById('searchBox');
   if (searchBox) searchBox.addEventListener('input', renderFiltered);
 
-  setupSwipeEvents(); // Đăng ký sự kiện vuốt giống nhap_chiso.js
+  setupSwipeEvents();
   loadCustomers();
 }
 
@@ -96,7 +96,6 @@ function value(obj, ...names) {
 
 function saveCache() {
   try {
-    // Tách cache theo ngày để tránh ghi đè dữ liệu của ngày khác
     const selectedDate = localStorage.getItem(CACHE_KEY_DATE) || '';
     localStorage.setItem(`${CACHE_KEY_CUSTOMERS}_${selectedDate}`, JSON.stringify(allCustomers));
   } catch (e) {
@@ -152,7 +151,6 @@ async function loadCustomers(forceFetch = false) {
   const selectedDate = document.getElementById('filterDate')?.value || '';
   const lastSession = localStorage.getItem(CACHE_KEY_SESSION);
   const lastDate = localStorage.getItem(CACHE_KEY_DATE);
-  // Lấy cache tương ứng với ngày đang chọn
   const cachedDataStr = localStorage.getItem(`${CACHE_KEY_CUSTOMERS}_${selectedDate}`);
 
   const isNewSession = (lastSession !== loggedTenNdung || lastDate !== selectedDate);
@@ -265,7 +263,6 @@ function renderFiltered() {
   renderCurrentCustomerCard();
 }
 
-// Render thẻ khách hàng hiện tại theo index (tương tự renderCurrentCustomerCard của nhap_chiso.js)
 function renderCurrentCustomerCard(slideDirection = null) {
   const root = document.getElementById('customerList');
   if (!root) return;
@@ -300,6 +297,7 @@ function renderCurrentCustomerCard(slideDirection = null) {
   const tenTram = value(c, 'TEN_TRAM', 'ten_tram');
   const ngaySua = value(c, 'NGAY_SUA', 'ngay_sua');
   const CphiDcat = value(c, 'CPHI_DCAT', 'cphi_dcat');
+  const gtrinhLydo = value(c, 'GTRINH_LYDO', 'gtrinh_lydo'); // Giá trị Giải trình lý do
   const SotienTtoan = String(value(c, 'SOTIEN_TTOAN', 'sotien_ttoan') || 'Chưa TT').trim();
   const SotienCpdc = String(value(c, 'SOTIEN_CPDC', 'sotien_cpdc')|| 'Chưa TT').trim();
   const lat = String(value(c, 'LAT', 'lat') || '').trim();
@@ -345,7 +343,6 @@ function renderCurrentCustomerCard(slideDirection = null) {
     ? `<a href="https://www.google.com/maps?q=${lat},${lng}" target="_blank" style="color:#1976d2;font-weight:bold;text-decoration:none;">📍 Xem Google Maps</a>`
     : `<span id="btn-location-${safeKey}" onclick="getLocationAndSave(${realIndex}, '${safeKey}')" style="color:red;font-weight:bold;cursor:pointer;">📍 Bấm lấy tọa độ mới</span>`;
 
-  // Class chuẩn bị cho Animation trượt
   let initialClass = "";
   if (slideDirection === "left") initialClass = "slide-left-in";
   else if (slideDirection === "right") initialClass = "slide-right-in";
@@ -376,6 +373,13 @@ function renderCurrentCustomerCard(slideDirection = null) {
         <div class="cust-row-group">
           Đã TT tiền điện: <span style="color: red;">${escapeHtml(SotienTtoan)}</span>      <span style="margin-left: 20px; margin-righ: 5px;">Đã TT CPĐC:</span><span style="color: red;">${escapeHtml(SotienCpdc)}</span>
         </div> 
+
+        <!-- BỔ SUNG: Ô nhập giải trình lý do & Nút Ghi nằm TRÊN box-maps -->
+        <div class="lydo-container">
+          <input type="text" id="lydo-${safeKey}" class="input-lydo" placeholder="Giải trình lý do chưa cắt điện..." value="${escapeHtml(gtrinhLydo)}">
+          <button type="button" id="btn-ghi-lydo-${safeKey}" class="btn-ghi-lydo" onclick="saveLyDoOnly(${realIndex}, '${safeKey}')">Ghi</button>
+        </div>
+
         <div class="box-maps">
           <span id="loc-cell-${safeKey}">${locationHtml}</span>
         </div> 
@@ -410,7 +414,60 @@ function renderCurrentCustomerCard(slideDirection = null) {
   }
 }
 
-// Chuyển sang KH tiếp theo (Animation & Logic giống nhap_chiso.js)
+/**
+ * Hàm ghi riêng ô Lý do Giải trình lên Google Sheet cột GTRINH_LYDO
+ */
+async function saveLyDoOnly(index, safeKey) {
+  const c = allCustomers[index];
+  if (!c) return;
+
+  const btnGhi = document.getElementById(`btn-ghi-lydo-${safeKey}`);
+  const inputLydo = document.getElementById(`lydo-${safeKey}`);
+  if (!inputLydo) return;
+
+  const lyDoVal = inputLydo.value.trim();
+  const maKhang = value(c, 'MA_KHANG', 'ma_khang');
+  const selectedDate = localStorage.getItem(CACHE_KEY_DATE) || '';
+
+  if (btnGhi) {
+    btnGhi.disabled = true;
+    btnGhi.textContent = '⏳...';
+  }
+
+  c.GTRINH_LYDO = lyDoVal;
+  saveCache();
+
+  setStatus(`Đang ghi lý do giải trình cho KH ${maKhang}...`);
+
+  try {
+    const response = await fetch(API_URL, {
+      method: 'POST',
+      body: JSON.stringify({
+        action: 'save_lydo',
+        payload: {
+          MA_KHANG: maKhang,
+          NGAY: selectedDate,
+          GTRINH_LYDO: lyDoVal
+        }
+      })
+    });
+    const result = await response.json();
+
+    if (result && result.success) {
+      setStatus(`Đã ghi lý do giải trình thành công cho ${maKhang}.`);
+    } else {
+      setStatus('Đã lưu local, server báo lỗi: ' + (result?.message || ''), true);
+    }
+  } catch (err) {
+    setStatus('Đã lưu local, chưa đồng bộ được server: ' + err.message, true);
+  } finally {
+    if (btnGhi) {
+      btnGhi.disabled = false;
+      btnGhi.textContent = 'Ghi';
+    }
+  }
+}
+
 function nextCustomer() {
   if (isAnimating || currentFilteredList.length === 0) return;
 
@@ -428,7 +485,6 @@ function nextCustomer() {
   }
 }
 
-// Chuyển về KH phía trước (Animation & Logic giống nhap_chiso.js)
 function prevCustomer() {
   if (isAnimating || currentFilteredList.length === 0) return;
 
@@ -446,7 +502,6 @@ function prevCustomer() {
   }
 }
 
-// Thiết lập sự kiện Vuốt màn hình chuẩn từ nhap_chiso.js
 function setupSwipeEvents() {
   const container = document.getElementById("customerList");
   if (!container) return;
@@ -515,7 +570,7 @@ async function getLocationAndSave(index, safeKey) {
 
   const btnLoc = document.getElementById(`btn-location-${safeKey}`);
   const maKhang = value(c, 'MA_KHANG', 'ma_khang');
-  const selectedDate = localStorage.getItem(CACHE_KEY_DATE) || ''; // Lấy ngày thao tác
+  const selectedDate = localStorage.getItem(CACHE_KEY_DATE) || '';
 
   if (!navigator.geolocation) {
     setStatus('Trình duyệt không hỗ trợ GPS.', true);
@@ -549,7 +604,7 @@ async function getLocationAndSave(index, safeKey) {
 
       const payload = {
         MA_KHANG: maKhang,
-        NGAY: selectedDate, // Truyền thêm ngày lên Server
+        NGAY: selectedDate,
         TEN_KHANG: value(c, 'TEN_KHANG', 'ten_khang'),
         SO_CTO: value(c, 'SO_CTO', 'so_cto'),
         MA_TRAM: value(c, 'MA_TRAM', 'ma_tram'),
@@ -654,7 +709,7 @@ async function saveCustomer(index, safeKey) {
     const loggedTenNdung = String(getUserField(currentUser, 'ten_ndung', 'TEN_NDUNG', 'username') || '').trim();
 
     const maKhang = value(c, 'MA_KHANG', 'ma_khang');
-    const selectedDate = localStorage.getItem(CACHE_KEY_DATE) || ''; // Lấy ngày thao tác
+    const selectedDate = localStorage.getItem(CACHE_KEY_DATE) || '';
     let imageUrl = value(c, 'HINH_ANH', 'hinh_anh', 'PICTUREBOX');
 
     if (c._newPhotoDataUrl) {
@@ -679,7 +734,7 @@ async function saveCustomer(index, safeKey) {
         action: 'save',
         payload: {
           MA_KHANG: maKhang,
-          NGAY: selectedDate, // Truyền thêm ngày lên Server
+          NGAY: selectedDate,
           HINH_ANH: imageUrl,
           PICTUREBOX: imageUrl,
           TINH_TRANG: tinhTrang,
@@ -689,7 +744,7 @@ async function saveCustomer(index, safeKey) {
     }).then(res => res.json()).then(result => {
       if (result && result.success) {
         setStatus(`Lưu dữ liệu thành công.`);
-        setTimeout(() => nextCustomer(), 400); // Tự động chuyển thẻ kế tiếp sau khi lưu xong giống nhap_chiso
+        setTimeout(() => nextCustomer(), 400);
       } else {
         setStatus('Đã lưu local, server báo lỗi: ' + (result?.message || ''), true);
       }
@@ -742,7 +797,6 @@ async function executeCancel() {
   const checkbox = document.getElementById('check-' + safeKey);
   const pictureBox = document.getElementById('picture-' + safeKey);
   
-  // Lấy chính xác ngày đang lọc trên giao diện (hoặc ngày cắt điện của khách hàng này)
   const selectedDate = document.getElementById('filterDate')?.value || localStorage.getItem(CACHE_KEY_DATE) || '';
   const ngayCat = value(c, 'NGAY_CAT', 'ngay_cat') || selectedDate;
 
