@@ -182,7 +182,12 @@ function filterUncutCustomers() {
   // Xóa nội dung khung tìm kiếm từ khóa để tránh xung đột bộ lọc
   const searchBox = document.getElementById('searchBox');
   if (searchBox) searchBox.value = '';
-
+  const btn = document.getElementById('btnSearch');
+  if (btn) btn.disabled = true;
+  const btncut = document.getElementById('btnUncut');
+  if (btncut) btncut.disabled = true;
+  setStatus(`Đang tải dữ liệu...`);
+  
   currentFilteredList = allCustomers.filter(c => {
     // 1. Kiểm tra TINH_TRANG = 0
     const tinhTrang = Number(value(c, 'TINH_TRANG', 'tinh_trang') || 0);
