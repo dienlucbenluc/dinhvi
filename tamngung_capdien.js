@@ -66,7 +66,7 @@ function getUserField(user, ...names) {
 function setStatus(text, error = false) {
   const el = document.getElementById('status');
   if (!el) return;
-  el.innerHTML = text || ''; // <-- Đã đổi textContent thành innerHTML
+  el.innerHTML = text || ''; // Sử dụng innerHTML để hỗ trợ định dạng màu sắc HTML
   el.style.color = error ? '#d32f2f' : '#2e7d32';
 }
 
@@ -92,6 +92,25 @@ function value(obj, ...names) {
     if (obj && obj[name] !== undefined && obj[name] !== null) return obj[name];
   }
   return '';
+}
+
+/**
+ * Hàm tiện ích đếm số lượng khách hàng chưa thực hiện cắt điện (TINH_TRANG = 0 & Chưa thanh toán)
+ */
+function getUncutCount() {
+  if (!allCustomers || allCustomers.length === 0) return 0;
+  return allCustomers.filter(c => {
+    const tinhTrang = Number(value(c, 'TINH_TRANG', 'tinh_trang') || 0);
+    const sotienTtoan = value(c, 'SOTIEN_TTOAN', 'sotien_ttoan');
+    const isSotienNull = (
+      sotienTtoan === null ||
+      sotienTtoan === undefined ||
+      String(sotienTtoan).trim() === '' ||
+      String(sotienTtoan).trim().toLowerCase() === 'null' ||
+      String(sotienTtoan).trim() === 'Chưa TT'
+    );
+    return tinhTrang === 0 && isSotienNull;
+  }).length;
 }
 
 function saveCache() {
@@ -159,9 +178,8 @@ async function loadCustomers(forceFetch = false) {
     try {
       allCustomers = JSON.parse(cachedDataStr);
       renderFiltered();
-      //setStatus(` Tổng khách hàng: ${allCustomers.length}.`);
-      const countUncut = allCustomers.filter(c => Number(value(c, 'TINH_TRANG', 'tinh_trang') || 0) === 0).length;
-      setStatus(` Tổng khách hàng: ${allCustomers.length}. (Chưa thực hiện: ${countUncut})`);
+      const countUncut = getUncutCount();
+      setStatus(` Tổng khách hàng: ${allCustomers.length}. (Chưa thực hiện: <span style="color: red; font-weight: bold;">${countUncut}</span>)`);
       fetchServerDataInBackground(selectedDate, loggedTenNdung);
       return;
     } catch (e) {
@@ -242,9 +260,8 @@ async function fetchServerData(selectedDate, loggedTenNdung) {
     saveCache();
 
     renderFiltered();
-    //setStatus(` Tổng khách hàng: ${allCustomers.length}.`);
-    const countUncut = allCustomers.filter(c => Number(value(c, 'TINH_TRANG', 'tinh_trang') || 0) === 0).length;
-    setStatus(` Tổng khách hàng: ${allCustomers.length}. (Chưa thực hiện: ${countUncut})`);
+    const countUncut = getUncutCount();
+    setStatus(` Tổng khách hàng: ${allCustomers.length}. (Chưa thực hiện: <span style="color: red; font-weight: bold;">${countUncut}</span>)`);
   } catch (err) {
     setStatus('Lỗi lấy danh sách: ' + err.message, true);
   } finally {
@@ -278,11 +295,8 @@ async function fetchServerDataInBackground(selectedDate, loggedTenNdung) {
       saveCache();
       renderFiltered();
 
-      // Đếm số lượng khách hàng có TINH_TRANG = 0
-      const countUncut = allCustomers.filter(c => Number(value(c, 'TINH_TRANG', 'tinh_trang') || 0) === 0).length;
-
-      // Cập nhật thông báo trạng thái
-      setStatus(` Tổng khách hàng: ${allCustomers.length}. (Chưa thực hiện: ${countUncut})`);
+      const countUncut = getUncutCount();
+      setStatus(` Tổng khách hàng: ${allCustomers.length}. (Chưa thực hiện: <span style="color: red; font-weight: bold;">${countUncut}</span>)`);
     }
   } catch (err) {
     console.warn('Cập nhật ngầm thất bại:', err);
