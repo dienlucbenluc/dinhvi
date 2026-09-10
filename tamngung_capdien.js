@@ -454,7 +454,7 @@ async function saveLyDoOnly(index, safeKey) {
     const result = await response.json();
 
     if (result && result.success) {
-      setStatus(`Đã ghi lý do giải trình thành công cho ${maKhang}.`);
+      setStatus(`Đã ghi giải trình lý do thành công.`);
     } else {
       setStatus('Đã lưu local, server báo lỗi: ' + (result?.message || ''), true);
     }
