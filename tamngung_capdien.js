@@ -202,7 +202,7 @@ function filterUncutCustomers() {
 
   currentCardIndex = 0;
   renderCurrentCustomerCard();
-  setStatus(`Khách hàng chưa CĐ: ${currentFilteredList.length} / ${allCustomers.length}`);
+  setStatus(`Khách hàng chưa CĐ: ${currentFilteredList.length} /<span style="color:red;">${allCustomers.length}</span>`);
 }
 
 async function fetchServerData(selectedDate, loggedTenNdung) {
