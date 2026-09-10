@@ -391,7 +391,7 @@ function renderCurrentCustomerCard(slideDirection = null) {
         <div class="actions-right">
           <label class="check-wrap">
           <input type="checkbox" id="check-${safeKey}" ${Number(value(c, 'TINH_TRANG', 'tinh_trang')) === 1 ? 'checked' : ''} onchange="updateActionButtonsState('${safeKey}')">
-            Đã cắt điện
+            Đã thực hiện
           </label>
           <button class="btn-photo" onclick="takePhoto(${realIndex}, '${safeKey}')">📷 Chụp ảnh</button>
           <button class="btn-save" id="save-${safeKey}" onclick="saveCustomer(${realIndex}, '${safeKey}')">💾 Lưu</button>
