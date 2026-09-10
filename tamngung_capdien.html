@@ -112,7 +112,6 @@
 
 .input-date { 
   flex: 1; 
-  width: 100px;
   min-width: 0; /* Giúp input co lại linh hoạt trên màn hình điện thoại nhỏ */
   height: 42px; 
   border: 1px solid #ccc; 
@@ -124,7 +123,6 @@
 
 /* Cập nhật style cho các nút trên cùng hàng */
 .btn-search { 
-  width: 100px;
   white-space: nowrap; 
   height: 42px; 
   padding: 0 8px;
@@ -134,9 +132,6 @@
 
 /* Nút Xem chưa CĐ màu da cam nổi bật */
 .btn-uncut {
-  width: 100px;
-  background: #ff9800;
-  color: #fff;
   white-space: nowrap;
   height: 42px;
   padding: 0 8px;
@@ -224,8 +219,8 @@
 <div class="toolbar">
 <div class="filter-row">
   <input type="date" id="filterDate" class="input-date">
-  <button class="btn-search" id="btnSearch" onclick="loadCustomers(true)">🔍 Lấy danh sách</button>
-  <button class="btn-uncut" id="btnUncut" onclick="filterUncutCustomers()">Chưa CĐ</button>
+  <button class="btn-search" id="btnSearch" onclick="loadCustomers(true)">🔍 Danh sách</button>
+  <button class="btn-uncut" id="btnUncut" onclick="filterUncutCustomers()">🔍 Chưa CĐ</button>
 </div>
   <input id="searchBox" type="search" placeholder="Tìm theo Mã KH, Tên KH, Số CTơ...">
 </div>
