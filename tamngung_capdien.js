@@ -159,7 +159,7 @@ async function loadCustomers(forceFetch = false) {
     try {
       allCustomers = JSON.parse(cachedDataStr);
       renderFiltered();
-      setStatus(` Tổng khách hàng (từ bộ nhớ web): ${allCustomers.length}.`);
+      setStatus(` Tổng khách hàng: ${allCustomers.length}.`);
       fetchServerDataInBackground(selectedDate, loggedTenNdung);
       return;
     } catch (e) {
@@ -202,7 +202,7 @@ function filterUncutCustomers() {
 
   currentCardIndex = 0;
   renderCurrentCustomerCard();
-  setStatus(`Khách hàng chưa CĐ (TINH_TRANG=0 & chưa TT): ${currentFilteredList.length} / ${allCustomers.length}`);
+  setStatus(`Khách hàng chưa CĐ: ${currentFilteredList.length} / ${allCustomers.length}`);
 }
 
 async function fetchServerData(selectedDate, loggedTenNdung) {
