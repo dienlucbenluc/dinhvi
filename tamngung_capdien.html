@@ -181,14 +181,15 @@
         <span>⚡ TẠM NGỪNG CẤP ĐIỆN</span>
         <button class="btn-home" type="button" onclick="goHome()">🏠 Trang chủ</button>
       </div>
-      <div class="toolbar">
-        <div class="filter-row">
-          <input type="date" id="filterDate" class="input-date">
-          <button class="btn-search" id="btnSearch" onclick="loadCustomers(true)">🔍 Lấy danh sách</button>
-          <button class="btn-search" id="btnUncut" onclick="filterUncutCustomers()" style="background:#ff9800; color:#fff;">Xem chưa CĐ</button>
-        </div>
-        <input id="searchBox" type="search" placeholder="Tìm theo Mã KH, Tên KH, Số CTơ...">
-      </div>
+<div class="toolbar">
+  <div class="filter-row">
+    <input type="date" id="filterDate" class="input-date">
+    <button class="btn-search" id="btnSearch" onclick="loadCustomers(true)">🔍 Lấy danh sách</button>
+    <!-- Nút thêm mới nằm bên phải nút Lấy danh sách -->
+    <button class="btn-search" id="btnUncut" onclick="filterUncutCustomers()" style="background:#ff9800; color:#fff;">Xem chưa CĐ</button>
+  </div>
+  <input id="searchBox" type="search" placeholder="Tìm theo Mã KH, Tên KH, Số CTơ...">
+</div>
       <div style="font-size: 14px; font-style: italic; margin-top: 8px;" id="status"></div>
     </div>
     <div id="customerList" class="list">
