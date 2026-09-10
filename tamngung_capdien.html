@@ -103,7 +103,44 @@
 
     .box-head { padding:5px 5px; background:#fafafa; border-bottom:1px solid #eee; }
     
-    /* Style mới cho Ô Giải trình lý do */
+    .filter-row { 
+  display: flex; 
+  gap: 6px; 
+  align-items: center; 
+  width: 100%;
+}
+
+.input-date { 
+  flex: 1; 
+  min-width: 0; /* Giúp input co lại linh hoạt trên màn hình điện thoại nhỏ */
+  height: 42px; 
+  border: 1px solid #ccc; 
+  border-radius: 9px; 
+  padding: 0 8px; 
+  font-size: 14px; 
+  outline: none; 
+}
+
+/* Cập nhật style cho các nút trên cùng hàng */
+.btn-search { 
+  white-space: nowrap; 
+  height: 42px; 
+  padding: 0 8px;
+  font-size: 13px;
+  flex-shrink: 0; /* Đảm bảo không bị co ép mất nút */
+}
+
+/* Nút Xem chưa CĐ màu da cam nổi bật */
+.btn-uncut {
+  background: #ff9800;
+  color: #fff;
+  white-space: nowrap;
+  height: 42px;
+  padding: 0 8px;
+  font-size: 13px;
+  flex-shrink: 0;
+}
+    
     .lydo-container {
       display: flex;
       gap: 6px;
