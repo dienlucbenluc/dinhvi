@@ -87,7 +87,8 @@ function showToast(text, error = false) {
 function updateStatsSummary() {
   const statsEl = document.getElementById('statsSummary');
   if (statsEl) {
-    statsEl.innerHTML = `Tổng khách hàng: ${allCustomers.length} - Chưa thực hiện: ${currentFilteredList.length}`;
+    const uncutCount = getUncutCount();
+    statsEl.innerHTML = `Tổng khách hàng: ${allCustomers.length} - Chưa thực hiện: ${uncutCount}`;
   }
 }
 
@@ -810,6 +811,7 @@ async function saveCustomer(index, safeKey) {
     saveCache();
 
     updateActionButtonsState(safeKey);
+    updateStatsSummary();
     showToast(`Lưu dữ liệu thành công.`);
 
     fetch(API_URL, {
@@ -904,6 +906,7 @@ async function executeCancel() {
   }
 
   updateActionButtonsState(safeKey);
+  updateStatsSummary();
   showToast(`Hủy dữ liệu thành công.`);
 
   fetch(API_URL, {
