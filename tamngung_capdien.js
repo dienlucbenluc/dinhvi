@@ -246,6 +246,7 @@ async function fetchServerData(selectedDate, loggedTenNdung) {
   } finally {
     busy = false;
     if (btn) btn.disabled = false;
+    if (btncut) btncut.disabled = false;
   }
 }
 
