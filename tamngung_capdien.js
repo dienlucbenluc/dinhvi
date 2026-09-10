@@ -73,10 +73,10 @@ function showToast(text, error = false) {
     toast = document.createElement('div');
     toast.id = 'app-toast';
     // Đã đổi bottom:0 và border-radius chỉ bo 2 góc trên để nằm sát hoàn toàn đáy màn hình
-    toast.style.cssText = 'position:fixed;bottom:0;left:50%;transform:translateX(-50%);padding:12px 16px;background:#111111;color:#fff;font-size:13px;border-radius:12px 12px 0 0;z-index:10000;transition:opacity 0.3s;pointer-events:none;text-align:center;width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;box-sizing:border-box;';
+    toast.style.cssText = 'position:fixed;bottom:5;left:50%;transform:translateX(-50%);padding:12px 16px;background:rgba(0,0,0,0.8);color:#fff;font-size:13px;z-index:10000;transition:opacity 0.3s;pointer-events:none;text-align:center;width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;box-sizing:border-box;';
     document.body.appendChild(toast);
   } else {
-    toast.style.bottom = '0';
+    toast.style.bottom = '5';
     toast.style.background = '#111111';
     toast.style.width = '100%';
     toast.style.whiteSpace = 'nowrap';
@@ -85,7 +85,7 @@ function showToast(text, error = false) {
     toast.style.boxSizing = 'border-box';
   }
   if (error) {
-    toast.style.background = '#b71c1c';
+    toast.style.background = error ? 'rgba(211,47,47,0.9)' : 'rgba(46,125,50,0.9)';
   }
   toast.innerHTML = text || '';
   toast.style.opacity = '1';
