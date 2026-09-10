@@ -73,7 +73,7 @@ function showToast(text, error = false) {
     toast = document.createElement('div');
     toast.id = 'app-toast';
     // Đã thêm white-space, text-overflow, overflow, width & box-sizing để ép 1 hàng
-    toast.style.cssText = 'position:fixed;bottom:20px;left:50%;transform:translateX(-50%);padding:10px 16px;background:rgba(0,0,0,0.8);color:#fff;font-size:13px;border-radius:20px;z-index:10000;transition:opacity 0.3s;pointer-events:none;text-align:center;width:90%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;box-sizing:border-box;';
+    toast.style.cssText = 'position:fixed;bottom:20px;left:50%;transform:translateX(-50%);padding:10px 16px;color:#fff;font-size:13px;border-radius:20px;z-index:10000;transition:opacity 0.3s;pointer-events:none;text-align:center;width:90%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;box-sizing:border-box;';
     document.body.appendChild(toast);
   } else {
     // Đảm bảo style luôn cập nhật nếu toast đã được khởi tạo trước đó
