@@ -159,7 +159,8 @@ async function loadCustomers(forceFetch = false) {
     try {
       allCustomers = JSON.parse(cachedDataStr);
       renderFiltered();
-      setStatus(` Tổng khách hàng: ${allCustomers.length}.`);
+      //setStatus(` Tổng khách hàng: ${allCustomers.length}.`);
+      setStatus(` Tổng khách hàng: ${allCustomers.length}. (Chưa thực hiện: ${countUncut})`);
       fetchServerDataInBackground(selectedDate, loggedTenNdung);
       return;
     } catch (e) {
@@ -240,7 +241,8 @@ async function fetchServerData(selectedDate, loggedTenNdung) {
     saveCache();
 
     renderFiltered();
-    setStatus(` Tổng khách hàng: ${allCustomers.length}.`);
+    //setStatus(` Tổng khách hàng: ${allCustomers.length}.`);
+    setStatus(` Tổng khách hàng: ${allCustomers.length}. (Chưa thực hiện: ${countUncut})`);
   } catch (err) {
     setStatus('Lỗi lấy danh sách: ' + err.message, true);
   } finally {
