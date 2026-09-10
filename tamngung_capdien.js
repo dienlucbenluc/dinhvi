@@ -96,7 +96,7 @@ function updateStatsSummary() {
   const statsEl = document.getElementById('statsSummary');
   if (statsEl) {
     const uncutCount = getUncutCount();
-    statsEl.innerHTML = `Tổng khách hàng: ${allCustomers.length} - Chưa thực hiện: ${uncutCount}`;
+    statsEl.innerHTML = `Tổng khách hàng: ${allCustomers.length} - Chưa thực hiện: <span style=color:red;>${uncutCount}</span>`;
   }
 }
 
