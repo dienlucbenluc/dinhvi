@@ -160,6 +160,7 @@ async function loadCustomers(forceFetch = false) {
       allCustomers = JSON.parse(cachedDataStr);
       renderFiltered();
       //setStatus(` Tổng khách hàng: ${allCustomers.length}.`);
+      const countUncut = allCustomers.filter(c => Number(value(c, 'TINH_TRANG', 'tinh_trang') || 0) === 0).length;
       setStatus(` Tổng khách hàng: ${allCustomers.length}. (Chưa thực hiện: ${countUncut})`);
       fetchServerDataInBackground(selectedDate, loggedTenNdung);
       return;
@@ -242,6 +243,7 @@ async function fetchServerData(selectedDate, loggedTenNdung) {
 
     renderFiltered();
     //setStatus(` Tổng khách hàng: ${allCustomers.length}.`);
+    const countUncut = allCustomers.filter(c => Number(value(c, 'TINH_TRANG', 'tinh_trang') || 0) === 0).length;
     setStatus(` Tổng khách hàng: ${allCustomers.length}. (Chưa thực hiện: ${countUncut})`);
   } catch (err) {
     setStatus('Lỗi lấy danh sách: ' + err.message, true);
