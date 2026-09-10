@@ -272,7 +272,12 @@ async function fetchServerDataInBackground(selectedDate, loggedTenNdung) {
       localStorage.setItem(CACHE_KEY_DATE, selectedDate);
       saveCache();
       renderFiltered();
-      setStatus(` Tổng khách hàng: ${allCustomers.length}. (Đã cập nhật từ máy chủ)`);
+
+      // Đếm số lượng khách hàng có TINH_TRANG = 0
+      const countUncut = allCustomers.filter(c => Number(value(c, 'TINH_TRANG', 'tinh_trang') || 0) === 0).length;
+
+      // Cập nhật thông báo trạng thái
+      setStatus(` Tổng khách hàng: ${allCustomers.length}. (Chưa thực hiện: ${countUncut})`);
     }
   } catch (err) {
     console.warn('Cập nhật ngầm thất bại:', err);
