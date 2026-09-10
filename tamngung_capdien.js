@@ -66,7 +66,7 @@ function getUserField(user, ...names) {
 function setStatus(text, error = false) {
   const el = document.getElementById('status');
   if (!el) return;
-  el.textContent = text || '';
+  el.innerHTML = text || ''; // <-- Đã đổi textContent thành innerHTML
   el.style.color = error ? '#d32f2f' : '#2e7d32';
 }
 
@@ -202,7 +202,7 @@ function filterUncutCustomers() {
 
   currentCardIndex = 0;
   renderCurrentCustomerCard();
-  setStatus(`Khách hàng chưa CĐ: ${currentFilteredList.length} /<span style="color:red;">${allCustomers.length}</span>`);
+  setStatus(`Khách hàng chưa CĐ: ${allCustomers.length} / <span style="color: red; font-weight: bold;">${currentFilteredList.length}</span>`);
 }
 
 async function fetchServerData(selectedDate, loggedTenNdung) {
