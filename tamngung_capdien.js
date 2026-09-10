@@ -72,18 +72,18 @@ function showToast(text, error = false) {
   if (!toast) {
     toast = document.createElement('div');
     toast.id = 'app-toast';
-    // Đã thêm white-space, text-overflow, overflow, width & box-sizing để ép 1 hàng
+    // Đã bỏ trong suốt và bỏ hiệu ứng mờ (backdrop-filter)
     toast.style.cssText = 'position:fixed;bottom:20px;left:50%;transform:translateX(-50%);padding:10px 16px;color:#fff;font-size:13px;border-radius:20px;z-index:10000;transition:opacity 0.3s;pointer-events:none;text-align:center;width:90%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;box-sizing:border-box;';
     document.body.appendChild(toast);
   } else {
-    // Đảm bảo style luôn cập nhật nếu toast đã được khởi tạo trước đó
     toast.style.width = '90%';
     toast.style.whiteSpace = 'nowrap';
     toast.style.overflow = 'hidden';
     toast.style.textOverflow = 'ellipsis';
     toast.style.boxSizing = 'border-box';
   }
-  toast.style.background = error ? 'rgba(211,47,47,0.9)' : 'rgba(46,125,50,0.9)';
+  // Màu nền đục 100% (Đỏ #d32f2f khi lỗi, Xanh #2e7d32 khi thành công)
+  toast.style.background = error ? '#d32f2f' : '#2e7d32';
   toast.innerHTML = text || '';
   toast.style.opacity = '1';
   clearTimeout(toast._timer);
