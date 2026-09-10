@@ -170,6 +170,41 @@ async function loadCustomers(forceFetch = false) {
   await fetchServerData(selectedDate, loggedTenNdung);
 }
 
+/**
+ * Hàm lọc lấy danh sách chưa cắt điện (TINH_TRANG = 0 và SOTIEN_TTOAN = null / rỗng)
+ */
+function filterUncutCustomers() {
+  if (!allCustomers || allCustomers.length === 0) {
+    setStatus('Chưa có dữ liệu danh sách khách hàng.', true);
+    return;
+  }
+
+  // Xóa nội dung khung tìm kiếm từ khóa để tránh xung đột bộ lọc
+  const searchBox = document.getElementById('searchBox');
+  if (searchBox) searchBox.value = '';
+
+  currentFilteredList = allCustomers.filter(c => {
+    // 1. Kiểm tra TINH_TRANG = 0
+    const tinhTrang = Number(value(c, 'TINH_TRANG', 'tinh_trang') || 0);
+
+    // 2. Kiểm tra SOTIEN_TTOAN = null (hoặc null/undefined/rỗng/Chưa TT)
+    const sotienTtoan = value(c, 'SOTIEN_TTOAN', 'sotien_ttoan');
+    const isSotienNull = (
+      sotienTtoan === null ||
+      sotienTtoan === undefined ||
+      String(sotienTtoan).trim() === '' ||
+      String(sotienTtoan).trim().toLowerCase() === 'null' ||
+      String(sotienTtoan).trim() === 'Chưa TT'
+    );
+
+    return tinhTrang === 0 && isSotienNull;
+  });
+
+  currentCardIndex = 0;
+  renderCurrentCustomerCard();
+  setStatus(`Khách hàng chưa CĐ (TINH_TRANG=0 & chưa TT): ${currentFilteredList.length} / ${allCustomers.length}`);
+}
+
 async function fetchServerData(selectedDate, loggedTenNdung) {
   busy = true;
   const btn = document.getElementById('btnSearch');
