@@ -209,6 +209,8 @@ async function fetchServerData(selectedDate, loggedTenNdung) {
   busy = true;
   const btn = document.getElementById('btnSearch');
   if (btn) btn.disabled = true;
+  const btncut = document.getElementById('btnUncut');
+  if (btncut) btncut.disabled = true;
   setStatus(`Đang tải dữ liệu...`);
 
   const queryParams = new URLSearchParams({
