@@ -199,18 +199,12 @@ function renderCurrentCustomerCard(slideDirection = null) {
         <div class="cust-tenKH">${cust.ten_khang || ''}</div>
         <div class="cust-address" title="${cust.dia_chi || ''}"><b>Đ/C:</b> ${cust.dia_chi || ''}</div>
         <div class="cust-row-group">
-         Mã sổ: ${cust.ma_sogcs} - Danh số: ${cust.danh_so || ''}
+         Sổ: ${cust.ma_sogcs}-DS: ${cust.danh_so || ''}-ĐT: ${cust.so_dthoai || ''}
         </div>
-
-        <div class="cust-row-group" style="margin-top: 4px;">
-          Cột - Trạm: ${cotTramText || ''}
-        </div>
-        <div class="cust-dynamic-info-v3">
-         Số ĐT: ${cust.so_dthoai || ''}  <span style="float: right;">${mapLinkHtml}</span>
-        </div>
+        <div class="cust-address" style="margin-top: 4px;"> Cột - Trạm: ${cotTramText || ''}</div>
+        <div class="box-maps">${mapLinkHtml}</div>
         <div class="cust-row-group" style="margin-top: 6px;">
-          <input type="text" 
-                 class="input-ghichu" 
+          <input type="text" class="input-ghichu" 
                  id="ghi_chu_${cust.ma_khang}" 
                  value="${cust.ghi_chu || ''}" 
                  placeholder="Nhập ghi chú nếu có..." 
@@ -389,9 +383,11 @@ function setupSwipeEvents() {
   const container = document.getElementById("listContainer");
   let startX = 0;
   let startY = 0;
+  let isMouseDown = false;
 
+  // --- 1. XỬ LÝ VUỐT BẰNG TAY (MOBILE) ---
   container.addEventListener('touchstart', (e) => {
-    if (e.target.tagName === "INPUT") return;
+    if (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA") return;
     startX = e.touches[0].clientX;
     startY = e.touches[0].clientY;
   }, { passive: true });
@@ -401,20 +397,64 @@ function setupSwipeEvents() {
 
     let endX = e.changedTouches[0].clientX;
     let endY = e.changedTouches[0].clientY;
+    handleSwipeGesture(startX, startY, endX, endY);
 
-    let diffX = startX - endX;
-    let diffY = startY - endY;
-
-    if (Math.abs(diffX) > Math.abs(diffY) && Math.abs(diffX) > 40) {
-      if (diffX > 0) {
-        nextCustomer();
-      } else {
-        prevCustomer();
-      }
-    }
     startX = 0;
     startY = 0;
   }, { passive: true });
+
+
+  // --- 2. XỬ LÝ KÉO CHUỘT (PC) ---
+  container.addEventListener('mousedown', (e) => {
+    if (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA" || e.target.closest("button")) return;
+    isMouseDown = true;
+    startX = e.clientX;
+    startY = e.clientY;
+    container.style.cursor = "grabbing"; // Đổi con trỏ chuột thành dạng nắm kéo
+  });
+
+  window.addEventListener('mouseup', (e) => {
+    if (!isMouseDown) return;
+    isMouseDown = false;
+    container.style.cursor = "default";
+
+    if (!startX || !startY || isAnimating) return;
+
+    let endX = e.clientX;
+    let endY = e.clientY;
+    handleSwipeGesture(startX, startY, endX, endY);
+
+    startX = 0;
+    startY = 0;
+  });
+
+
+  // --- 3. XỬ LÝ BẤM PHÍM MŨI TÊN (PC) ---
+  window.addEventListener('keydown', (e) => {
+    // Không bắt sự kiện khi người dùng đang nhập thông tin vào ô Input/Textarea
+    if (["INPUT", "TEXTAREA"].includes(document.activeElement.tagName)) return;
+
+    if (e.key === "ArrowLeft") {
+      prevCustomer(); // Mũi tên trái -> KH trước
+    } else if (e.key === "ArrowRight") {
+      nextCustomer(); // Mũi tên phải -> KH kế tiếp
+    }
+  });
+}
+
+// Hàm tính toán hướng vuốt/kéo chung cho cả PC và Mobile
+function handleSwipeGesture(startX, startY, endX, endY) {
+  let diffX = startX - endX;
+  let diffY = startY - endY;
+
+  // Kiểm tra nếu khoảng cách kéo theo phương ngang lớn hơn 40px và lớn hơn phương dọc
+  if (Math.abs(diffX) > Math.abs(diffY) && Math.abs(diffX) > 40) {
+    if (diffX > 0) {
+      nextCustomer(); // Kéo từ phải sang trái -> Khách hàng tiếp theo
+    } else {
+      prevCustomer(); // Kéo từ trái sang phải -> Khách hàng trước đó
+    }
+  }
 }
 
 async function calculateRow(maKhang, bcs, rowIndex, csCu, hsn, sluongThao, sluongKt) {
