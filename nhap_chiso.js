@@ -199,14 +199,13 @@ function renderCurrentCustomerCard(slideDirection = null) {
         <div class="cust-tenKH">${cust.ten_khang || ''}</div>
         <div class="cust-address" title="${cust.dia_chi || ''}"><b>Đ/C:</b> ${cust.dia_chi || ''}</div>
         <div class="cust-row-group">
-         Mã sổ: ${cust.ma_sogcs} - Danh số: ${cust.danh_so || ''}
+         Sổ: ${cust.ma_sogcs}-DS: ${cust.danh_so || ''}-ĐT: ${cust.so_dthoai || ''}
         </div>
-
-        <div class="cust-row-group" style="margin-top: 4px;">
+        <div class="cust-address" style="margin-top: 4px;">
           Cột - Trạm: ${cotTramText || ''}
         </div>
-        <div class="cust-dynamic-info-v3">
-         Số ĐT: ${cust.so_dthoai || ''}  <span style="float: right;">${mapLinkHtml}</span>
+         <div class="box-maps">
+         <span style="float: right;">${mapLinkHtml}</span>
         </div>
         <div class="cust-row-group" style="margin-top: 6px;">
           <input type="text" 
