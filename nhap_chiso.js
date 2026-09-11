@@ -201,15 +201,10 @@ function renderCurrentCustomerCard(slideDirection = null) {
         <div class="cust-row-group">
          Sổ: ${cust.ma_sogcs}-DS: ${cust.danh_so || ''}-ĐT: ${cust.so_dthoai || ''}
         </div>
-        <div class="cust-address" style="margin-top: 4px;">
-          Cột - Trạm: ${cotTramText || ''}
-        </div>
-         <div class="box-maps">
-         <span style="float: right;">${mapLinkHtml}</span>
-        </div>
+        <div class="cust-address" style="margin-top: 4px;"> Cột - Trạm: ${cotTramText || ''}</div>
+        <div class="box-maps">${mapLinkHtml}</div>
         <div class="cust-row-group" style="margin-top: 6px;">
-          <input type="text" 
-                 class="input-ghichu" 
+          <input type="text" class="input-ghichu" 
                  id="ghi_chu_${cust.ma_khang}" 
                  value="${cust.ghi_chu || ''}" 
                  placeholder="Nhập ghi chú nếu có..." 
