@@ -201,8 +201,8 @@ function renderCurrentCustomerCard(slideDirection = null) {
         <div class="cust-row-group">
          Sổ: ${cust.ma_sogcs}-DS: ${cust.danh_so || ''}-ĐT: ${cust.so_dthoai || ''}
         </div>
-        <div class="cust-address" style="margin-top: 4px;"> Cột - Trạm: ${cotTramText || ''}</div>
-        <div class="box-maps">${mapLinkHtml}</div>
+        <div class="cust-row-group" style="margin-top: 4px;"> Cột - Trạm: ${cotTramText || ''}</div>
+
         <div class="cust-row-group" style="margin-top: 6px;">
           <input type="text" class="input-ghichu" 
                  id="ghi_chu_${cust.ma_khang}" 
@@ -210,7 +210,7 @@ function renderCurrentCustomerCard(slideDirection = null) {
                  placeholder="Nhập ghi chú nếu có..." 
                  onchange="groupedData['${cust.ma_khang}'].ghi_chu = this.value;">
         </div>
-
+        <div class="box-maps">${mapLinkHtml}</div>
         <div class="cust-dynamic-info-v2" id="detail_info_${cust.ma_khang}">
           <span>kW tháo <span id="bcs_thao_label_${cust.ma_khang}">(${firstItem.bcs})</span>: <b id="kw_thao_val_${cust.ma_khang}">${firstItem.sluong_thao || 0}</b></span>
           <span>kW kỳ trước <span id="bcs_label_${cust.ma_khang}">(${firstItem.bcs})</span>: <b id="kw_kt_val_${cust.ma_khang}">${firstItem.sluong_kt || 0}</b></span>
