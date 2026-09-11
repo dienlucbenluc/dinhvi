@@ -21,6 +21,12 @@
       position: relative;
       box-shadow: 0 0 20px rgba(0,0,0,0.5); /* Tạo viền bóng đổ trên PC */
     }
+
+    .customer-card { 
+  /* ... các CSS cũ giữ nguyên ... */
+  user-select: none;
+  -webkit-user-drag: none; /* Tránh tình trạng văng hình/văng khung khi kéo trên trình duyệt PC */
+}
     
     .sticky-top-container {
       position: absolute; /* Thay fixed thành absolute để không bị trôi ra ngoài max-width */
