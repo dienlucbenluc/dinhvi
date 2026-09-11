@@ -89,6 +89,23 @@
     }
     .btn-search:active { background: #004085; }
 
+           .spinner {
+            width: 24px;
+            height: 24px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #007bff;
+            border-radius: 50%;
+            display: inline-block;
+            animation: spin 0.8s linear infinite;
+            vertical-align: middle;
+            margin-right: 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    
     .summary-bar {
       display: flex;
       justify-content: space-between;
@@ -310,9 +327,11 @@
   </div>
 
   <div id="listContainer">
-    <div style="text-align:center; padding-top:40px; color:#0056b3; font-weight:bold;">
-      ⏳ Đang tải dữ liệu khách hàng...
-    </div>
+        <li style="text-align: center; padding: 20px;">
+        <span class="spinner"></span>
+        <span style="font-weight: bold; color: #007bff; vertical-align: middle; font-size: 15px;">Đang lấy danh sách...</span>
+      </li>
+  
   </div>
 
   <div id="toast"></div>
