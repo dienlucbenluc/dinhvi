@@ -1,332 +1,808 @@
 <!DOCTYPE html>
 <html lang="vi">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Nhập chỉ số khách hàng</title>
-  <style>
-    * { box-sizing: border-box; }
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
     
-    /* Cấu hình khung Mobile căn giữa trên màn hình PC */
-    html { height: 100%; background: #222; } /* Nền tối phía ngoài trên PC */
-    body { 
-      height: 100%; 
-      margin: 0 auto; 
-      padding: 0; 
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
-      background: #f0f2f5; 
-      color: #333; 
-      overflow: hidden; 
-      max-width: 480px; /* Giới hạn chiều rộng giao diện điện thoại */
-      position: relative;
-      box-shadow: 0 0 20px rgba(0,0,0,0.5); /* Tạo viền bóng đổ trên PC */
-    }
+    <title>Ghi nhớ vị trí công tơ của khách hàng</title>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
     
-    .sticky-top-container {
-      position: absolute; /* Thay fixed thành absolute để không bị trôi ra ngoài max-width */
-      top: 0;
-      left: 0;
-      right: 0;
-      background: #fff;
-      z-index: 1000;
-      padding: 8px 10px;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
-    }
+    <style>
+        :root {
+            --primary-color: #0052cc;
+            --primary-hover: #0043a8;
+            --bg-color: #f4f7fa;
+            --card-bg: #ffffff;
+            --text-main: #172b4d;
+            --text-sub: #5e6c84;
+            --danger-color: #ff5630;
+            --radius-lg: 16px;
+            --radius-md: 10px;
+            --shadow: 0 8px 24px rgba(149, 157, 165, 0.12);
+        }
 
-    .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; position: relative; }
-    .header-left { display: flex; align-items: center; gap: 8px; }
-    .header-right { display: flex; align-items: center; gap: 8px; position: relative; }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
 
-    .btn-menu { 
-      background: #f0f2f5; 
-      border: 1px solid #ccc; 
-      border-radius: 4px; 
-      padding: 6px 10px; 
-      font-size: 18px; 
-      cursor: pointer; 
-      line-height: 1;
-    }
-    .btn-menu:active { background: #e2e6ea; }
+        html, body { 
+            height: 100%; 
+            font-family: 'Plus Jakarta Sans', sans-serif; 
+            background: var(--bg-color); 
+            color: var(--text-main); 
+            overflow: hidden; 
+        }
 
-    .title { font-size: 16px; font-weight: bold; color: #0056b3; }
-    .user-info { font-weight: 600; font-size: 15px; color: #28a745; }
+        .app-container { 
+            display: flex; 
+            flex-direction: column; 
+            height: 100vh; 
+            max-width: 500px; 
+            margin: 0 auto; 
+            background: var(--bg-color);
+            position: relative;
+        }
 
-    .search-box {
-      display: flex;
-      gap: 6px;
-    }
-    .search-box input { 
-      flex: 1; 
-      padding: 8px 10px; 
-      border-radius: 5px; 
-      border: 1px solid #ccc; 
-      font-size: 14px; 
-      outline: none; 
-    }
-    .search-box input:focus { border-color: #0056b3; }
+        /* Fixed Modern Header */
+        .fixed-header { 
+            flex-shrink: 0; 
+            background: rgba(255, 255, 255, 0.85); 
+            backdrop-filter: blur(12px);
+            padding: 16px 20px;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+            z-index: 100;
+        }
+        
+        .header-top-row { 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+        }
 
-    .btn-search {
-      background: #E6E6FA;
-      color: white;
-      border: none;
-      border-radius: 5px;
-      padding: 0 14px;
-      font-size: 16px;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-    .btn-search:active { background: #004085; }
+        .header-logo-container { 
+            display: flex; 
+            align-items: center; 
+            gap: 12px; 
+        }
 
-    .summary-bar {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-top: 6px;
-      padding: 6px 8px;
-      background: #eef5fc;
-      border-radius: 5px;
-      font-size: 13px;
-      color: #004085;
-      font-weight: 600;
-      line-height: 1.2;
-    }
-    .summary-bar span { white-space: nowrap; }
+        /* Avatar Header: Cover & Căn lề đỉnh (top) */
+        .user-avatar-header { 
+            width: 50px; 
+            height: 50px; 
+            object-fit: cover; 
+            object-position: top center;
+            border-radius: 50%;
+            background: #f0f4ff;
+            border: 2px solid var(--primary-color);
+        }
 
-    .link-filter-action {
-      color: #0056b3;
-      text-decoration: underline;
-      cursor: pointer;
-      font-weight: bold;
-    }
-    .link-filter-chuaghi {
-      color: #d9534f;
-      text-decoration: underline;
-      cursor: pointer;
-      font-weight: bold;
-    }
+        .header-text-group { 
+            display: flex; 
+            flex-direction: column; 
+        }
 
-    #listContainer {
-      position: absolute;
-      top: 110px;
-      bottom: 0;
-      left: 0;
-      right: 0;
-      padding: 10px;
-      overflow-y: auto;
-      touch-action: pan-y;
-    }
+        .company-title { 
+            font-size: 15px; 
+            font-weight: 700; 
+            color: var(--primary-color); 
+            line-height: 1.2;
+            letter-spacing: -0.2px;
+        }
 
-    .customer-card { 
-      background: #fff; 
-      border-radius: 10px; 
-      padding: 12px; 
-      margin-top: 10px;
-      border: 2px solid #0056b3; 
-      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-      user-select: none;
-      transition: transform 0.25s ease-out, opacity 0.25s ease-out;
-      will-change: transform, opacity;
-    }
+        .tac-gia { 
+            font-size: 13px; 
+            color: var(--text-sub); 
+            font-weight: 500; 
+            margin-top: 3px;
+        }
+        
+        /* Modern Hamburger Button & Dropdown */
+        .menu-container { position: relative; }
+        
+        .menu-btn { 
+            background: #eef2f5; 
+            color: var(--text-main); 
+            border: none; 
+            width: 40px;
+            height: 40px;
+            font-size: 20px; 
+            border-radius: 50%; 
+            cursor: pointer; 
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+        }
+        
+        .menu-btn:active { transform: scale(0.92); background: #e2e8f0; }
 
-    .slide-left-out { transform: translateX(-120%); opacity: 0; }
-    .slide-right-out { transform: translateX(120%); opacity: 0; }
-    .slide-left-in { transform: translateX(100%); opacity: 0; }
-    .slide-right-in { transform: translateX(-100%); opacity: 0; }
+        .menu-dropdown { 
+            display: none; 
+            position: absolute; 
+            right: 0; 
+            top: 48px; 
+            background: #ffffff; 
+            box-shadow: 0 12px 32px rgba(0,0,0,0.15); 
+            border-radius: var(--radius-md); 
+            z-index: 1000; 
+            min-width: 230px; 
+            overflow: hidden; 
+            border: 1px solid rgba(0, 0, 0, 0.06);
+            animation: fadeIn 0.2s ease-out;
+        }
 
-    .cust-header { border-bottom: none; padding-bottom: 4px; margin-bottom: 6px; }
-    
-    .cust-title { 
-      font-weight: bold; 
-      color: #0056b3; 
-      font-size: 15px; 
-      margin-bottom: 4px; 
-      line-height: 1.3;
-    }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
 
-    .cust-tenKH { 
-      font-weight: bold; 
-      color: #0056b3; 
-      font-size: 15px; 
-      margin-bottom: 4px; 
-      line-height: 1.3;
-      display: -webkit-box;
-      -webkit-line-clamp: 2;
-      -webkit-box-orient: vertical;
-      overflow: hidden;
-    }
-    
-    .cust-address { 
-      font-size: 12px; 
-      color: #222; 
-      margin: 4px 0; 
-      font-weight: 500;
-      white-space: nowrap; 
-      overflow: hidden; 
-      text-overflow: ellipsis;
-    }
+        .menu-dropdown.show { display: block; }
 
-    .cust-row-group { 
-      display: flex; 
-      flex-wrap: wrap; 
-      gap: 6px; 
-      margin-top: 5px; 
-      align-items: center;
-      font-size: 13px;
-    }
+        .menu-item { 
+            padding: 12px 16px; 
+            font-size: 14px; 
+            font-weight: 500;
+            color: var(--text-main); 
+            cursor: pointer; 
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            transition: background 0.2s;
+            border-bottom: 1px solid #f4f5f7;
+        }
 
-    .input-ghichu {
-      width: 100%;
-      border: 1px solid #ced4da;
-      border-radius: 4px;
-      padding: 6px 8px;
-      font-size: 13px;
-      outline: none;
-      background-color: #fff;
-    }
-    
-    .input-ghichu:focus { border-color: #007bff; }
+        .menu-item:last-child { border-bottom: none; }
+        .menu-item:hover { background: #f8fafc; }
+        .menu-item.danger { color: var(--danger-color); font-weight: 600; }
 
-    .cust-dynamic-info-v2 {
-      background: #f8f9fa;
-      padding: 8px;
-      border-radius: 5px;
-      font-size: 14px;
-      color: #004085;
-      font-weight: bold;
-      margin-bottom: -5px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
+        /* Dashboard Main Body */
+        .scrollable-content { 
+            flex: 1; 
+            overflow-y: auto; 
+            padding: 20px;
+        }
 
-    .cust-dynamic-info-v3 {
-      border-radius: 5px;
-      font-size: 13px;
-      margin: 4px 0; 
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 4px;
-    }
-    
-    .table-responsive { overflow-x: auto; margin-top: 0px; }
-    table.chiso-table { width: 100%; border-collapse: collapse; font-size: 14px; }
-    table.chiso-table th { background: #e9ecef; color: #111; padding: 5px 3px; border: 1px solid #ccc; font-size: 15px; font-weight: bold; text-align: center; }
-    table.chiso-table td { border: 1px solid #ddd; padding: 0; vertical-align: middle; }
-    
-    .text-right { text-align: right !important; padding-right: 8px !important; }
-    .text-center { text-align: center !important; }
+        .welcome-card {
+            background: linear-gradient(135deg, #0052cc 0%, #0065ff 100%);
+            color: white;
+            padding: 20px;
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow);
+            margin-bottom: 20px;
+        }
 
-    .val-calc-large { 
-      font-size: 17px !important; 
-      font-weight: bold !important; 
-      color: #111;
-      padding: 6px 0;
-    }
+        .welcome-card h2 { font-size: 18px; font-weight: 700; margin-bottom: 6px; }
+        .welcome-card p { font-size: 13px; opacity: 0.85; line-height: 1.4; }
 
-    .bcs-badge { font-weight: bold; padding: 4px 8px; color: #111; font-size: 14px; }
-    
-    input.input-cs-moi { 
-      width: 100%; 
-      height: 42px;
-      padding: 4px 8px; 
-      background-color: #F0FFFF; 
-      border: none; 
-      text-align: right; 
-      font-weight: bold; 
-      font-size: 18px; 
-      color: #0056b3;
-      outline: none; 
-    }
-    input.input-cs-moi:focus { background-color: #ffffff; border: 2px solid #007bff; }
+        .section-title {
+            font-size: 14px;
+            font-weight: 700;
+            text-transform: uppercase;
+            color: var(--text-sub);
+            letter-spacing: 0.5px;
+            margin-bottom: 12px;
+        }
 
-    .card-btn-group { 
-      display: flex; 
-      gap: 8px; 
-      margin-top: 5px; 
-      padding-top: 5px; 
-      border-top: 1px dashed #28a745; 
-    }
+        /* Feature Grid Menu */
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+            margin-bottom: 20px;
+        }
 
-    .btn-card { flex: 1; padding: 12px 8px; border: none; border-radius: 6px; font-weight: bold; font-size: 14px; cursor: pointer; color: white; }
-    .btn-card-save { background: #28a745; }
-    .btn-card-save:disabled { background: #a5d6a7; cursor: not-allowed; opacity: 0.6; }
-    .btn-card-cancel { background: #dc3545; }
-    .btn-card-cancel:disabled { background: #ef9a9a; cursor: not-allowed; opacity: 0.6; }
+        .feature-card {
+            background: var(--card-bg);
+            padding: 16px;
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow);
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border: 1px solid rgba(0, 0, 0, 0.03);
+        }
 
-    #toast { 
-      position: absolute; 
-      top: 15px; 
-      right: 15px; 
-      max-width: 320px;
-      background: rgba(33, 37, 41, 0.92); 
-      color: #fff; 
-      padding: 10px 15px; 
-      border-radius: 8px; 
-      font-size: 14px; 
-      display: none; 
-      z-index: 10001; 
-      box-shadow: 0 4px 12px rgba(0,0,0,0.25);
-    }
+        .feature-card:active { transform: scale(0.97); }
 
-    .modal-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0, 0, 0, 0.4); display: none; align-items: center; justify-content: center; z-index: 10000; }
-    .modal-box { background: #ffffff; width: 88%; max-width: 360px; border-radius: 12px; padding: 18px 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); }
-    .modal-title { font-size: 16px; font-weight: bold; color: #007bff; margin-bottom: 10px; text-align: center; }
-    .modal-message { font-size: 14px; color: #333; line-height: 1.5; white-space: pre-line; }
-    .modal-buttons { display: flex; gap: 10px; margin-top: 15px; }
-    .modal-buttons button { flex: 1; padding: 9px; font-size: 13px; font-weight: bold; border-radius: 6px; border: none; cursor: pointer; }
-    .btn-modal-cancel { background: #e0e0e0; color: #333; }
-    .btn-modal-confirm { background: #28a745; color: white; }
-  </style>
+        .feature-icon {
+            width: 42px;
+            height: 42px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+        }
+
+        .icon-blue { background: #e6fcff; color: #00b8d9; }
+        .icon-green { background: #e3fcef; color: #36b37e; }
+        .icon-orange { background: #fffae6; color: #ffab00; }
+        .icon-purple { background: #eae6ff; color: #6554c0; }
+        .icon-cyan { background: #e6f7ff; color: #0091ff; }
+        .icon-red { background: #ffebe6; color: #ff5630; }
+
+        .feature-title { font-size: 14px; font-weight: 700; color: var(--text-main); }
+        .feature-desc { font-size: 11px; color: var(--text-sub); }
+
+        /* Modern Modals */
+        .modal-overlay { 
+            position: fixed; 
+            top: 0; left: 0; width: 100vw; height: 100vh; 
+            background: rgba(9, 30, 66, 0.5); 
+            backdrop-filter: blur(4px);
+            display: none; 
+            align-items: center; 
+            justify-content: center; 
+            z-index: 10000; 
+        }
+
+        .modal-box { 
+            background: #ffffff; 
+            width: 88%; 
+            max-width: 360px; 
+            border-radius: var(--radius-lg); 
+            padding: 24px; 
+            box-shadow: 0 20px 40px rgba(0,0,0,0.2); 
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .modal-title { font-size: 18px; font-weight: 700; margin-bottom: 12px; text-align: center; }
+        
+        .form-group { margin-bottom: 12px; }
+        .form-group label { font-size: 12px; font-weight: 600; color: var(--text-sub); display: block; margin-bottom: 6px; }
+        
+        input[type="password"], input[type="text"], input[type="file"] { 
+            width: 100%; 
+            padding: 10px 12px; 
+            border: 1px solid #dfe1e6; 
+            border-radius: var(--radius-md); 
+            font-size: 14px; 
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        input[type="password"]:focus, input[type="text"]:focus { border-color: var(--primary-color); }
+
+        /* Layout Nằm Ngang Cho Khung Avatar Trong Modal */
+        .avatar-upload-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .avatar-preview {
+            width: 52px;
+            height: 52px;
+            border-radius: 50%;
+            object-fit: cover;
+            object-position: top center;
+            border: 2px solid var(--primary-color);
+            flex-shrink: 0;
+            background: #f0f4ff;
+        }
+
+        .avatar-input-group {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .modal-buttons { display: flex; gap: 10px; margin-top: 18px; }
+        .modal-buttons button { 
+            flex: 1; padding: 12px; font-size: 14px; font-weight: 600; 
+            border-radius: var(--radius-md); border: none; cursor: pointer; 
+        }
+
+        .btn-modal-cancel { background: #f4f5f7; color: var(--text-sub); }
+        .btn-modal-confirm { background: var(--primary-color); color: white; }
+        .btn-modal-danger { background: var(--danger-color); color: white; }
+    </style>
 </head>
 <body>
+    <div class="app-container">
+        <div class="fixed-header">
+            <div class="header-top-row">
+                <div class="header-logo-container">
+                    <img id="userAvatarHeader" 
+                         src="data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='50' height='50' viewBox='0 0 50 50'%3E%3Crect width='50' height='50' rx='25' fill='%23eef2f5'/%3E%3Ccircle cx='25' cy='19' r='8' fill='%23909aa8'/%3E%3Cpath d='M11 43c1.8-8 7.1-12 14-12s12.2 4 14 12' fill='%23909aa8'/%3E%3C/svg%3E" 
+                         alt="Avatar" 
+                         class="user-avatar-header"
+                         crossorigin="anonymous">
+                    <div class="header-text-group">
+                        <div class="company-title">ĐIỆN LỰC BẾN LỨC</div>
+                        <div class="tac-gia" id="currentUserDisplay">Đang tải...</div>
+                    </div>
+                </div>
+                <div class="menu-container">
+                    <button class="menu-btn" onclick="toggleMenu()">☰</button>
+                    <div class="menu-dropdown" id="menuDropdown">
+                        <div class="menu-item" onclick="openDevModal()">🛠️ Lập trình phần mềm</div>
+                        <div class="menu-item" onclick="window.location.href='dinh_vi.html'">🌏 Định vị công tác</div>
+                        <div class="menu-item" onclick="window.location.href='nhap_chiso.html'">📝 Ghi chỉ số</div>
+                        <div class="menu-item" onclick="openPassModal()">🔑 Đổi mật khẩu & Hồ sơ</div>
+                        <div class="menu-item danger" onclick="handleLogout()">🛑 Thoát ứng dụng</div>
+                    </div>
+                </div>
+            </div>
+        </div>
 
-  <div class="sticky-top-container">
-    <div class="header">
-      <div class="header-left">
-         <div class="title">⚡ GHI CHỈ SỐ</div>
-      </div>
-      <div class="header-right">
-        <div class="user-info" id="userDisplay">👷 ...</div>     
-        <button class="btn-menu" onclick="window.location.href='home.html'">☰</button>
-      </div>
-    </div>
-    
-    <div class="search-box">
-      <input type="text" id="searchInput" placeholder="Mã, Tên, Đ/C, Cột, Trạm, Sổ, SĐT..." onkeydown="if(event.key==='Enter') filterData();">
-      <button class="btn-search" onclick="filterData()">🔍</button>
-    </div>
-    
-    <div class="summary-bar">
-      <span>Tổng: <b id="sumTongKh">0</b></span>
-      <span style="cursor:pointer;" onclick="filterDaCS()">Đã ghi: <b id="sumDaCS" style="color:#28a745;">0</b></span>
-      <span style="cursor:pointer;" onclick="filterChuaGhi()">Chưa ghi: <b id="sumChuaGhi" style="color:#d9534f;">0</b></span>
-      <span class="link-filter-chuaghi" onclick="filterChuaGhi()">Chưa ghi</span>
-      <span class="link-filter-action" onclick="showAllData()">Tất cả</span>      
-    </div>
-  </div>
+        <div class="scrollable-content">
+            <div class="welcome-card">
+                <h2>Hệ Thống Định Vị Công Tơ</h2>
+                <p>Quản lý dữ liệu vị trí, cập nhật chỉ số nhanh chóng và chính xác cho khu vực Điện lực Bến Lức.</p>
+            </div>
 
-  <div id="listContainer">
-    <div style="text-align:center; padding-top:40px; color:#0056b3; font-weight:bold;">
-      ⏳ Đang tải dữ liệu khách hàng...
+            <div class="section-title">Chức năng chính</div>
+            <div class="features-grid">
+                <div class="feature-card" onclick="window.location.href='dinh_vi.html'">
+                    <div class="feature-icon icon-blue">🌏</div>
+                    <div>
+                        <div class="feature-title">Định vị</div>
+                        <div class="feature-desc">Tra cứu & cập nhật vị trí công tơ</div>
+                    </div>
+                </div>
+
+                <div class="feature-card" onclick="window.location.href='nhap_chiso.html'">
+                    <div class="feature-icon icon-green">📝</div>
+                    <div>
+                        <div class="feature-title">Ghi chỉ số</div>
+                        <div class="feature-desc">Ghi chỉ số điện khách hàng</div>
+                    </div>
+                </div>
+
+                             <div class="feature-card" onclick="window.location.href='tamngung_capdien.html'">
+                    <div class="feature-icon icon-purple">🛠️</div>
+                    <div>
+                        <div class="feature-title">Tạm ngừng CĐ</div>
+                        <div class="feature-desc">KH quá hạn thanh toán</div>
+                    </div>
+                </div>
+
+
+                <div class="feature-card" onclick="openPassModal()">
+                    <div class="feature-icon icon-orange">🔑</div>
+                    <div>
+                        <div class="feature-title">Tài khoản</div>
+                        <div class="feature-desc">Đổi MK & Tên, Avatar</div>
+                    </div>
+                </div>
+               
+                <div class="feature-card" onclick="openAdminAuthModal()">
+                    <div class="feature-icon icon-cyan">⚙️</div>
+                    <div>
+                        <div class="feature-title">Quản trị</div>
+                        <div class="feature-desc">Truy cập bảng quản trị hệ thống</div>
+                    </div>
+                </div>
+                
+                <div class="feature-card" onclick="handleLogout()">
+                    <div class="feature-icon icon-red">🛑</div>
+                    <div>
+                        <div class="feature-title">Thoát</div>
+                        <div class="feature-desc">Đăng xuất tài khoản</div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
-  </div>
 
-  <div id="toast"></div>
-
-  <div id="customConfirmModal" class="modal-overlay">
-    <div class="modal-box">
-      <div class="modal-title" id="confirmModalTitle">XÁC NHẬN</div>
-      <div class="modal-message" id="confirmModalMessage">Nội dung thông báo...</div>
-      <div class="modal-buttons">
-        <button class="btn-modal-cancel" id="btnModalCancel">Hủy</button>
-        <button class="btn-modal-confirm" id="btnModalConfirm">Xác nhận</button>
-      </div>
+    <div id="adminAuthModal" class="modal-overlay">
+        <div class="modal-box">
+            <div class="modal-title" style="color: var(--primary-color);">Xác Nhận Quyền Admin</div>
+            <div class="form-group">
+                <label>Nhập mật khẩu Admin để truy cập</label>
+                <input type="password" id="adminPasswordInput" placeholder="••••••••" onkeyup="if(event.key === 'Enter') verifyAdminPassword()">
+            </div>
+            <div class="modal-buttons">
+                <button class="btn-modal-cancel" onclick="closeAdminAuthModal()">Hủy</button>
+                <button class="btn-modal-confirm" onclick="verifyAdminPassword()">Xác nhận</button>
+            </div>
+        </div>
     </div>
-  </div>
 
-  <script charset="UTF-8" src="nhap_chiso.js?v=4.2.6"></script>
+    <div id="devModal" class="modal-overlay">
+        <div class="modal-box">
+            <div class="modal-title" style="color: var(--primary-color);">Lập Trình Viên</div>
+            <div style="font-size: 14px; color: var(--text-main); line-height: 1.6;">
+                <p><strong>👤 Tác giả:</strong> Nguyễn Đức Truyền</p>
+                <p style="margin-top: 4px;"><strong>📞 ĐT:</strong> <a href="tel:0917747877" style="color: var(--primary-color); font-weight: 700; text-decoration: none;">0917747877</a></p>
+                <p style="margin-top: 10px; font-style: italic; font-size: 12px; color: var(--text-sub);">
+                    Góp ý về lỗi hoặc chức năng mới xin vui lòng liên hệ trực tiếp. Cảm ơn!
+                </p>
+            </div>
+            <div class="modal-buttons">
+                <button class="btn-modal-confirm" onclick="closeDevModal()" style="width: 100%;">Đóng</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="logoutModal" class="modal-overlay">
+        <div class="modal-box">
+            <div class="modal-title" style="color: var(--danger-color);">Xác Nhận Thoát</div>
+            <p style="font-size: 14px; color: var(--text-sub); text-align: center;">
+                Bạn có chắc chắn muốn đăng xuất tài khoản hiện tại?
+            </p>
+            <div class="modal-buttons">
+                <button class="btn-modal-cancel" onclick="closeLogoutModal()">Hủy</button>
+                <button class="btn-modal-danger" onclick="confirmLogout()">Thoát</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="passModal" class="modal-overlay">
+        <div class="modal-box">
+            <div class="modal-title">Cập Nhật Hồ Sơ</div>
+            <div class="form-group">
+                <label>Tên nhân viên</label>
+                <input type="text" id="editTenNvienInput" placeholder="Nhập tên nhân viên">
+            </div>
+            
+            <div class="form-group">
+                <div class="avatar-upload-row">
+                    <img id="avatarPreview" src="data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='50' height='50' viewBox='0 0 50 50'%3E%3Crect width='50' height='50' rx='25' fill='%23eef2f5'/%3E%3Ccircle cx='25' cy='19' r='8' fill='%23909aa8'/%3E%3Cpath d='M11 43c1.8-8 7.1-12 14-12s12.2 4 14 12' fill='%23909aa8'/%3E%3C/svg%3E" class="avatar-preview" alt="Preview">
+                    <div class="avatar-input-group">
+                        <label>Hình đại diện</label>
+                        <input type="file" id="avatarFileInput" accept="image/*" onchange="handleAvatarFileSelect(event)">
+                    </div>
+                </div>
+            </div>
+
+            <hr style="margin: 12px 0; border: none; border-top: 1px solid #eee;">
+            <div class="form-group">
+                <label>Mật khẩu cũ</label>
+                <input type="password" id="oldPassInput" placeholder="••••••••">
+            </div>
+            <div class="form-group">
+                <label>Mật khẩu mới (Bỏ trống nếu không đổi)</label>
+                <input type="password" id="newPassInput" placeholder="••••••••">
+            </div>
+            <div class="modal-buttons">
+                <button class="btn-modal-cancel" onclick="closePassModal()">Hủy</button>
+                <button class="btn-modal-confirm" id="btnSavePass" onclick="saveProfileAndPass()">Lưu thay đổi</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="alertModal" class="modal-overlay">
+        <div class="modal-box" style="text-align: center;">
+            <div class="alert-icon" style="font-size: 40px; margin-bottom: 8px;">✅</div>
+            <div class="modal-title alert-title" style="color: #36b37e; margin-bottom: 8px;">Thành Công</div>
+            <p id="alertMessage" style="font-size: 14px; color: var(--text-sub); line-height: 1.5; margin-bottom: 16px;">
+                Cập nhật thành công!
+            </p>
+            <div class="modal-buttons">
+                <button class="btn-modal-confirm" onclick="closeAlertModal()" style="width: 100%;">Xác nhận</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = "https://script.google.com/macros/s/AKfycbzKkiiIsB_4BWx2VUN2rIiC6s1MQY6L9g5S90J90__ja83-7_awlfyxbMYevwAFJuq9fg/exec";
+        const DEFAULT_AVATAR = "data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='50' height='50' viewBox='0 0 50 50'%3E%3Crect width='50' height='50' rx='25' fill='%23eef2f5'/%3E%3Ccircle cx='25' cy='19' r='8' fill='%23909aa8'/%3E%3Cpath d='M11 43c1.8-8 7.1-12 14-12s12.2 4 14 12' fill='%23909aa8'/%3E%3C/svg%3E";
+        const ADMIN_PASSWORD = "cmis&123";
+
+        // CẤU HÌNH CLOUDINARY (Hãy thay đổi 2 giá trị này)
+        const CLOUDINARY_CLOUD_NAME = "jokzcdxt";
+        const CLOUDINARY_UPLOAD_PRESET = "avatar_preset";
+
+        let currentUser = null;
+        let isAvatarChanged = false;
+        let base64AvatarResized = ""; 
+
+        function getAvatarUrl(avatar) {
+            if (!avatar || typeof avatar !== "string") return DEFAULT_AVATAR;
+            const url = avatar.trim();
+            if (!url) return DEFAULT_AVATAR;
+            return url;
+        }
+
+        async function setHeaderAvatar(avatar, username, forceFetch = false) {
+            const img = document.getElementById("userAvatarHeader");
+            if (!img) return;
+
+            img.onerror = function() {
+                this.onerror = null;
+                this.src = DEFAULT_AVATAR;
+            };
+
+            const cachedAvatar = localStorage.getItem("cmis_user_avatar_cache");
+            if (cachedAvatar && !forceFetch) {
+                img.src = cachedAvatar;
+                return;
+            }
+
+            if (username && forceFetch) {
+                try {
+                    const formData = new URLSearchParams();
+                    formData.append("action", "GET_AVATAR");
+                    formData.append("ten_ndung", username);
+
+                    const response = await fetch(API_URL, {
+                        method: "POST",
+                        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+                        body: formData.toString()
+                    });
+                    const result = await response.json();
+
+                    if (result.status === "success" && result.avatar) {
+                        img.src = result.avatar;
+                        localStorage.setItem("cmis_user_avatar_cache", result.avatar);
+                        return;
+                    }
+                } catch (err) {
+                    console.warn("Không lấy được avatar từ server:", err);
+                }
+            }
+
+            const targetUrl = getAvatarUrl(avatar);
+            img.src = targetUrl;
+            if (targetUrl && !targetUrl.startsWith("data:image/svg")) {
+                localStorage.setItem("cmis_user_avatar_cache", targetUrl);
+            }
+        }
+
+        document.addEventListener("DOMContentLoaded", () => {
+            const sessionStr = localStorage.getItem("cmis_user_session");
+            if (!sessionStr) {
+                window.location.href = "login.html";
+                return;
+            }
+            
+            currentUser = JSON.parse(sessionStr);
+            
+            const userDisplay = document.getElementById("currentUserDisplay");
+            if (userDisplay) {
+                userDisplay.innerText = `${currentUser.ten_nvien || currentUser.ten_ndung || currentUser.ma_nvien}`;
+            }
+
+            const hasCache = !!localStorage.getItem("cmis_user_avatar_cache");
+            setHeaderAvatar(currentUser.avatar, currentUser.ten_ndung || currentUser.ma_nvien, !hasCache);
+
+            window.addEventListener('click', function(e) {
+                if (!e.target.matches('.menu-btn')) {
+                    const dropdown = document.getElementById("menuDropdown");
+                    if (dropdown && dropdown.classList.contains('show')) {
+                        dropdown.classList.remove('show');
+                    }
+                }
+            });
+        });
+
+        function toggleMenu() {
+            const dropdown = document.getElementById("menuDropdown");
+            if (dropdown) dropdown.classList.toggle("show");
+        }
+
+        function openAdminAuthModal() {
+            closeAllMenus();
+            document.getElementById('adminPasswordInput').value = '';
+            document.getElementById('adminAuthModal').style.display = 'flex';
+            setTimeout(() => {
+                document.getElementById('adminPasswordInput').focus();
+            }, 100);
+        }
+
+        function closeAdminAuthModal() {
+            document.getElementById('adminAuthModal').style.display = 'none';
+        }
+
+        function verifyAdminPassword() {
+            const passInput = document.getElementById('adminPasswordInput').value.trim();
+            if (passInput === ADMIN_PASSWORD) {
+                closeAdminAuthModal();
+                window.location.href = "tamngung_capdien.html";
+            } else {
+                showAlert("Mật khẩu Admin không đúng. Vui lòng kiểm tra lại!", "Truy Cập Bị Từ Chối", false);
+            }
+        }
+
+        function openDevModal() {
+            closeAllMenus();
+            document.getElementById('devModal').style.display = 'flex';
+        }
+
+        function closeDevModal() {
+            document.getElementById('devModal').style.display = 'none';
+        }
+
+        function openPassModal() {
+            closeAllMenus();
+            closeAlertModal();
+
+            document.getElementById('oldPassInput').value = '';
+            document.getElementById('newPassInput').value = '';
+            document.getElementById('avatarFileInput').value = '';
+            isAvatarChanged = false;
+            base64AvatarResized = "";
+            
+            if (currentUser) {
+                document.getElementById('editTenNvienInput').value = currentUser.ten_nvien || '';
+                const cachedAvatar = localStorage.getItem("cmis_user_avatar_cache");
+                document.getElementById('avatarPreview').src = cachedAvatar || getAvatarUrl(currentUser.avatar);
+            }
+
+            document.getElementById('passModal').style.display = 'flex';
+        }
+
+        function closePassModal() {
+            document.getElementById('passModal').style.display = 'none';
+        }
+
+        function handleLogout() {
+            closeAllMenus();
+            document.getElementById('logoutModal').style.display = 'flex';
+        }
+
+        function closeLogoutModal() {
+            document.getElementById('logoutModal').style.display = 'none';
+        }
+
+        function closeAllMenus() {
+            const menu = document.getElementById('menuDropdown');
+            if (menu) menu.classList.remove('show');
+        }
+
+        function confirmLogout() {
+            localStorage.removeItem("cmis_user_session");
+            localStorage.removeItem("cmis_user_avatar_cache");
+            window.location.href = "login.html";
+        }
+
+        function showAlert(message, title = "Thành Công", isSuccess = true) {
+            const alertModal = document.getElementById('alertModal');
+            const icon = alertModal.querySelector('.alert-icon');
+            const titleEl = alertModal.querySelector('.alert-title');
+            const messageEl = document.getElementById('alertMessage');
+
+            if (isSuccess) {
+                icon.innerText = "✅";
+                titleEl.innerText = title;
+                titleEl.style.color = "#36b37e";
+            } else {
+                icon.innerText = "⚠️";
+                titleEl.innerText = title;
+                titleEl.style.color = "var(--danger-color)";
+            }
+
+            messageEl.innerText = message;
+            alertModal.style.display = 'flex';
+        }
+
+        function closeAlertModal() {
+            document.getElementById('alertModal').style.display = 'none';
+        }
+
+        /* Xử lý resize ảnh cắt từ mép trên */
+        function handleAvatarFileSelect(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const img = new Image();
+                img.onload = function() {
+                    const canvas = document.createElement("canvas");
+                    canvas.width = 300;
+                    canvas.height = 300;
+                    const ctx = canvas.getContext("2d");
+
+                    let minSide = Math.min(img.width, img.height);
+                    let sx = (img.width - minSide) / 2;
+                    let sy = 0; // Cố định cắt từ sát mép trên ảnh
+
+                    ctx.drawImage(img, sx, sy, minSide, minSide, 0, 0, 300, 300);
+
+                    base64AvatarResized = canvas.toDataURL("image/jpeg", 0.90);
+
+                    document.getElementById('avatarPreview').src = base64AvatarResized;
+                    isAvatarChanged = true;
+                };
+                img.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
+
+        /* Hàm tải ảnh trực tiếp lên Cloudinary */
+        async function uploadToCloudinary(base64Image) {
+            const formData = new FormData();
+            formData.append("file", base64Image);
+            formData.append("upload_preset", CLOUDINARY_UPLOAD_PRESET);
+
+            const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`, {
+                method: "POST",
+                body: formData
+            });
+
+            if (!res.ok) {
+                throw new Error("Lỗi khi tải ảnh lên Cloudinary");
+            }
+
+            const data = await res.json();
+            return data.secure_url; // Trả về link https của ảnh trên Cloudinary
+        }
+
+        async function saveProfileAndPass() {
+            const oldPass = document.getElementById('oldPassInput').value.trim();
+            const newPass = document.getElementById('newPassInput').value.trim();
+            const newTenNvien = document.getElementById('editTenNvienInput').value.trim();
+            const btnSave = document.getElementById('btnSavePass');
+
+            if (!oldPass) {
+                showAlert("Vui lòng nhập mật khẩu cũ để xác nhận!", "Lỗi Nhập Liệu", false);
+                return;
+            }
+
+            const username = currentUser ? (currentUser.ten_ndung || currentUser.ma_nvien) : null;
+
+            if (!currentUser || !username) {
+                showAlert("Không tìm thấy thông tin đăng nhập. Vui lòng đăng nhập lại!", "Lỗi Phiên Đăng Nhập", false);
+                return;
+            }
+
+            btnSave.disabled = true;
+            btnSave.innerText = "Đang xử lý...";
+
+            try {
+                let uploadedAvatarUrl = "";
+
+                // Bước 1: Nếu có đổi avatar -> Đẩy trực tiếp lên Cloudinary trước
+                if (isAvatarChanged && base64AvatarResized) {
+                    btnSave.innerText = "Upload ảnh...";
+                    uploadedAvatarUrl = await uploadToCloudinary(base64AvatarResized);
+                }
+
+                // Bước 2: Gửi URL Cloudinary thu được cùng dữ liệu về Backend (Apps Script/Database) để lưu vào cột avatar của bảng nhan_vien
+                btnSave.innerText = "Lưu hồ sơ...";
+                const formData = new URLSearchParams();
+                formData.append("action", "CHANGE_PASSWORD");
+                formData.append("ten_ndung", username);
+                formData.append("mat_khau_cu", oldPass);
+                formData.append("mat_khau_moi", newPass || oldPass);
+                formData.append("ten_nvien", newTenNvien);
+                formData.append("is_avatar_changed", isAvatarChanged ? "true" : "false");
+                formData.append("avatar_url", uploadedAvatarUrl); // Gửi trực tiếp URL ảnh Cloudinary
+
+                const response = await fetch(API_URL, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/x-www-form-urlencoded"
+                    },
+                    body: formData.toString()
+                });
+
+                const result = await response.json();
+
+                if (result.status === "success") {
+                    currentUser.ten_nvien = newTenNvien;
+                    
+                    const finalAvatarUrl = uploadedAvatarUrl || result.avatar_url || currentUser.avatar;
+                    if (finalAvatarUrl) {
+                        currentUser.avatar = finalAvatarUrl;
+                        localStorage.setItem("cmis_user_avatar_cache", finalAvatarUrl);
+                    }
+                    
+                    localStorage.setItem("cmis_user_session", JSON.stringify(currentUser));
+
+                    document.getElementById("currentUserDisplay").innerText = `${newTenNvien}`;
+                    setHeaderAvatar(currentUser.avatar, currentUser.ten_ndung || currentUser.ma_nvien, false);
+
+                    closePassModal();
+                    showAlert("Cập nhật hồ sơ thành công!", "Thành Công", true);
+                } else {
+                    showAlert(result.message || "Thất bại. Vui lòng kiểm tra lại!", "Lỗi Thất Bại", false);
+                }
+            } catch (err) {
+                showAlert("Lỗi kết nối máy chủ hoặc Cloudinary. Vui lòng thử lại sau!", "Lỗi Kết Nối", false);
+                console.error(err);
+            } finally {
+                btnSave.disabled = false;
+                btnSave.innerText = "Lưu thay đổi";
+            }
+        }
+    </script>
 </body>
 </html>
