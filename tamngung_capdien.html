@@ -3,199 +3,102 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Nhập chỉ số khách hàng</title>
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
-  
+  <title>Tạm ngừng cấp điện</title>
   <style>
-    :root {
-      --primary-color: #0052cc;
-      --primary-hover: #0043a8;
-      --bg-color: #f4f7fa;
-      --card-bg: #ffffff;
-      --text-main: #172b4d;
-      --text-sub: #5e6c84;
-      --danger-color: #ff5630;
-      --success-color: #36b37e;
-      --radius-lg: 16px;
-      --radius-md: 10px;
-      --shadow: 0 8px 24px rgba(149, 157, 165, 0.12);
-    }
+    * { box-sizing: border-box; }
+    body { margin:0; font-family:Arial,sans-serif; background:#eef2f5; color:#222; }
+    .app-container { max-width:500px; margin:0 auto; background:#f3f5f7; min-height:100vh; box-shadow:0 0 15px rgba(0,0,0,.1); position:relative; cursor: grab; user-select: none; }
+    .topbar { position:sticky; top:0; z-index:20; background:#fff; border-bottom:1px solid #ddd; padding:10px; }
 
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    
-    html { 
-      height: 100%; 
-      background: #172b4d; /* Màu nền viền bên ngoài màn hình PC */
-    } 
-    
-    body { 
-      height: 100%; 
-      margin: 0 auto; 
-      padding: 0; 
-      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; 
-      background: var(--bg-color); 
-      color: var(--text-main); 
-      overflow: hidden; 
-      max-width: 500px; /* Giới hạn chiều rộng đồng bộ với home.html */
-      position: relative;
-      box-shadow: 0 0 24px rgba(0,0,0,0.3); /* Hiệu ứng bóng viền chuyên nghiệp trên PC */
+    .title {
+      font-size:19px;
+      font-weight:700;
+      margin-bottom:8px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:8px;
     }
     
-    .sticky-top-container {
-      position: absolute; /* Giữ khung trong phạm vi max-width 500px */
-      top: 0;
-      left: 0;
-      right: 0;
-      background: rgba(255, 255, 255, 0.95);
-      backdrop-filter: blur(10px);
-      z-index: 1000;
-      padding: 10px 12px;
-      border-bottom: 1px solid rgba(0, 0, 0, 0.06);
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
-    }
+        .spinner {
+            width: 24px;
+            height: 24px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #007bff;
+            border-radius: 50%;
+            display: inline-block;
+            animation: spin 0.8s linear infinite;
+            vertical-align: middle;
+            margin-right: 10px;
+        }
 
-    .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; position: relative; }
-    .header-left { display: flex; align-items: center; gap: 8px; }
-    .header-right { display: flex; align-items: center; gap: 8px; position: relative; }
-
-    .btn-menu { 
-      background: #eef2f5; 
-      color: var(--text-main);
-      border: none; 
-      border-radius: 50%; 
-      width: 36px;
-      height: 36px;
-      font-size: 18px; 
-      cursor: pointer; 
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      transition: all 0.2s ease;
-    }
-    .btn-menu:active { transform: scale(0.92); background: #e2e8f0; }
-
-    .title { font-size: 16px; font-weight: 700; color: var(--primary-color); letter-spacing: -0.2px; }
-    .user-info { font-weight: 600; font-size: 14px; color: var(--success-color); }
-
-    .search-box {
-      display: flex;
-      gap: 6px;
-    }
-    .search-box input { 
-      flex: 1; 
-      padding: 8px 12px; 
-      border-radius: var(--radius-md); 
-      border: 1px solid #dfe1e6; 
-      font-size: 14px; 
-      outline: none; 
-      transition: border-color 0.2s;
-    }
-    .search-box input:focus { border-color: var(--primary-color); }
-
-    .btn-search {
-      background: var(--primary-color);
-      color: white;
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+.btn-home {
+      background: #fff;
       border: none;
-      border-radius: var(--radius-md);
-      padding: 0 14px;
-      font-size: 16px;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      transition: background 0.2s;
+      color:#000;
+      height:36px;
+      padding:0 10px;
+      font-size:13px;
+      white-space:nowrap;
+      flex-shrink:0;
     }
-    .btn-search:active { background: var(--primary-hover); }
+    
+    .toolbar { display:flex; flex-direction:column; gap:8px; }
+    .filter-row { display:flex; gap:6px; align-items:center; margin-bottom:2px;}
+    .input-date { flex:1; height:37px; border:1px solid #ccc; border-radius:9px; padding:0 8px; font-size:14px; outline:none; }
+    .btn-search { white-space:nowrap; height:37px; }
+     #searchBox { width:100%; height:42px; border:1px solid #ccc; border-radius:9px; padding:0 12px; font-size:15px; outline:none; }
+     button { border:0; border-radius:9px; height:42px; padding:0 12px; font-size:14px; font-weight:700; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:6px; }
+    .btn-photo { background:#B0E0E6; color:#000; width:100%; }
+    .btn-save { background:#E6E6FA; color:#000; width:100%; }
+    .btn-cancel { background:#FFE4E1; color:#000; width:100%; }
+    button:disabled { opacity:.55; cursor:not-allowed; }
 
-    .summary-bar {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-top: 8px;
-      padding: 8px 10px;
-      background: #e6fcff;
-      border-radius: var(--radius-md);
-      font-size: 13px;
-      color: #0052cc;
-      font-weight: 600;
-      line-height: 1.2;
-    }
-    .summary-bar span { white-space: nowrap; }
-
-    .link-filter-action {
-      color: var(--primary-color);
-      text-decoration: underline;
-      cursor: pointer;
-      font-weight: 700;
-    }
-    .link-filter-chuaghi {
-      color: var(--danger-color);
-      text-decoration: underline;
-      cursor: pointer;
-      font-weight: 700;
+    /* STATS SUMMARY BAR */
+    .stats-summary {
+      margin-bottom:-5px;
+      background: rgb(232,232,232);
+      border:1px solid #ccc;
+      padding: 5px;
+      font-size: 14px;
+      font-weight: bold;
+      color: #333;
     }
 
-    #listContainer {
-      position: absolute;
-      top: 118px;
-      bottom: 0;
-      left: 0;
-      right: 0;
-      padding: 12px;
-      overflow-y: auto;
-      touch-action: pan-y;
-      background: var(--bg-color);
+    /* --- CẤU TRÚC KÉO NGANG (CAROUSEL) --- */
+    .list {
+      padding: 10px;
+      position: relative;
+      overflow: hidden; /* Ẩn phần thẻ trượt ra ngoài lề */
+      min-height: 400px;
     }
 
-    .customer-card { 
-      background: var(--card-bg); 
-      border-radius: var(--radius-lg); 
-      padding: 14px; 
-      margin-top: 6px;
-      border: 1px solid rgba(0, 0, 0, 0.05); 
-      box-shadow: var(--shadow);
+    .list::-webkit-scrollbar {
+      display: none;
+    }
+
+    .customer-box {
+      width: 100%;
+      background: #fff;
+      border: 2px solid #0056b3;
+      border-radius: 12px;
+      box-shadow: 0 1px 4px rgba(0,0,0,.08);
+      overflow: hidden;
       user-select: none;
-      transition: transform 0.25s ease-out, opacity 0.25s ease-out;
+      transition: transform 0.22s ease-out, opacity 0.22s ease-out;
       will-change: transform, opacity;
     }
 
-    .slide-left-out { transform: translateX(-120%); opacity: 0; }
-    .slide-right-out { transform: translateX(120%); opacity: 0; }
-    .slide-left-in { transform: translateX(100%); opacity: 0; }
-    .slide-right-in { transform: translateX(-100%); opacity: 0; }
-
-    .cust-header { border-bottom: none; padding-bottom: 4px; margin-bottom: 6px; }
+    .slide-left-out  { transform: translateX(-120%); opacity: 0; }
+    .slide-right-out { transform: translateX(120%);  opacity: 0; }
+    .slide-left-in   { transform: translateX(100%);  opacity: 0; }
+    .slide-right-in  { transform: translateX(-100%); opacity: 0; }
     
-    .cust-title { 
-      font-weight: 700; 
-      color: var(--primary-color); 
-      font-size: 15px; 
-      margin-bottom: 4px; 
-      line-height: 1.3;
-    }
-
-    .cust-tenKH { 
-      font-weight: 700; 
-      color: var(--text-main); 
-      font-size: 15px; 
-      margin-bottom: 4px; 
-      line-height: 1.3;
-      display: -webkit-box;
-      -webkit-line-clamp: 2;
-      -webkit-box-orient: vertical;
-      overflow: hidden;
-    }
-    
-    .cust-address { 
-      font-size: 12px; 
-      color: var(--text-sub); 
-      margin: 4px 0; 
-      font-weight: 500;
-      white-space: nowrap; 
-      overflow: hidden; 
-      text-overflow: ellipsis;
-    }
-
     .cust-row-group { 
       display: flex; 
       flex-wrap: wrap; 
@@ -204,175 +107,187 @@
       align-items: center;
       font-size: 13px;
     }
+    
+    .box-stt-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 5px 5px;
+      background: #f0f4f8;
+      border-bottom: 1px solid #e2e8f0;
+      font-size: 13px;
+    }
+    .stt-badge {
+      background: #e0edff;
+      color: #0288d1;
+      font-weight: 700;
+      padding: 3px 8px;
+      border-radius: 6px;
+    }
+    .swipe-hint {
+      color: #666;
+      font-size: 12px;
+      font-weight: 500;
+    }
 
-    .input-ghichu {
-      width: 100%;
-      border: 1px solid #dfe1e6;
-      border-radius: var(--radius-md);
-      padding: 8px 10px;
+    .box-head { padding:5px 5px; background:#fafafa; border-bottom:1px solid #eee; }
+    
+.filter-row { 
+  display: flex; 
+  gap: 6px; 
+  align-items: center; 
+  width: 100%;
+}
+
+.input-date { 
+  flex: 1; 
+  min-width: 0; /* Giúp input co lại linh hoạt trên màn hình điện thoại nhỏ */
+  height: 37px; 
+  border: 1px solid #ccc; 
+  border-radius: 9px; 
+  padding: 0 8px; 
+  font-size: 14px; 
+  outline: none; 
+}
+
+/* Cập nhật style cho các nút trên cùng hàng */
+.btn-search { 
+  white-space: nowrap; 
+  height: 37px; 
+  padding: 0 8px;
+  font-size: 13px;
+  flex-shrink: 0; /* Đảm bảo không bị co ép mất nút */
+}
+
+/* Nút Xem chưa CĐ màu da cam nổi bật */
+.btn-uncut {
+  color: red;
+  white-space: nowrap;
+  height: 37px;
+  padding: 0 8px;
+  font-size: 13px;
+  flex-shrink: 0;
+}
+    
+    .lydo-container {
+      display: flex;
+      gap: 6px;
+      margin-top: 8px;
+      align-items: center;
+    }
+    .input-lydo {
+      flex: 1;
+      height: 38px;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      padding: 0 10px;
       font-size: 13px;
       outline: none;
-      background-color: #fff;
     }
-    
-    .input-ghichu:focus { border-color: var(--primary-color); }
-
-    .cust-dynamic-info-v2 {
-      background: #f4f5f7;
-      padding: 8px 10px;
-      border-radius: var(--radius-md);
+    .btn-ghi-lydo {
+      height: 38px;
+      background: #4caf50;
+      color: #fff;
+      padding: 0 14px;
+      border-radius: 8px;
       font-size: 13px;
-      color: var(--text-main);
-      font-weight: 700;
-      margin-bottom: -5px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
+      font-weight: bold;
+      white-space: nowrap;
     }
 
-    .cust-dynamic-info-v3 {
-      border-radius: 5px;
-      font-size: 13px;
-      margin: 4px 0; 
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 4px;
-    }
-    
-    .table-responsive { overflow-x: auto; margin-top: 4px; }
-    table.chiso-table { width: 100%; border-collapse: collapse; font-size: 14px; }
-    table.chiso-table th { background: #f4f5f7; color: var(--text-main); padding: 6px 3px; border: 1px solid #dfe1e6; font-size: 14px; font-weight: 700; text-align: center; }
-    table.chiso-table td { border: 1px solid #dfe1e6; padding: 0; vertical-align: middle; }
-    
-    .text-right { text-align: right !important; padding-right: 8px !important; }
-    .text-center { text-align: center !important; }
+    .box-maps { padding:5px 5px; font-size:14px; background: rgb(232,232,232); border-bottom:1px solid #eee; text-align:center; margin-top: 7px;}
+    .ma-khang { font-size:16px; font-weight:600;color:#0056b3; }
+    .ten-khang { margin-top:3px; font-size:16px; font-weight:600;color:#0056b3; }
+    .grid { gap:7px 12px; padding: 5px 5px;font-size:13px; margin-bottom: 10px;}
+    .item label { display:block; color:#777; font-size:13px; margin-bottom:2px; }
+    .item div { font-size:11px;}
+    .maps-row { width:97%; display: flex; justify-content: space-between; align-items: center; margin-top: 5px;}
+    .photo-actions-container { display:grid; grid-template-columns:1fr 1fr; gap:10px; padding:0 12px 12px; align-items:stretch; }
+    .picture-box { width:100%; height:186px; border:1px dashed #bbb; border-radius:9px; display:flex; align-items:center; justify-content:center; background:#fafafa; overflow:hidden; color:#999; font-size:13px; }
+    .picture-box img { width:100%; height:100%; object-fit:cover; }
+    .actions-right { display:flex; flex-direction:column; justify-content:space-between; gap:6px; }
+    .check-wrap { height:42px; border:1px solid #ccc; border-radius:9px; display:flex; align-items:center; justify-content:center; gap:6px; font-size:13px; font-weight:700; background:#fff; padding:0 6px; text-align:center; cursor:pointer; }
+    .check-wrap input { width:18px; height:18px; margin:0; }
+    .empty { text-align:center; padding:35px 10px; color:#777; width:100%; }
 
-    .val-calc-large { 
-      font-size: 16px !important; 
-      font-weight: 700 !important; 
-      color: var(--text-main);
-      padding: 6px 0;
+    .modal-overlay {
+      position: fixed;
+      top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(0, 0, 0, 0.5);
+      display: flex; align-items: center; justify-content: center;
+      z-index: 9999;
     }
-
-    .bcs-badge { font-weight: 700; padding: 4px 8px; color: var(--primary-color); font-size: 14px; }
-    
-    input.input-cs-moi { 
-      width: 100%; 
-      height: 42px;
-      padding: 4px 8px; 
-      background-color: #f0f4ff; 
-      border: none; 
-      text-align: right; 
-      font-weight: 700; 
-      font-size: 18px; 
-      color: var(--primary-color);
-      outline: none; 
+    .modal-box {
+      background: #fff;
+      padding: 20px;
+      border-radius: 12px;
+      width: 90%; max-width: 350px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+      text-align: center;
     }
-    input.input-cs-moi:focus { background-color: #ffffff; border: 2px solid var(--primary-color); }
-
-    .card-btn-group { 
-      display: flex; 
-      gap: 10px; 
-      margin-top: 8px; 
-      padding-top: 8px; 
-      border-top: 1px dashed #dfe1e6; 
+    .modal-title {
+      font-size: 18px; font-weight: bold; margin-bottom: 8px;
     }
-
-    .btn-card { flex: 1; padding: 12px 8px; border: none; border-radius: var(--radius-md); font-weight: 700; font-size: 14px; cursor: pointer; color: white; transition: all 0.2s; }
-    .btn-card-save { background: var(--success-color); }
-    .btn-card-save:disabled { background: #abedc6; cursor: not-allowed; opacity: 0.6; }
-    .btn-card-cancel { background: var(--danger-color); }
-    .btn-card-cancel:disabled { background: #ffbdad; cursor: not-allowed; opacity: 0.6; }
-
-    #toast { 
-      position: absolute; 
-      top: 15px; 
-      right: 15px; 
-      max-width: 320px;
-      background: rgba(23, 43, 77, 0.95); 
-      color: #fff; 
-      padding: 10px 16px; 
-      border-radius: var(--radius-md); 
-      font-size: 13px; 
-      display: none; 
-      z-index: 10001; 
-      box-shadow: var(--shadow);
+    .modal-buttons {
+      display: flex; gap: 10px; margin-top: 15px;
     }
-
-    .modal-overlay { 
-      position: fixed; 
-      top: 0; left: 0; 
-      width: 100vw; height: 100vh; 
-      background: rgba(9, 30, 66, 0.5); 
-      backdrop-filter: blur(4px);
-      display: none; 
-      align-items: center; 
-      justify-content: center; 
-      z-index: 10000; 
+    .btn-modal-cancel, .btn-modal-danger {
+      flex: 1; padding: 10px; border: none; border-radius: 6px;
+      font-weight: bold; cursor: pointer;
     }
-    .modal-box { 
-      background: #ffffff; 
-      width: 88%; 
-      max-width: 360px; 
-      border-radius: var(--radius-lg); 
-      padding: 20px; 
-      box-shadow: 0 20px 40px rgba(0,0,0,0.2); 
-    }
-    .modal-title { font-size: 16px; font-weight: 700; color: var(--primary-color); margin-bottom: 10px; text-align: center; }
-    .modal-message { font-size: 14px; color: var(--text-main); line-height: 1.5; white-space: pre-line; }
-    .modal-buttons { display: flex; gap: 10px; margin-top: 16px; }
-    .modal-buttons button { flex: 1; padding: 10px; font-size: 13px; font-weight: 600; border-radius: var(--radius-md); border: none; cursor: pointer; }
-    .btn-modal-cancel { background: #f4f5f7; color: var(--text-sub); }
-    .btn-modal-confirm { background: var(--success-color); color: white; }
+    .btn-modal-cancel { background: #e0e0e0; color: #333; }
+    .btn-modal-danger { background: #d32f2f; color: #fff; }
   </style>
 </head>
 <body>
+  <div class="app-container">
+    <div class="topbar">
+      <div class="title">
+        <span>⚡ TẠM NGỪNG CẤP ĐIỆN</span>
+        <button class="btn-home" type="button" onclick="goHome()">🏠 Trang chủ</button>
+      </div>
+      <div class="toolbar">
+        <div class="filter-row">
+          <input type="date" id="filterDate" class="input-date">
+          <button class="btn-search" id="btnSearch" onclick="loadCustomers(true)">🔍 Danh sách tổng</button>
+          <button class="btn-uncut" id="btnUncut" onclick="filterUncutCustomers()">Xem Chưa TH</button>
+        </div>
+        <input style="margin-top:-2px;margin-bottom:5px;height:35px;" id="searchBox" type="search" placeholder="Tìm theo Mã KH, Tên KH, Số CTơ...">
+      </div>
+   
 
-  <div class="sticky-top-container">
-    <div class="header">
-      <div class="header-left">
-         <div class="title">⚡ GHI CHỈ SỐ</div>
-      </div>
-      <div class="header-right">
-        <div class="user-info" id="userDisplay">👷 ...</div>     
-        <button class="btn-menu" onclick="window.location.href='home.html'">☰</button>
-      </div>
+    <!-- DÒNG THỐNG KÊ TẠI VỊ TRÍ TRÊN <div id="customerList" class="list"> -->
+    <div id="statsSummary" class="stats-summary">
+      Tổng khách hàng: 0 - Chưa thực hiện: 0
     </div>
-    
-    <div class="search-box">
-      <input type="text" id="searchInput" placeholder="Mã, Tên, Đ/C, Cột, Trạm, Sổ, SĐT..." onkeydown="if(event.key==='Enter') filterData();">
-      <button class="btn-search" onclick="filterData()">🔍</button>
-    </div>
-    
-    <div class="summary-bar">
-      <span>Tổng: <b id="sumTongKh">0</b></span>
-      <span style="cursor:pointer;" onclick="filterDaCS()">Đã ghi: <b id="sumDaCS" style="color:var(--success-color);">0</b></span>
-      <span style="cursor:pointer;" onclick="filterChuaGhi()">Chưa ghi: <b id="sumChuaGhi" style="color:var(--danger-color);">0</b></span>
-      <span class="link-filter-chuaghi" onclick="filterChuaGhi()">Chưa ghi</span>
-      <span class="link-filter-action" onclick="showAllData()">Tất cả</span>      
+ </div>
+    <div id="customerList" class="list">
+            <li style="text-align: center; padding: 20px;">
+        <span class="spinner"></span>
+        <span style="font-weight: bold; color: #007bff; vertical-align: middle; font-size: 15px;">Đang lấy danh sách...</span>
+      </li>
     </div>
   </div>
 
-  <div id="listContainer">
-    <div style="text-align:center; padding-top:40px; color:var(--primary-color); font-weight:bold;">
-      ⏳ Đang tải dữ liệu khách hàng...
-    </div>
-  </div>
+  <script>
+    function goHome() {
+      window.top.location.href = 'home.html';
+    }
+  </script>
+  <script src="tamngung_capdien.js?v=20260905_v7"></script>
 
-  <div id="toast"></div>
-
-  <div id="customConfirmModal" class="modal-overlay">
+  <!-- Modal Xác Nhận Hủy Trạng Thái -->
+  <div id="cancelModal" class="modal-overlay" style="display: none;">
     <div class="modal-box">
-      <div class="modal-title" id="confirmModalTitle">XÁC NHẬN</div>
-      <div class="modal-message" id="confirmModalMessage">Nội dung thông báo...</div>
+      <div class="modal-title" style="color: var(--danger-color, #d32f2f);">Xác Nhận Hủy</div>
+      <p id="cancelModalMsg" style="font-size: 14px; color: var(--text-sub, #555); text-align: center; margin: 12px 0;">
+        Bạn có chắc chắn muốn hủy trạng thái và xóa hình ảnh của khách hàng này?
+      </p>
       <div class="modal-buttons">
-        <button class="btn-modal-cancel" id="btnModalCancel">Hủy</button>
-        <button class="btn-modal-confirm" id="btnModalConfirm">Xác nhận</button>
+        <button class="btn-modal-cancel" onclick="closeCancelModal()">Hủy</button>
+        <button class="btn-modal-danger" id="btnConfirmCancel">Đồng ý</button>
       </div>
     </div>
   </div>
-
-  <script charset="UTF-8" src="nhap_chiso.js?v=4.2.6"></script>
 </body>
 </html>
