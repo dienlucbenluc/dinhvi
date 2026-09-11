@@ -603,32 +603,58 @@ function setupSwipeEvents() {
 
   let startX = 0;
   let startY = 0;
+  let isMouseDown = false;
 
+  // --- 1. XỬ LÝ TRÊN ĐIỆN THOẠI (TOUCH EVENTS) ---
   container.addEventListener('touchstart', (e) => {
-    if (e.target.tagName === "INPUT" || e.target.tagName === "BUTTON") return;
+    if (["INPUT", "BUTTON", "A", "TEXTAREA"].includes(e.target.tagName)) return;
     startX = e.touches[0].clientX;
     startY = e.touches[0].clientY;
   }, { passive: true });
 
   container.addEventListener('touchend', (e) => {
     if (!startX || !startY || isAnimating) return;
-
     let endX = e.changedTouches[0].clientX;
     let endY = e.changedTouches[0].clientY;
-
-    let diffX = startX - endX;
-    let diffY = startY - endY;
-
-    if (Math.abs(diffX) > Math.abs(diffY) && Math.abs(diffX) > 40) {
-      if (diffX > 0) {
-        nextCustomer();
-      } else {
-        prevCustomer();
-      }
-    }
+    handleSwipe(startX, startY, endX, endY);
     startX = 0;
     startY = 0;
   }, { passive: true });
+
+  // --- 2. XỬ LÝ TRÊN PC (MOUSE EVENTS) ---
+  container.addEventListener('mousedown', (e) => {
+    if (["INPUT", "BUTTON", "A", "TEXTAREA"].includes(e.target.tagName)) return;
+    isMouseDown = true;
+    startX = e.clientX;
+    startY = e.clientY;
+  });
+
+  container.addEventListener('mouseup', (e) => {
+    if (!isMouseDown || isAnimating) return;
+    isMouseDown = false;
+    handleSwipe(startX, startY, e.clientX, e.clientY);
+    startX = 0;
+    startY = 0;
+  });
+
+  container.addEventListener('mouseleave', () => {
+    isMouseDown = false;
+  });
+
+  // --- HÀM XỬ LÝ HƯỚNG VUỐT CHUNG ---
+  function handleSwipe(sX, sY, eX, eY) {
+    let diffX = sX - eX;
+    let diffY = sY - eY;
+
+    // Kiểm tra khoảng cách kéo ngang lớn hơn kéo dọc và vượt ngưỡng 40px
+    if (Math.abs(diffX) > Math.abs(diffY) && Math.abs(diffX) > 40) {
+      if (diffX > 0) {
+        nextCustomer(); // Kéo sang trái -> Xem khách hàng tiếp theo
+      } else {
+        prevCustomer(); // Kéo sang phải -> Xem khách hàng trước đó
+      }
+    }
+  }
 }
 
 function updateActionButtonsState(safeKey) {
