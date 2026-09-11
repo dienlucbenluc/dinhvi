@@ -73,7 +73,7 @@ function showToast(text, error = false) {
     toast = document.createElement('div');
     toast.id = 'app-toast';
     // Đã đổi bottom:0 và border-radius chỉ bo 2 góc trên để nằm sát hoàn toàn đáy màn hình
-    toast.style.cssText = 'position:fixed;bottom:0;left:50%;transform:translateX(-50%);padding:12px 16px;background:#006400;color:#fff;font-size:13px;z-index:10000;transition:opacity 0.3s;pointer-events:none;text-align:center;width:90%;white-space:nowrap;overflow:hidden;box-sizing:border-box;border-radius:8px;';
+    toast.style.cssText = 'position:fixed;bottom:0;left:50%;transform:translateX(-50%);padding:12px 16px;background:#006400;color:#fff;font-size:13px;z-index:10000;transition:opacity 0.3s;pointer-events:none;text-align:center;width:90%;white-space:nowrap;overflow:hidden;box-sizing:border-box;border-radius:50%;';
     document.body.appendChild(toast);
   } else {
     toast.style.bottom = '5';
