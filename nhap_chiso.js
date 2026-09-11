@@ -193,7 +193,7 @@ function renderCurrentCustomerCard(slideDirection = null) {
           <span style="font-size:13px; color:#0056b3; font-weight:bold; background:#eef5fc; padding:2px 6px; border-radius:4px;">
             STT: ${currentCardIndex + 1} / ${customerKeys.length}
           </span>
-          <span style="font-size:12px; color:#666;">⬅️ Vuốt để đổi KH ➡️</span>
+         <span style="font-size:12px; color:#666;">⬅️ Vuốt để đổi KH ➡️</span>
         </div>
         <div class="cust-title">Mã KH: ${cust.ma_khang} - <b>Số CTơ:</b> ${cust.so_cto}</div>
         <div class="cust-tenKH">${cust.ten_khang || ''}</div>
@@ -216,6 +216,7 @@ function renderCurrentCustomerCard(slideDirection = null) {
           <span>kW kỳ trước <span id="bcs_label_${cust.ma_khang}">(${firstItem.bcs})</span>: <b id="kw_kt_val_${cust.ma_khang}">${firstItem.sluong_kt || 0}</b></span>
         </div>
       </div>
+
 
       <div class="table-responsive">
         <table class="chiso-table">
