@@ -73,7 +73,7 @@ function showToast(text, error = false) {
     toast = document.createElement('div');
     toast.id = 'app-toast';
     // Cố định chiều rộng 90% (tối đa 400px), chữ dài tự ngắt (...) không làm phình khung
-    toast.style.cssText = 'position:fixed;bottom:20px;left:50%;transform:translateX(-50%);padding:12px 16px;background:#006400;color:#fff;font-size:13px;z-index:10000;transition:opacity 0.3s;pointer-events:none;text-align:center;width:90%;max-width:400px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;box-sizing:border-box;border-radius:20px;';
+    toast.style.cssText = 'position:fixed;bottom:10px;left:50%;transform:translateX(-50%);padding:12px 16px;background:#006400;color:#fff;font-size:13px;z-index:10000;transition:opacity 0.3s;pointer-events:none;text-align:center;width:90%;max-width:400px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;box-sizing:border-box;border-radius:20px;';
     document.body.appendChild(toast);
   } else {
     // Đảm bảo trạng thái bình thường luôn trả về xanh lá
