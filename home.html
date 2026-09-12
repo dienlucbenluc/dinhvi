@@ -178,16 +178,16 @@
         }
 
         /* Cấu hình kích thước và bo góc Logo */
-        .welcome-card .logo {
-            width: 60px;
-            height: 60px;
-            object-fit: contain;
-            flex-shrink: 0;
-            border-radius: var(--radius-md);
-            background: rgba(255, 255, 255, 0.2);
-            padding: 4px;
-        }
-
+/* Cấu hình Logo nổi bật 100%, không background, kích thước cân đối */
+.welcome-card .logo {
+    width: 75px;
+    height: 75px;
+    object-fit: contain;
+    flex-shrink: 0;
+    background: transparent; /* Bỏ màu nền xám/mờ */
+    padding: 0;             /* Bỏ khoảng đệm */
+    filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.15)); /* Đổ bóng nhẹ cho logo nổi hẳn lên nền xanh */
+}
         .welcome-card-text {
             flex: 1;
         }
