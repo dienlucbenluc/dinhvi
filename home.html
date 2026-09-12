@@ -164,29 +164,27 @@
             padding: 20px;
         }
 
-        /* Welcome Card Layout */
-        .welcome-card {
-            background: linear-gradient(135deg, #0052cc 0%, #0065ff 100%);
-            color: white;
-            padding: 20px;
-            border-radius: var(--radius-lg);
-            box-shadow: var(--shadow);
-            margin-bottom: 20px;
-            display: flex;
-            align-items: center;
-            gap: 16px;
-        }
+.welcome-card {
+    background: linear-gradient(135deg, #0052cc 0%, #0065ff 100%);
+    color: white;
+    padding: 16px;            /* Giảm bớt padding thẻ card */
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow);
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 10px;                /* Thu hẹp khoảng cách giữa Logo và Chữ từ 16px xuống 10px */
+}
 
-        /* Cấu hình kích thước và bo góc Logo */
-/* Cấu hình Logo nổi bật 100%, không background, kích thước cân đối */
+/* Logo PNG hiển thị nét 100%, cân đối không lấn chữ */
 .welcome-card .logo {
-    width: 75px;
-    height: 75px;
+    width: 68px;
+    height: 68px;
     object-fit: contain;
-    flex-shrink: 0;
-    background: transparent; /* Bỏ màu nền xám/mờ */
-    padding: 0;             /* Bỏ khoảng đệm */
-    filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.15)); /* Đổ bóng nhẹ cho logo nổi hẳn lên nền xanh */
+    flex-shrink: 0;           /* Cố định kích thước logo, tuyệt đối không bị co ép */
+    background: transparent;  /* Bỏ màu nền mờ */
+    padding: 0;               /* Bỏ padding hoàn toàn */
+    filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.2)); /* Tạo hiệu ứng nổi nhẹ trên nền xanh */
 }
         .welcome-card-text {
             flex: 1;
