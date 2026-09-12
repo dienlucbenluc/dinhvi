@@ -184,7 +184,24 @@ function fetchJSONP(url) {
 
 async function loadCustomers(forceFetch = false) {
   if (busy) return;
+// -------------------------------------------------------------
+  // THÊM ĐOẠN NÀY VÀO NGAY ĐÂY:
+  const root = document.getElementById('customerList');
+  if (root) {
+    root.innerHTML = `
+      <li style="text-align: center; padding: 20px; list-style: none;">
+        <span class="spinner"></span>
+        <span style="font-weight: bold; color: #007bff; vertical-align: middle; font-size: 15px;">Đang lấy danh sách...</span>
+      </li>`;
+  }
+  // -------------------------------------------------------------
 
+  const currentUser = getCurrentUser();
+  const loggedTenNdung = String(getUserField(
+    currentUser, 'ten_ndung', 'TEN_NDUNG', 'username', 'userName'
+  ) || '').trim();
+
+  // Các đoạn code bên dưới giữ nguyên...
   // Hiển thị lại spinner xoay giống lần đầu vào trang
   const root = document.getElementById('customerList');
   if (root) {
