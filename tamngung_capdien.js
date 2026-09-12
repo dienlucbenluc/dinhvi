@@ -184,13 +184,17 @@ function fetchJSONP(url) {
 
 async function loadCustomers(forceFetch = false) {
   if (busy) return;
-  const currentUser = getCurrentUser();
-  const loggedTenNdung = String(getUserField(
-    currentUser, 'ten_ndung', 'TEN_NDUNG', 'username', 'userName'
-  ) || '').trim();
 
-  // Các đoạn code bên dưới giữ nguyên...
-  // Hiển thị lại spinner xoay giống lần đầu vào trang
+  // 1. Nếu ô chọn ngày bị trống (dd/mm/yyyy), tự động điền ngày hiện tại (YYYY-MM-DD)
+  const dateInput = document.getElementById('filterDate');
+  if (dateInput && !dateInput.value) {
+    const now = new Date();
+    const localDate = new Date(now.getTime() - now.getTimezoneOffset() * 60000)
+      .toISOString().slice(0, 10);
+    dateInput.value = localDate;
+  }
+
+  // 2. Chạy lại spinner hiển thị trạng thái đang lấy danh sách
   const root = document.getElementById('customerList');
   if (root) {
     root.innerHTML = `
@@ -207,11 +211,11 @@ async function loadCustomers(forceFetch = false) {
 
   if (!loggedTenNdung) {
     showToast('không tìm thấy tài khoản đăng nhập.', true);
-    if (root) root.innerHTML = '<div class="empty">không tìm thấy tài khoản đăng nhập.</div>';
+    if (root) root.innerHTML = '<div class="empty">Không tìm thấy tài khoản đăng nhập.</div>';
     return;
   }
 
-  const selectedDate = document.getElementById('filterDate')?.value || '';
+  const selectedDate = dateInput?.value || '';
   const lastSession = localStorage.getItem(CACHE_KEY_SESSION);
   const lastDate = localStorage.getItem(CACHE_KEY_DATE);
   const cachedDataStr = localStorage.getItem(`${CACHE_KEY_CUSTOMERS}_${selectedDate}`);
