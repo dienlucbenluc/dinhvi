@@ -185,6 +185,16 @@ function fetchJSONP(url) {
 async function loadCustomers(forceFetch = false) {
   if (busy) return;
 
+  // Hiển thị lại spinner xoay giống lần đầu vào trang
+  const root = document.getElementById('customerList');
+  if (root) {
+    root.innerHTML = `
+      <li style="text-align: center; padding: 20px; list-style: none;">
+        <span class="spinner"></span>
+        <span style="font-weight: bold; color: #007bff; vertical-align: middle; font-size: 15px;">Đang lấy danh sách...</span>
+      </li>`;
+  }
+
   const currentUser = getCurrentUser();
   const loggedTenNdung = String(getUserField(
     currentUser, 'ten_ndung', 'TEN_NDUNG', 'username', 'userName'
@@ -192,6 +202,7 @@ async function loadCustomers(forceFetch = false) {
 
   if (!loggedTenNdung) {
     showToast('không tìm thấy tài khoản đăng nhập.', true);
+    if (root) root.innerHTML = '<div class="empty">không tìm thấy tài khoản đăng nhập.</div>';
     return;
   }
 
