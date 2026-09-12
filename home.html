@@ -164,6 +164,7 @@
             padding: 20px;
         }
 
+        /* Welcome Card Layout */
         .welcome-card {
             background: linear-gradient(135deg, #0052cc 0%, #0065ff 100%);
             color: white;
@@ -171,6 +172,24 @@
             border-radius: var(--radius-lg);
             box-shadow: var(--shadow);
             margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        /* Cấu hình kích thước và bo góc Logo */
+        .welcome-card .logo {
+            width: 60px;
+            height: 60px;
+            object-fit: contain;
+            flex-shrink: 0;
+            border-radius: var(--radius-md);
+            background: rgba(255, 255, 255, 0.2);
+            padding: 4px;
+        }
+
+        .welcome-card-text {
+            flex: 1;
         }
 
         .welcome-card h2 { font-size: 18px; font-weight: 700; margin-bottom: 6px; }
@@ -332,8 +351,11 @@
 
         <div class="scrollable-content">
             <div class="welcome-card">
-                <h2>Hệ Thống Định Vị Công Tơ</h2>
-                <p>Quản lý dữ liệu vị trí công tơ, cập nhật chỉ số khách hàng, tạm ngừng cấp điện khách hàng nợ quá hạn...</p>
+                <img src="LOGO.png" alt="Logo" class="logo">
+                <div class="welcome-card-text">
+                    <h2>Hệ Thống Định Vị Công Tơ</h2>
+                    <p>Quản lý dữ liệu vị trí công tơ, cập nhật chỉ số khách hàng, tạm ngừng cấp điện khách hàng nợ quá hạn...</p>
+                </div>
             </div>
 
             <div class="section-title">Chức năng chính</div>
@@ -354,14 +376,13 @@
                     </div>
                 </div>
 
-                             <div class="feature-card" onclick="window.location.href='tamngung_capdien.html'">
+                <div class="feature-card" onclick="window.location.href='tamngung_capdien.html'">
                     <div class="feature-icon icon-purple">🛠️</div>
                     <div>
                         <div class="feature-title">Tạm ngừng CĐ</div>
                         <div class="feature-desc">KH quá hạn thanh toán</div>
                     </div>
                 </div>
-
 
                 <div class="feature-card" onclick="openPassModal()">
                     <div class="feature-icon icon-orange">🔑</div>
