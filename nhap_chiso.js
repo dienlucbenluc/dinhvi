@@ -292,15 +292,25 @@ function getLocationAndSave(maKhang) {
 
       showToast("⏳ Đang cập nhật tọa độ lên server...");
 
+      const cust = groupedData[maKhang] || {};
+      const firstItem = (cust.items && cust.items[0]) ? cust.items[0] : {};
+
       fetch(API_URL, {
         method: "POST",
         headers: { "Content-Type": "text/plain;charset=utf-8" },
         body: JSON.stringify({
           action: "UPDATE_LOCATION",
           ma_khang: maKhang,
+          ten_khang: cust.ten_khang || "",
+          so_cto: cust.so_cto || "",
+          ma_tram: firstItem.ma_tram || "",
+          ten_tram: cust.ten_tram || "",
+          so_cot: cust.so_cot || "",
+          ten_ndung: currentUser.ten_ndung || "",
+          ten_nvien: currentUser.ten_nvien || currentUser.ten_ndung || "",
+          ghi_chu: cust.ghi_chu || "",
           lat: lat,
-          lng: lng,
-          ten_ndung: currentUser.ten_ndung
+          lng: lng
         })
       })
       .then(res => res.json())
