@@ -172,7 +172,6 @@ function renderCurrentCustomerCard(slideDirection = null) {
   const firstItem = cust.items[0] || {};
   const cotTramText = [cust.so_cot, cust.ten_tram].filter(Boolean).join(" - ");
 
-  // Giữ lại đường link Google Maps nếu khách hàng đã có sẵn tọa độ trong Sheet, ngược lại hiện nút lấy tọa độ
   const hasLocation = Boolean(firstItem.lat && firstItem.lng);
   let mapLinkHtml = `<a onclick="getLocationAndSave('${cust.ma_khang}')" style="color:red; font-size: 14px; font-weight:bold; text-decoration:none;">📍 Lấy mới định vị</a>`;
   if (hasLocation) {
@@ -181,7 +180,6 @@ function renderCurrentCustomerCard(slideDirection = null) {
 
   const alreadyHasCS = cust.items.some(i => i.chiso_moi !== "" && i.chiso_moi !== undefined && i.chiso_moi !== null);
 
-  // Class chuẩn bị cho Animation trượt
   let initialClass = "";
   if (slideDirection === "left") initialClass = "slide-left-in";
   else if (slideDirection === "right") initialClass = "slide-right-in";
@@ -243,7 +241,7 @@ function renderCurrentCustomerCard(slideDirection = null) {
                  id="cs_moi_${item.rowIndex}" 
                  value="${csMoiVal}"
                  onfocus="updateKwKtDisplay('${cust.ma_khang}', '${item.bcs}', ${item.sluong_kt || 0}, ${item.sluong_thao || 0})"
-                 onchange="calculateRow('${cust.ma_khang}', '${item.bcs}', ${item.rowIndex}, ${item.chiso_cu || 0}, ${item.hsn}, ${item.sluong_thao || 0}, ${item.sluong_kt || 0})">
+                 onchange="calculateRow('${cust.ma_khang}', '${item.bcs}', ${item.rowIndex}, ${item.chiso_cu || 0}, ${item.hsn}, ${item.sluong_thao || 0})">
           <input type="hidden" id="sl_val_${item.rowIndex}" value="${item.san_luong !== "" && item.san_luong !== undefined ? item.san_luong : '-'}">
         </td>
         <td id="tong_sl_${item.rowIndex}" class="val-calc-large text-right">${item.tong_sluong !== "" && item.tong_sluong !== undefined ? item.tong_sluong : '-'}</td>
@@ -279,7 +277,6 @@ function renderCurrentCustomerCard(slideDirection = null) {
   }
 }
 
-// Hàm lấy vị trí định vị và cập nhật tọa độ lên bảng chi_so
 function getLocationAndSave(maKhang) {
   if (!navigator.geolocation) {
     showToast("❌ Trình duyệt không hỗ trợ định vị GPS!");
@@ -316,7 +313,6 @@ function getLocationAndSave(maKhang) {
               item.lng = lng;
             });
           }
-          // Xóa cache local để load lại dữ liệu mới
           localStorage.removeItem(getClientCacheKey());
           fetchSilentLatestData(currentUser.ten_ndung, false);
         } else {
@@ -332,7 +328,6 @@ function getLocationAndSave(maKhang) {
   );
 }
 
-// Cập nhật cả kW kỳ trước & kW tháo đúng theo BCS khi focus/click vào ô nhập CS
 function updateKwKtDisplay(maKhang, bcs, sluongKt, sluongThao) {
   const labelEl = document.getElementById(`bcs_label_${maKhang}`);
   const valEl = document.getElementById(`kw_kt_val_${maKhang}`);
@@ -385,7 +380,6 @@ function setupSwipeEvents() {
   let startY = 0;
   let isMouseDown = false;
 
-  // --- 1. XỬ LÝ VUỐT BẰNG TAY (MOBILE) ---
   container.addEventListener('touchstart', (e) => {
     if (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA") return;
     startX = e.touches[0].clientX;
@@ -403,14 +397,12 @@ function setupSwipeEvents() {
     startY = 0;
   }, { passive: true });
 
-
-  // --- 2. XỬ LÝ KÉO CHUỘT (PC) ---
   container.addEventListener('mousedown', (e) => {
     if (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA" || e.target.closest("button")) return;
     isMouseDown = true;
     startX = e.clientX;
     startY = e.clientY;
-    container.style.cursor = "grabbing"; // Đổi con trỏ chuột thành dạng nắm kéo
+    container.style.cursor = "grabbing";
   });
 
   window.addEventListener('mouseup', (e) => {
@@ -428,36 +420,32 @@ function setupSwipeEvents() {
     startY = 0;
   });
 
-
-  // --- 3. XỬ LÝ BẤM PHÍM MŨI TÊN (PC) ---
   window.addEventListener('keydown', (e) => {
-    // Không bắt sự kiện khi người dùng đang nhập thông tin vào ô Input/Textarea
     if (["INPUT", "TEXTAREA"].includes(document.activeElement.tagName)) return;
 
     if (e.key === "ArrowLeft") {
-      prevCustomer(); // Mũi tên trái -> KH trước
+      prevCustomer();
     } else if (e.key === "ArrowRight") {
-      nextCustomer(); // Mũi tên phải -> KH kế tiếp
+      nextCustomer();
     }
   });
 }
 
-// Hàm tính toán hướng vuốt/kéo chung cho cả PC và Mobile
 function handleSwipeGesture(startX, startY, endX, endY) {
   let diffX = startX - endX;
   let diffY = startY - endY;
 
-  // Kiểm tra nếu khoảng cách kéo theo phương ngang lớn hơn 40px và lớn hơn phương dọc
   if (Math.abs(diffX) > Math.abs(diffY) && Math.abs(diffX) > 40) {
     if (diffX > 0) {
-      nextCustomer(); // Kéo từ phải sang trái -> Khách hàng tiếp theo
+      nextCustomer();
     } else {
-      prevCustomer(); // Kéo từ trái sang phải -> Khách hàng trước đó
+      prevCustomer();
     }
   }
 }
 
-async function calculateRow(maKhang, bcs, rowIndex, csCu, hsn, sluongThao, sluongKt) {
+// Tính toán trực tiếp trên giao diện dòng - Không bật pop-up cảnh báo ở đây
+async function calculateRow(maKhang, bcs, rowIndex, csCu, hsn, sluongThao) {
   const inputEl = document.getElementById(`cs_moi_${rowIndex}`);
   const val = inputEl ? inputEl.value.trim() : "";
 
@@ -476,6 +464,7 @@ async function calculateRow(maKhang, bcs, rowIndex, csCu, hsn, sluongThao, sluon
   const hsnVal = Number(hsn) || 1;
   const slThao = Number(sluongThao) || 0;
 
+  // Kiểm tra lỗi gõ nhầm chỉ số mới nhỏ hơn chỉ số cũ
   if (csMoi < csCuVal) {
     await showCustomConfirm(
       "⚠️ CẢNH BÁO CHỈ SỐ LỖI", 
@@ -495,28 +484,6 @@ async function calculateRow(maKhang, bcs, rowIndex, csCu, hsn, sluongThao, sluon
 
   if (slHiddenEl) slHiddenEl.value = sanLuong;
   if (tongSlCell) tongSlCell.innerText = tongSluong;
-
-  const sluongKtVal = Number(sluongKt) || 0;
-  if (sluongKtVal > 0) {
-    const diffPercent = ((tongSluong - sluongKtVal) / sluongKtVal) * 100;
-    if (diffPercent > 50 || diffPercent < -50) {
-      const phanTramText = diffPercent > 0 ? `tăng +${diffPercent.toFixed(1)}%` : `giảm ${diffPercent.toFixed(1)}%`;
-      
-      const confirmAlert = await showCustomConfirm(
-        "⚠️ CẢNH BÁO BẤT THƯỜNG", 
-        `Tổng sản lượng BCS (${bcs}) kỳ này (${tongSluong} kW) ${phanTramText} so với kỳ trước (${sluongKtVal} kW).\n\nBạn có xác nhận lưu chỉ số này không?`, 
-        true
-      );
-
-      if (confirmAlert) {
-        saveCustomerData(maKhang, true);
-        return;
-      } else {
-        checkCancelButtonStatus(maKhang);
-        return;
-      }
-    }
-  }
 
   checkCancelButtonStatus(maKhang);
 }
@@ -578,7 +545,6 @@ function filterChuaGhi() {
 function showAllData() {
   document.getElementById("searchInput").value = "";
   
-  // Khôi phục mảng customerKeys đầy đủ
   customerKeys = Object.keys(groupedData).sort((a, b) => {
     const custA = groupedData[a];
     const custB = groupedData[b];
@@ -598,7 +564,6 @@ function showAllData() {
   showToast("📋 Hiển thị tất cả khách hàng");
 }
 
-// Bấm nút Tìm / Enter mới tìm và CHỈ DỜI CON TRỎ đến vị trí khách hàng đó (danh sách không thay đổi)
 function filterData() {
   const q = document.getElementById("searchInput").value.toLowerCase().trim();
   if (!q) return;
@@ -627,7 +592,8 @@ function filterData() {
   }
 }
 
-async function saveCustomerData(maKhang, skipConfirm = false) {
+// Hàm Lưu dữ liệu: Kiểm tra tổng thể các BCS & Gộp cảnh báo lệch sản lượng
+async function saveCustomerData(maKhang) {
   const cust = groupedData[maKhang];
   if (!cust) return;
 
@@ -652,13 +618,43 @@ async function saveCustomerData(maKhang, skipConfirm = false) {
     return;
   }
 
-  const ghiChuInput = document.getElementById(`ghi_chu_${maKhang}`);
-  const newGhiChu = ghiChuInput ? ghiChuInput.value.trim() : (cust.ghi_chu || "");
+  // --- QUÉT & GỘP CẢNH BÁO LỆCH SẢN LƯỢNG CHO TẤT CẢ CÁC BCS ---
+  const abnormalList = [];
+  cust.items.forEach(item => {
+    const inputEl = document.getElementById(`cs_moi_${item.rowIndex}`);
+    const csMoi = inputEl ? Number(inputEl.value.trim()) : 0;
+    const csCu = Number(item.chiso_cu) || 0;
+    const hsn = Number(item.hsn) || 1;
+    const slThao = Number(item.sluong_thao) || 0;
+    const sluongKtVal = Number(item.sluong_kt) || 0;
 
-  if (!skipConfirm) {
+    const sanLuong = Math.round((csMoi - csCu) * hsn);
+    const tongSluong = sanLuong + slThao;
+
+    if (sluongKtVal > 0) {
+      const diffPercent = ((tongSluong - sluongKtVal) / sluongKtVal) * 100;
+      if (diffPercent > 50 || diffPercent < -50) {
+        const phanTramText = diffPercent > 0 ? `tăng +${diffPercent.toFixed(1)}%` : `giảm ${diffPercent.toFixed(1)}%`;
+        abnormalList.push(`• BCS ${item.bcs}: ${tongSluong} kW (${phanTramText} so với kỳ trước ${sluongKtVal} kW)`);
+      }
+    }
+  });
+
+  // Nếu có BCS bị lệch bất thường, hiện 1 cảnh báo duy nhất gom tất cả thông tin
+  if (abnormalList.length > 0) {
+    const abnormalMsg = "Phát hiện sản lượng biến động bất thường:\n" + 
+                        abnormalList.join("\n") + 
+                        "\n\nBạn có chắc chắn muốn lưu chỉ số này không?";
+    const confirmAbnormal = await showCustomConfirm("⚠️ CẢNH BÁO BẤT THƯỜNG", abnormalMsg, true);
+    if (!confirmAbnormal) return;
+  } else {
+    // Nếu sản lượng bình thường, xác nhận lưu chuẩn
     const confirmSave = await showCustomConfirm("XÁC NHẬN GHI DỮ LIỆU", "Lưu chỉ số và ghi chú cho khách hàng này?");
     if (!confirmSave) return;
   }
+
+  const ghiChuInput = document.getElementById(`ghi_chu_${maKhang}`);
+  const newGhiChu = ghiChuInput ? ghiChuInput.value.trim() : (cust.ghi_chu || "");
 
   const payload = [];
 
@@ -666,7 +662,7 @@ async function saveCustomerData(maKhang, skipConfirm = false) {
     const inputEl = document.getElementById(`cs_moi_${item.rowIndex}`);
     if (inputEl) {
       payload.push({
-        id_chiso: item.id_chiso, // ✅ Đã bổ sung id_chiso chính xác
+        id_chiso: item.id_chiso, // Gửi chuẩn id_chiso lên backend
         rowIndex: item.rowIndex,
         chiso_cu: item.chiso_cu,
         chiso_moi: inputEl.value !== "" ? Number(inputEl.value) : "",
@@ -706,7 +702,6 @@ async function saveCustomerData(maKhang, skipConfirm = false) {
         }
       });
 
-      // Xóa Cache local để đồng bộ chuẩn xác
       localStorage.removeItem(getClientCacheKey());
       updateSummaryBar();
       setTimeout(() => nextCustomer(), 400);
@@ -717,6 +712,7 @@ async function saveCustomerData(maKhang, skipConfirm = false) {
   .catch(() => showToast("❌ Lỗi kết nối hệ thống khi lưu!"));
 }
 
+// Hàm Hủy chỉ số: Truyền mảng items kèm id_chiso và rowIndex
 async function cancelCustomerData(maKhang) {
   const cust = groupedData[maKhang];
   if (!cust) return;
@@ -724,9 +720,8 @@ async function cancelCustomerData(maKhang) {
   const confirmCancel = await showCustomConfirm("HỦY CHỈ SỐ", `Xác nhận HỦY chỉ số đã nhập của KH ${maKhang}?`, true);
   if (!confirmCancel) return;
 
-  // Tạo danh sách item chứa đầy đủ id_chiso và rowIndex
   const itemsToCancel = cust.items.map(item => ({
-    id_chiso: item.id_chiso, // ✅ Chuẩn hóa đúng cấu trúc Backend yêu cầu
+    id_chiso: item.id_chiso,
     rowIndex: item.rowIndex
   }));
 
@@ -737,7 +732,7 @@ async function cancelCustomerData(maKhang) {
     body: JSON.stringify({
       action: "CANCEL_CHISO",
       ten_ndung: currentUser.ten_ndung,
-      items: itemsToCancel // ✅ Đã sửa tên tham số từ rowIndices -> items
+      items: itemsToCancel
     })
   })
   .then(res => res.json())
@@ -751,7 +746,6 @@ async function cancelCustomerData(maKhang) {
         item.tong_sluong = "-";
       });
 
-      // Xóa Cache local để đồng bộ chuẩn xác
       localStorage.removeItem(getClientCacheKey());
       updateSummaryBar();
       renderCurrentCustomerCard();
