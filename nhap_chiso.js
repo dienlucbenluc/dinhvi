@@ -724,7 +724,11 @@ async function cancelCustomerData(maKhang) {
   const confirmCancel = await showCustomConfirm("HỦY CHỈ SỐ", `Xác nhận HỦY chỉ số đã nhập của KH ${maKhang}?`, true);
   if (!confirmCancel) return;
 
-  const rowIndices = cust.items.map(item => item.rowIndex);
+  // Tạo danh sách item chứa đầy đủ id_chiso và rowIndex
+  const itemsToCancel = cust.items.map(item => ({
+    id_chiso: item.id_chiso, // ✅ Chuẩn hóa đúng cấu trúc Backend yêu cầu
+    rowIndex: item.rowIndex
+  }));
 
   showToast(`⏳ Đang hủy chỉ số...`);
   fetch(API_URL, {
@@ -733,7 +737,7 @@ async function cancelCustomerData(maKhang) {
     body: JSON.stringify({
       action: "CANCEL_CHISO",
       ten_ndung: currentUser.ten_ndung,
-      rowIndices: rowIndices
+      items: itemsToCancel // ✅ Đã sửa tên tham số từ rowIndices -> items
     })
   })
   .then(res => res.json())
@@ -747,6 +751,8 @@ async function cancelCustomerData(maKhang) {
         item.tong_sluong = "-";
       });
 
+      // Xóa Cache local để đồng bộ chuẩn xác
+      localStorage.removeItem(getClientCacheKey());
       updateSummaryBar();
       renderCurrentCustomerCard();
     } else {
