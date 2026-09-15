@@ -666,6 +666,7 @@ async function saveCustomerData(maKhang, skipConfirm = false) {
     const inputEl = document.getElementById(`cs_moi_${item.rowIndex}`);
     if (inputEl) {
       payload.push({
+        id_chiso: item.id_chiso, // ✅ Đã bổ sung id_chiso chính xác
         rowIndex: item.rowIndex,
         chiso_cu: item.chiso_cu,
         chiso_moi: inputEl.value !== "" ? Number(inputEl.value) : "",
@@ -705,6 +706,8 @@ async function saveCustomerData(maKhang, skipConfirm = false) {
         }
       });
 
+      // Xóa Cache local để đồng bộ chuẩn xác
+      localStorage.removeItem(getClientCacheKey());
       updateSummaryBar();
       setTimeout(() => nextCustomer(), 400);
     } else {
