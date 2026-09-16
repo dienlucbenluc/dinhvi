@@ -17,15 +17,37 @@ document.addEventListener("DOMContentLoaded", () => {
   currentUser = JSON.parse(sessionStr);
   document.getElementById("userDisplay").innerText = `👷 ${currentUser.ten_nvien || currentUser.ten_ndung}`;
   
-  // Tự động khởi tạo 2 file text lưu vào hệ thống thiết bị nếu chưa có
+  // 1. Khởi tạo file text nếu chưa có
   initLocalTextFiles();
 
-  loadChiSoData();
+  // 2. Kiểm tra nếu có mạng -> Đồng bộ dữ liệu từ text file lên Sheet TRƯỚC, xong mới Load danh sách
+  if (navigator.onLine) {
+    syncLocalTextFilesToSheet().then(() => {
+      loadChiSoData();
+    });
+  } else {
+    // Nếu mất mạng -> Load dữ liệu từ Cache local
+    loadChiSoData();
+  }
+
   setupSwipeEvents();
 
-  // Đặt lịch tự động đồng bộ dữ liệu định kỳ 30 phút (30 * 60 * 1000 ms)
+  // 3. Sự kiện tự động đồng bộ khi thiết bị vừa khôi phục kết nối Internet (Event online)
+  window.addEventListener("online", () => {
+    showToast("📶 Đã khôi phục kết nối! Đang đồng bộ dữ liệu...");
+    syncLocalTextFilesToSheet().then(() => {
+      // Sau khi đồng bộ xong thì tải lại dữ liệu mới nhất từ Google Sheet
+      if (currentUser && currentUser.ten_ndung) {
+        fetchSilentLatestData(currentUser.ten_ndung, false);
+      }
+    });
+  });
+
+  // Đặt lịch tự động đồng bộ ngầm định kỳ 30 phút
   setInterval(() => {
-    syncLocalTextFilesToSheet();
+    if (navigator.onLine) {
+      syncLocalTextFilesToSheet();
+    }
   }, 30 * 60 * 1000);
 });
 
@@ -80,61 +102,70 @@ function appendToTextFile(fileName, rowDataObj) {
 // ĐỒNG BỘ NỘI DUNG 2 FILE TEXT LÊN GOOGLE SHEET 30 PHÚT/LẦN
 // ----------------------------------------------------
 function syncLocalTextFilesToSheet() {
-  const chisoRaw = localStorage.getItem(FILE_CHISO_TXT) || "";
-  const dinhviRaw = localStorage.getItem(FILE_DINHVI_TXT) || "";
+  return new Promise((resolve) => {
+    const chisoRaw = localStorage.getItem(FILE_CHISO_TXT) || "";
+    const dinhviRaw = localStorage.getItem(FILE_DINHVI_TXT) || "";
 
-  const chisoLines = chisoRaw.split("\n").filter(l => l.trim().length > 0);
-  const dinhviLines = dinhviRaw.split("\n").filter(l => l.trim().length > 0);
+    const chisoLines = chisoRaw.split("\n").filter(l => l.trim().length > 0);
+    const dinhviLines = dinhviRaw.split("\n").filter(l => l.trim().length > 0);
 
-  // Không có bản ghi mới (chỉ có dòng header)
-  if (chisoLines.length <= 1 && dinhviLines.length <= 1) return;
-
-  const chisoLogs = [];
-  for (let i = 1; i < chisoLines.length; i++) {
-    const cols = chisoLines[i].split("\t");
-    chisoLogs.push({
-      id_chiso: cols[0], ma_khang: cols[1], ten_khang: cols[2], dia_chi: cols[3],
-      ma_sogcs: cols[4], danh_so: cols[5], so_cot: cols[6], ma_tram: cols[7],
-      ten_tram: cols[8], so_cto: cols[9], ten_ndung: cols[10], ten_nvien: cols[11],
-      hsn: cols[12], bcs: cols[13], chiso_cu: cols[14], chiso_moi: cols[15],
-      san_luong: cols[16], sluong_thao: cols[17], tong_sluong: cols[18], sluong_kt: cols[19],
-      chenh_lech: cols[20], tyle_clech: cols[21], ky: cols[22], thang: cols[23],
-      nam: cols[24], time: cols[25], nguoi_nhap: cols[26], lat: cols[27],
-      lng: cols[28], so_dthoai: cols[29], ghi_chu: cols[30], type: cols[31]
-    });
-  }
-
-  const dinhviLogs = [];
-  for (let i = 1; i < dinhviLines.length; i++) {
-    const cols = dinhviLines[i].split("\t");
-    dinhviLogs.push({
-      id: cols[0], ma_khang: cols[1], ten_khang: cols[2], so_cto: cols[3],
-      ma_tram: cols[4], ten_tram: cols[5], so_cot: cols[6], ten_ndung: cols[7],
-      ten_nvien: cols[8], ten_cviec: cols[9], ghi_chu: cols[10], lat: cols[11],
-      lng: cols[12], time: cols[13], trang_thai: cols[14], nhap_cmis: cols[15]
-    });
-  }
-
-  fetch(API_URL, {
-    method: "POST",
-    headers: { "Content-Type": "text/plain;charset=utf-8" },
-    body: JSON.stringify({
-      action: "SYNC_BATCH_DATA",
-      chiso_logs: chisoLogs,
-      dinhvi_logs: dinhviLogs
-    })
-  })
-  .then(res => res.json())
-  .then(res => {
-    if (res.status === "success") {
-      // Đã đẩy thành công -> Đặt lại 2 file text sạch chỉ chứa header
-      localStorage.removeItem(FILE_CHISO_TXT);
-      localStorage.removeItem(FILE_DINHVI_TXT);
-      initLocalTextFiles();
-      showToast("🔄 Đã đồng bộ dữ liệu từ thiết bị lên Google Sheet!");
+    // Không có bản ghi mới -> Kết thúc ngay
+    if (chisoLines.length <= 1 && dinhviLines.length <= 1) {
+      resolve(false);
+      return;
     }
-  })
-  .catch(() => {});
+
+    // Đọc dữ liệu từ chiso.txt và dinhvi.txt...
+    const chisoLogs = [];
+    for (let i = 1; i < chisoLines.length; i++) {
+      const cols = chisoLines[i].split("\t");
+      chisoLogs.push({
+        id_chiso: cols[0], ma_khang: cols[1], ten_khang: cols[2], dia_chi: cols[3],
+        ma_sogcs: cols[4], danh_so: cols[5], so_cot: cols[6], ma_tram: cols[7],
+        ten_tram: cols[8], so_cto: cols[9], ten_ndung: cols[10], ten_nvien: cols[11],
+        hsn: cols[12], bcs: cols[13], chiso_cu: cols[14], chiso_moi: cols[15],
+        san_luong: cols[16], sluong_thao: cols[17], tong_sluong: cols[18], sluong_kt: cols[19],
+        chenh_lech: cols[20], tyle_clech: cols[21], ky: cols[22], thang: cols[23],
+        nam: cols[24], time: cols[25], nguoi_nhap: cols[26], lat: cols[27],
+        lng: cols[28], so_dthoai: cols[29], ghi_chu: cols[30], type: cols[31]
+      });
+    }
+
+    const dinhviLogs = [];
+    for (let i = 1; i < dinhviLines.length; i++) {
+      const cols = dinhviLines[i].split("\t");
+      dinhviLogs.push({
+        id: cols[0], ma_khang: cols[1], ten_khang: cols[2], so_cto: cols[3],
+        ma_tram: cols[4], ten_tram: cols[5], so_cot: cols[6], ten_ndung: cols[7],
+        ten_nvien: cols[8], ten_cviec: cols[9], ghi_chu: cols[10], lat: cols[11],
+        lng: cols[12], time: cols[13], trang_thai: cols[14], nhap_cmis: cols[15]
+      });
+    }
+
+    fetch(API_URL, {
+      method: "POST",
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      body: JSON.stringify({
+        action: "SYNC_BATCH_DATA",
+        chiso_logs: chisoLogs,
+        dinhvi_logs: dinhviLogs
+      })
+    })
+    .then(res => res.json())
+    .then(res => {
+      if (res.status === "success") {
+        // Đặt lại file text sạch
+        localStorage.removeItem(FILE_CHISO_TXT);
+        localStorage.removeItem(FILE_DINHVI_TXT);
+        initLocalTextFiles();
+        showToast("🔄 Đã đồng bộ dữ liệu từ thiết bị lên Google Sheet!");
+        resolve(true);
+      } else {
+        resolve(false);
+      }
+    })
+    .catch(() => resolve(false));
+  });
 }
 
 let toastTimer = null;
