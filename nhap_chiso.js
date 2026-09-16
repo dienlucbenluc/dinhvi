@@ -52,6 +52,25 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 // ----------------------------------------------------
+// HÀM BỔ TRỢ ĐỊNH DẠNG SỐ (FORMAT & PARSE)
+// ----------------------------------------------------
+// Định dạng số dạng 999,999.000 để ghi file text
+function formatNumberText(val) {
+  if (val === "" || val === null || val === undefined || isNaN(Number(val))) return "";
+  return Number(val).toLocaleString("en-US", {
+    minimumFractionDigits: 3,
+    maximumFractionDigits: 3
+  });
+}
+
+// Xóa dấu phẩy phân cách ngàn để lấy lại số chuẩn trước khi đồng bộ lên Server
+function parseFormattedNumber(val) {
+  if (val === "" || val === null || val === undefined) return "";
+  const cleanStr = String(val).replace(/,/g, "").trim();
+  return isNaN(Number(cleanStr)) ? "" : Number(cleanStr);
+}
+
+// ----------------------------------------------------
 // QUẢN LÝ TỰ ĐỘNG TẠO VÀ GHI HÀNG VÀO FILE TEXT CỤC BỘ
 // ----------------------------------------------------
 function initLocalTextFiles() {
@@ -74,10 +93,14 @@ function appendToTextFile(fileName, rowDataObj) {
       rowDataObj.dia_chi || "", rowDataObj.ma_sogcs || "", rowDataObj.danh_so || "",
       rowDataObj.so_cot || "", rowDataObj.ma_tram || "", rowDataObj.ten_tram || "",
       rowDataObj.so_cto || "", rowDataObj.ten_ndung || "", rowDataObj.ten_nvien || "",
-      rowDataObj.hsn || 1, rowDataObj.bcs || "", rowDataObj.chiso_cu || 0,
-      rowDataObj.chiso_moi !== undefined ? rowDataObj.chiso_moi : "",
-      rowDataObj.san_luong || "", rowDataObj.sluong_thao || 0, rowDataObj.tong_sluong || "",
-      rowDataObj.sluong_kt || 0, rowDataObj.chenh_lech || "", rowDataObj.tyle_clech || "",
+      rowDataObj.hsn || 1, rowDataObj.bcs || "", 
+      formatNumberText(rowDataObj.chiso_cu),
+      rowDataObj.chiso_moi !== undefined && rowDataObj.chiso_moi !== "" ? formatNumberText(rowDataObj.chiso_moi) : "",
+      formatNumberText(rowDataObj.san_luong),
+      formatNumberText(rowDataObj.sluong_thao),
+      formatNumberText(rowDataObj.tong_sluong),
+      formatNumberText(rowDataObj.sluong_kt),
+      rowDataObj.chenh_lech || "", rowDataObj.tyle_clech || "",
       rowDataObj.ky || "", rowDataObj.thang || "", rowDataObj.nam || "",
       rowDataObj.time || "", rowDataObj.nguoi_nhap || "", rowDataObj.lat || "",
       rowDataObj.lng || "", rowDataObj.so_dthoai || "", rowDataObj.ghi_chu || "",
@@ -122,8 +145,13 @@ function syncLocalTextFilesToSheet() {
         id_chiso: cols[0], ma_khang: cols[1], ten_khang: cols[2], dia_chi: cols[3],
         ma_sogcs: cols[4], danh_so: cols[5], so_cot: cols[6], ma_tram: cols[7],
         ten_tram: cols[8], so_cto: cols[9], ten_ndung: cols[10], ten_nvien: cols[11],
-        hsn: cols[12], bcs: cols[13], chiso_cu: cols[14], chiso_moi: cols[15],
-        san_luong: cols[16], sluong_thao: cols[17], tong_sluong: cols[18], sluong_kt: cols[19],
+        hsn: cols[12], bcs: cols[13], 
+        chiso_cu: parseFormattedNumber(cols[14]), 
+        chiso_moi: parseFormattedNumber(cols[15]),
+        san_luong: parseFormattedNumber(cols[16]), 
+        sluong_thao: parseFormattedNumber(cols[17]), 
+        tong_sluong: parseFormattedNumber(cols[18]), 
+        sluong_kt: parseFormattedNumber(cols[19]),
         chenh_lech: cols[20], tyle_clech: cols[21], ky: cols[22], thang: cols[23],
         nam: cols[24], time: cols[25], nguoi_nhap: cols[26], lat: cols[27],
         lng: cols[28], so_dthoai: cols[29], ghi_chu: cols[30], type: cols[31]
@@ -963,13 +991,13 @@ async function saveCustomerData(maKhang) {
     if (res.status === "success") {
       showToast("✅ " + res.message);
     } else {
-      showToast("⚠️ Đã lưu vào thiết bị!");
+      showToast("⚠️ Đã lưu vào file text thiết bị (Chờ đồng bộ)!");
     }
   })
   .catch(() => {
     // KHI MẤT MẠNG: Cập nhật biến RAM & Cache màn hình ngay lập tức!
     applyLocalChanges();
-    showToast("⚠️ Đã lưu vào thiết bị!");
+    showToast("⚠️ Đã lưu vào file text thiết bị (Chờ đồng bộ)!");
   });
 }
 
@@ -980,7 +1008,7 @@ async function cancelCustomerData(maKhang) {
 
   const confirmCancel = await showCustomConfirm(
     "XÁC NHẬN HỦY DỮ LIỆU", 
-    "Bạn có muốn hủy chỉ số của khách hàng này không?", 
+    "Bạn có chắc chắn muốn hủy chỉ số đã nhập của khách hàng này?", 
     true
   );
   if (!confirmCancel) return;
@@ -1059,13 +1087,13 @@ async function cancelCustomerData(maKhang) {
     if (res.status === "success") {
       showToast("✅ " + res.message);
     } else {
-      showToast("⚠️ Đã ghi nhận hủy vào thiết bị!");
+      showToast("⚠️ Đã ghi nhận hủy vào file text thiết bị (Chờ đồng bộ)!");
     }
   })
   .catch(() => {
     // KHI MẤT MẠNG: Xóa dữ liệu tức thì trên màn hình & Cache
     applyCancelLocalChanges();
-    showToast("⚠️ Đã ghi nhận hủy vào thiết bị!");
+    showToast("⚠️ Đã ghi nhận hủy vào file text thiết bị (Chờ đồng bộ)!");
   });
 }
 
@@ -1089,7 +1117,7 @@ function downloadAllTextFiles() {
       
       count++;
       if (count === files.length && typeof showToast === "function") {
-        showToast("📥 Đã tải 2 file text về thư mục Download");
+        showToast("📥 Đã tải 2 file text về thư mục Download!");
       }
     }, index * 300);
   });
