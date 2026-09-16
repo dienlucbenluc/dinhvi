@@ -67,8 +67,8 @@ function formatNumberText(val) {
 function formatCoordText(val) {
   if (val === "" || val === null || val === undefined || isNaN(Number(val))) return "";
   return Number(val).toLocaleString("en-US", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2
+    minimumFractionDigits: 8,
+    maximumFractionDigits: 8
   });
 }
 
