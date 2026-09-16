@@ -35,7 +35,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // 3. Sự kiện tự động đồng bộ khi thiết bị vừa khôi phục kết nối Internet
   window.addEventListener("online", () => {
-    showToast("📶 Đã khôi phục kết nối! Đang đồng bộ dữ liệu...");
+    showToast("📶 Đã kết nối mạng, Đang đồng bộ dữ liệu lại...");
     syncLocalTextFilesToSheet().then(() => {
       if (currentUser && currentUser.ten_ndung) {
         fetchSilentLatestData(currentUser.ten_ndung, false);
@@ -156,7 +156,7 @@ function syncLocalTextFilesToSheet() {
         localStorage.removeItem(FILE_CHISO_TXT);
         localStorage.removeItem(FILE_DINHVI_TXT);
         initLocalTextFiles();
-        showToast("🔄 Đã đồng bộ dữ liệu từ thiết bị lên Google Sheet!");
+        showToast("🔄 Đã đồng bộ dữ liệu từ thiết bị lên server.");
         resolve(true);
       } else {
         resolve(false);
@@ -740,7 +740,7 @@ function filterChuaGhi() {
     updateSummaryBar();
     renderCurrentCustomerCard();
   } else {
-    showToast("🎉 Tất cả khách hàng đã được ghi!");
+    showToast("Tất cả khách hàng đã được ghi xong.");
   }
 }
 
@@ -763,7 +763,7 @@ function showAllData() {
   currentCardIndex = 0;
   updateSummaryBar();
   renderCurrentCustomerCard();
-  showToast("📋 Hiển thị tất cả khách hàng");
+  showToast("📋 Danh sách tất cả khách hàng.");
 }
 
 function filterData() {
@@ -790,7 +790,7 @@ function filterData() {
     currentCardIndex = targetIndex;
     renderCurrentCustomerCard();
   } else {
-    showToast("❌ Không tìm thấy khách hàng phù hợp!");
+    showToast("❌ Không tìm thấy khách hàng theo yêu cầu.");
   }
 }
 
@@ -811,7 +811,7 @@ async function saveCustomerData(maKhang) {
   if (emptyItem) {
     await showCustomConfirm(
       "⚠️ CHƯA NHẬP CHỈ SỐ", 
-      `Chưa nhập đầy đủ chỉ số mới cho BCS (${emptyItem.item.bcs})!\nVui lòng kiểm tra lại trước khi lưu.`, 
+      `Chưa nhập đủ chỉ số cho các BCS (${emptyItem.item.bcs})!\nVui lòng kiểm tra lại trước khi lưu.`, 
       true
     );
     if (emptyItem.inputEl) {
