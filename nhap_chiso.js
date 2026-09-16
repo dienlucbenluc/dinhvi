@@ -54,12 +54,21 @@ document.addEventListener("DOMContentLoaded", () => {
 // ----------------------------------------------------
 // HÀM BỔ TRỢ ĐỊNH DẠNG SỐ (FORMAT & PARSE)
 // ----------------------------------------------------
-// Định dạng số dạng 999,999.000 để ghi file text
+// Định dạng số dạng 999,999.000 cho các thông số chỉ số/sản lượng
 function formatNumberText(val) {
   if (val === "" || val === null || val === undefined || isNaN(Number(val))) return "";
   return Number(val).toLocaleString("en-US", {
     minimumFractionDigits: 3,
     maximumFractionDigits: 3
+  });
+}
+
+// Định dạng tọa độ lat/lng dạng (999,999.00) cho file text
+function formatCoordText(val) {
+  if (val === "" || val === null || val === undefined || isNaN(Number(val))) return "";
+  return Number(val).toLocaleString("en-US", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
   });
 }
 
@@ -102,8 +111,10 @@ function appendToTextFile(fileName, rowDataObj) {
       formatNumberText(rowDataObj.sluong_kt),
       rowDataObj.chenh_lech || "", rowDataObj.tyle_clech || "",
       rowDataObj.ky || "", rowDataObj.thang || "", rowDataObj.nam || "",
-      rowDataObj.time || "", rowDataObj.nguoi_nhap || "", rowDataObj.lat || "",
-      rowDataObj.lng || "", rowDataObj.so_dthoai || "", rowDataObj.ghi_chu || "",
+      rowDataObj.time || "", rowDataObj.nguoi_nhap || "", 
+      formatCoordText(rowDataObj.lat),
+      formatCoordText(rowDataObj.lng), 
+      rowDataObj.so_dthoai || "", rowDataObj.ghi_chu || "",
       rowDataObj.type || "SAVE"
     ].join("\t");
     content += "\n" + line;
@@ -153,8 +164,10 @@ function syncLocalTextFilesToSheet() {
         tong_sluong: parseFormattedNumber(cols[18]), 
         sluong_kt: parseFormattedNumber(cols[19]),
         chenh_lech: cols[20], tyle_clech: cols[21], ky: cols[22], thang: cols[23],
-        nam: cols[24], time: cols[25], nguoi_nhap: cols[26], lat: cols[27],
-        lng: cols[28], so_dthoai: cols[29], ghi_chu: cols[30], type: cols[31]
+        nam: cols[24], time: cols[25], nguoi_nhap: cols[26], 
+        lat: parseFormattedNumber(cols[27]),
+        lng: parseFormattedNumber(cols[28]), 
+        so_dthoai: cols[29], ghi_chu: cols[30], type: cols[31]
       });
     }
 
