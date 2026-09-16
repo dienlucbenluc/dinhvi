@@ -520,10 +520,10 @@ function getLocationAndSave(maKhang) {
           showToast("✅ " + res.message);
           localStorage.removeItem(getClientCacheKey());
         } else {
-          showToast("⚠️ Đã lưu tọa độ vào file text thiết bị (Chờ đồng bộ)!");
+          showToast("⚠️ Đã lưu tọa độ vào thiết bị!");
         }
       })
-      .catch(() => showToast("⚠️ Đã lưu tọa độ vào file text thiết bị (Chờ đồng bộ)!"));
+      .catch(() => showToast("⚠️ Đã lưu tọa độ vào thiết bị!"));
     },
     (error) => {
       showToast("❌ Lỗi định vị GPS. Vui lòng bật vị trí!");
@@ -963,13 +963,13 @@ async function saveCustomerData(maKhang) {
     if (res.status === "success") {
       showToast("✅ " + res.message);
     } else {
-      showToast("⚠️ Đã lưu vào file text thiết bị (Chờ đồng bộ)!");
+      showToast("⚠️ Đã lưu vào thiết bị!");
     }
   })
   .catch(() => {
     // KHI MẤT MẠNG: Cập nhật biến RAM & Cache màn hình ngay lập tức!
     applyLocalChanges();
-    showToast("⚠️ Đã lưu vào file text thiết bị (Chờ đồng bộ)!");
+    showToast("⚠️ Đã lưu vào thiết bị!");
   });
 }
 
@@ -980,7 +980,7 @@ async function cancelCustomerData(maKhang) {
 
   const confirmCancel = await showCustomConfirm(
     "XÁC NHẬN HỦY DỮ LIỆU", 
-    "Bạn có chắc chắn muốn hủy chỉ số đã nhập của khách hàng này?", 
+    "Bạn có muốn hủy chỉ số của khách hàng này không?", 
     true
   );
   if (!confirmCancel) return;
@@ -1059,13 +1059,13 @@ async function cancelCustomerData(maKhang) {
     if (res.status === "success") {
       showToast("✅ " + res.message);
     } else {
-      showToast("⚠️ Đã ghi nhận hủy vào file text thiết bị (Chờ đồng bộ)!");
+      showToast("⚠️ Đã ghi nhận hủy vào thiết bị!");
     }
   })
   .catch(() => {
     // KHI MẤT MẠNG: Xóa dữ liệu tức thì trên màn hình & Cache
     applyCancelLocalChanges();
-    showToast("⚠️ Đã ghi nhận hủy vào file text thiết bị (Chờ đồng bộ)!");
+    showToast("⚠️ Đã ghi nhận hủy vào thiết bị!");
   });
 }
 
@@ -1089,7 +1089,7 @@ function downloadAllTextFiles() {
       
       count++;
       if (count === files.length && typeof showToast === "function") {
-        showToast("📥 Đã tải 2 file text về thư mục Download!");
+        showToast("📥 Đã tải 2 file text về thư mục Download");
       }
     }, index * 300);
   });
