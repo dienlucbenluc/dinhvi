@@ -32,11 +32,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
   setupSwipeEvents();
 
-  // 3. Sự kiện tự động đồng bộ khi thiết bị vừa khôi phục kết nối Internet (Event online)
+  // 3. Sự kiện tự động đồng bộ khi thiết bị vừa khôi phục kết nối Internet
   window.addEventListener("online", () => {
     showToast("📶 Đã khôi phục kết nối! Đang đồng bộ dữ liệu...");
     syncLocalTextFilesToSheet().then(() => {
-      // Sau khi đồng bộ xong thì tải lại dữ liệu mới nhất từ Google Sheet
       if (currentUser && currentUser.ten_ndung) {
         fetchSilentLatestData(currentUser.ten_ndung, false);
       }
@@ -99,7 +98,7 @@ function appendToTextFile(fileName, rowDataObj) {
 }
 
 // ----------------------------------------------------
-// ĐỒNG BỘ NỘI DUNG 2 FILE TEXT LÊN GOOGLE SHEET 30 PHÚT/LẦN
+// ĐỒNG BỘ NỘI DUNG 2 FILE TEXT LÊN GOOGLE SHEET
 // ----------------------------------------------------
 function syncLocalTextFilesToSheet() {
   return new Promise((resolve) => {
@@ -115,7 +114,6 @@ function syncLocalTextFilesToSheet() {
       return;
     }
 
-    // Đọc dữ liệu từ chiso.txt và dinhvi.txt...
     const chisoLogs = [];
     for (let i = 1; i < chisoLines.length; i++) {
       const cols = chisoLines[i].split("\t");
@@ -154,7 +152,6 @@ function syncLocalTextFilesToSheet() {
     .then(res => res.json())
     .then(res => {
       if (res.status === "success") {
-        // Đặt lại file text sạch
         localStorage.removeItem(FILE_CHISO_TXT);
         localStorage.removeItem(FILE_DINHVI_TXT);
         initLocalTextFiles();
@@ -463,7 +460,16 @@ function getLocationAndSave(maKhang) {
       };
       appendToTextFile(FILE_DINHVI_TXT, newDinhViRecord);
 
-      showToast("⏳ Đang cập nhật tọa độ lên server...");
+      // Cập nhật ngay vị trí GPS vào RAM và giao diện hiển thị
+      if (groupedData[maKhang]) {
+        groupedData[maKhang].items.forEach(item => {
+          item.lat = lat;
+          item.lng = lng;
+        });
+        renderCurrentCustomerCard();
+      }
+
+      showToast("⏳ Đang cập nhật tọa độ...");
 
       fetch(API_URL, {
         method: "POST",
@@ -487,16 +493,9 @@ function getLocationAndSave(maKhang) {
       .then(res => {
         if (res.status === "success") {
           showToast("✅ " + res.message);
-          if (groupedData[maKhang]) {
-            groupedData[maKhang].items.forEach(item => {
-              item.lat = lat;
-              item.lng = lng;
-            });
-          }
           localStorage.removeItem(getClientCacheKey());
-          fetchSilentLatestData(currentUser.ten_ndung, false);
         } else {
-          showToast("❌ " + res.message);
+          showToast("⚠️ Đã lưu tọa độ vào file text thiết bị (Chờ đồng bộ)!");
         }
       })
       .catch(() => showToast("⚠️ Đã lưu tọa độ vào file text thiết bị (Chờ đồng bộ)!"));
@@ -883,6 +882,44 @@ async function saveCustomerData(maKhang) {
     }
   });
 
+  // HÀM CẬP NHẬT TỨC THÌ DỮ LIỆU LOCAL TRÊN MÀN HÌNH VÀ CACHE
+  const applyLocalChanges = () => {
+    cust.ghi_chu = newGhiChu;
+    cust.items.forEach(item => {
+      const inputEl = document.getElementById(`cs_moi_${item.rowIndex}`);
+      if (inputEl && inputEl.value !== "") {
+        item.chiso_moi = Number(inputEl.value);
+        const csCu = Number(item.chiso_cu) || 0;
+        const hsn = Number(item.hsn) || 1;
+        const slThao = Number(item.sluong_thao) || 0;
+        item.san_luong = Math.round((item.chiso_moi - csCu) * hsn);
+        item.tong_sluong = item.san_luong + slThao;
+      }
+    });
+
+    updateSummaryBar();
+
+    const cacheKey = getClientCacheKey();
+    const currentCache = localStorage.getItem(cacheKey);
+    if (currentCache) {
+      try {
+        const obj = JSON.parse(currentCache);
+        obj.list.forEach(flatItem => {
+          if (flatItem.ma_khang === maKhang) {
+            const matchedInRam = cust.items.find(i => i.id_chiso === flatItem.id_chiso);
+            if (matchedInRam && matchedInRam.chiso_moi !== "") {
+              flatItem.chiso_moi = matchedInRam.chiso_moi;
+              flatItem.san_luong = matchedInRam.san_luong;
+              flatItem.tong_sluong = matchedInRam.tong_sluong;
+              flatItem.ghi_chu = newGhiChu;
+            }
+          }
+        });
+        localStorage.setItem(cacheKey, JSON.stringify(obj));
+      } catch(e) {}
+    }
+  };
+
   showToast(`⏳ Đang lưu dữ liệu...`);
   
   fetch(API_URL, {
@@ -897,22 +934,18 @@ async function saveCustomerData(maKhang) {
   })
   .then(res => res.json())
   .then(res => {
+    applyLocalChanges();
     if (res.status === "success") {
       showToast("✅ " + res.message);
-      cust.ghi_chu = newGhiChu;
-      cust.items.forEach(item => {
-        const inputEl = document.getElementById(`cs_moi_${item.rowIndex}`);
-        if (inputEl) {
-          item.chiso_moi = inputEl.value !== "" ? Number(inputEl.value) : "";
-        }
-      });
-      updateSummaryBar();
-      localStorage.removeItem(getClientCacheKey());
     } else {
       showToast("⚠️ Đã lưu vào file text thiết bị (Chờ đồng bộ)!");
     }
   })
-  .catch(() => showToast("⚠️ Đã lưu vào file text thiết bị (Chờ đồng bộ)!"));
+  .catch(() => {
+    // MẤT MẠNG: Cập nhật biến RAM & Cache màn hình ngay lập tức!
+    applyLocalChanges();
+    showToast("⚠️ Đã lưu vào file text thiết bị (Chờ đồng bộ)!");
+  });
 }
 
 // Hủy dữ liệu: Ghi log HỦY vào file chiso.txt thiết bị + đồng bộ API
@@ -951,6 +984,39 @@ async function cancelCustomerData(maKhang) {
     });
   });
 
+  const applyCancelLocalChanges = () => {
+    cust.items.forEach(item => {
+      item.chiso_moi = "";
+      item.san_luong = "";
+      item.tong_sluong = "";
+      const inputEl = document.getElementById(`cs_moi_${item.rowIndex}`);
+      if (inputEl) inputEl.value = "";
+      const slHiddenEl = document.getElementById(`sl_val_${item.rowIndex}`);
+      if (slHiddenEl) slHiddenEl.value = "-";
+      const tongSlCell = document.getElementById(`tong_sl_${item.rowIndex}`);
+      if (tongSlCell) tongSlCell.innerText = "-";
+    });
+
+    checkCancelButtonStatus(maKhang);
+    updateSummaryBar();
+
+    const cacheKey = getClientCacheKey();
+    const currentCache = localStorage.getItem(cacheKey);
+    if (currentCache) {
+      try {
+        const obj = JSON.parse(currentCache);
+        obj.list.forEach(flatItem => {
+          if (flatItem.ma_khang === maKhang) {
+            flatItem.chiso_moi = "";
+            flatItem.san_luong = "";
+            flatItem.tong_sluong = "";
+          }
+        });
+        localStorage.setItem(cacheKey, JSON.stringify(obj));
+      } catch(e) {}
+    }
+  };
+
   showToast(`⏳ Đang hủy chỉ số...`);
 
   fetch(API_URL, {
@@ -964,28 +1030,18 @@ async function cancelCustomerData(maKhang) {
   })
   .then(res => res.json())
   .then(res => {
+    applyCancelLocalChanges();
     if (res.status === "success") {
       showToast("✅ " + res.message);
-      cust.items.forEach(item => {
-        item.chiso_moi = "";
-        item.san_luong = "";
-        item.tong_sluong = "";
-        const inputEl = document.getElementById(`cs_moi_${item.rowIndex}`);
-        if (inputEl) inputEl.value = "";
-        const slHiddenEl = document.getElementById(`sl_val_${item.rowIndex}`);
-        if (slHiddenEl) slHiddenEl.value = "-";
-        const tongSlCell = document.getElementById(`tong_sl_${item.rowIndex}`);
-        if (tongSlCell) tongSlCell.innerText = "-";
-      });
-
-      checkCancelButtonStatus(maKhang);
-      updateSummaryBar();
-      localStorage.removeItem(getClientCacheKey());
     } else {
       showToast("⚠️ Đã ghi nhận hủy vào file text thiết bị (Chờ đồng bộ)!");
     }
   })
-  .catch(() => showToast("⚠️ Đã ghi nhận hủy vào file text thiết bị (Chờ đồng bộ)!"));
+  .catch(() => {
+    // MẤT MẠNG: Xóa ngay dữ liệu trên màn hình & Cache
+    applyCancelLocalChanges();
+    showToast("⚠️ Đã ghi nhận hủy vào file text thiết bị (Chờ đồng bộ)!");
+  });
 }
 
 // Hàm tải cùng lúc 2 file chiso.txt và dinhvi.txt về thư mục Download
@@ -996,7 +1052,6 @@ function downloadAllTextFiles() {
   files.forEach((fileName, index) => {
     const content = localStorage.getItem(fileName) || "";
     
-    // Đặt delay nhỏ (300ms) giữa 2 file để trình duyệt không bị đè lệnh tải
     setTimeout(() => {
       const blob = new Blob([content], { type: "text/plain;charset=utf-8" });
       const a = document.createElement("a");
