@@ -957,18 +957,29 @@ async function cancelCustomerData(maKhang) {
   .catch(() => showToast("⚠️ Đã ghi nhận hủy vào file text thiết bị (Chờ đồng bộ)!"));
 }
 
-// Hàm xuất file text ra thư mục Download trên điện thoại
-function downloadLocalTextFile(fileName) {
-  const content = localStorage.getItem(fileName) || "";
-  if (!content) {
-    alert("Chưa có dữ liệu trong file " + fileName);
-    return;
-  }
-  const blob = new Blob([content], { type: "text/plain;charset=utf-8" });
-  const a = document.createElement("a");
-  a.href = URL.createObjectURL(blob);
-  a.download = fileName;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
+// Hàm tải cùng lúc 2 file chiso.txt và dinhvi.txt về thư mục Download
+function downloadAllTextFiles() {
+  const files = ['chiso.txt', 'dinhvi.txt'];
+  let count = 0;
+
+  files.forEach((fileName, index) => {
+    const content = localStorage.getItem(fileName) || "";
+    
+    // Đặt delay nhỏ (300ms) giữa 2 file để trình duyệt không bị đè lệnh tải
+    setTimeout(() => {
+      const blob = new Blob([content], { type: "text/plain;charset=utf-8" });
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(a.href);
+      
+      count++;
+      if (count === files.length && typeof showToast === "function") {
+        showToast("📥 Đã tải 2 file text về thư mục Download!");
+      }
+    }, index * 300);
+  });
 }
