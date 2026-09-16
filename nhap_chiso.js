@@ -7,9 +7,10 @@ let isAnimating = false; // Chống vuốt quá nhanh gây lỗi animation
 
 const BCS_ORDER = ["BT", "CD", "TD", "SG", "VC", "BN", "CN", "TN", "SN", "VN"];
 
-// Tên 2 file text lưu trữ cục bộ trên thiết bị
+// Tên các file text lưu trữ cục bộ trên thiết bị
 const FILE_CHISO_TXT = "chiso.txt";
 const FILE_DINHVI_TXT = "dinhvi.txt";
+const FILE_SERVER_BACKUP_TXT = "chiso_server_backup.txt";
 
 document.addEventListener("DOMContentLoaded", () => {
   const sessionStr = localStorage.getItem("cmis_user_session");
@@ -26,7 +27,7 @@ document.addEventListener("DOMContentLoaded", () => {
       loadChiSoData();
     });
   } else {
-    // Nếu mất mạng -> Load dữ liệu từ Cache local
+    // Nếu mất mạng -> Load dữ liệu từ Cache local / File text backup
     loadChiSoData();
   }
 
@@ -200,18 +201,35 @@ function getClientCacheKey() {
 
 function loadChiSoData() {
   let cachedList = null;
+  
+  // 1. Kiểm tra cache chính của ứng dụng
   try {
     const raw = localStorage.getItem(getClientCacheKey());
     if (raw) {
       const obj = JSON.parse(raw);
       if (obj && Array.isArray(obj.list) && obj.list.length > 0) {
         cachedList = obj.list;
-        groupAndRender(cachedList);
       }
     }
   } catch (e) {}
 
-  if (currentUser && currentUser.ten_ndung) {
+  // 2. Nếu mất cache (hoặc bị dọn dẹp) -> Đọc từ bản sao dự phòng từ Server gần nhất
+  if (!cachedList) {
+    try {
+      const backupRaw = localStorage.getItem(FILE_SERVER_BACKUP_TXT);
+      if (backupRaw) {
+        cachedList = JSON.parse(backupRaw);
+      }
+    } catch (e) {}
+  }
+
+  // 3. Render dữ liệu offline ra màn hình
+  if (cachedList && Array.isArray(cachedList) && cachedList.length > 0) {
+    groupAndRender(cachedList);
+  }
+
+  // 4. Nếu có mạng -> Gọi ngầm để cập nhật dữ liệu Server tươi mới nhất
+  if (navigator.onLine && currentUser && currentUser.ten_ndung) {
     fetchSilentLatestData(currentUser.ten_ndung, !cachedList);
   }
 }
@@ -228,7 +246,14 @@ function fetchSilentLatestData(username, isFirstLoad = false) {
   .then(res => res.json())
   .then(res => {
     if (res.status === "success") {
+      // Lưu vào Cache hoạt động
       localStorage.setItem(getClientCacheKey(), JSON.stringify({ time: Date.now(), list: res.list }));
+      
+      // Lưu thêm 1 bản sao dự phòng riêng biệt phục vụ offline lâu dài
+      try {
+        localStorage.setItem(FILE_SERVER_BACKUP_TXT, JSON.stringify(res.list));
+      } catch (e) {}
+
       groupAndRender(res.list);
     } else if (isFirstLoad) {
       document.getElementById("listContainer").innerHTML = `<p style='color:red; text-align:center;'>❌ ${res.message || 'Lỗi tải dữ liệu!'}</p>`;
@@ -460,7 +485,7 @@ function getLocationAndSave(maKhang) {
       };
       appendToTextFile(FILE_DINHVI_TXT, newDinhViRecord);
 
-      // Cập nhật ngay vị trí GPS vào RAM và giao diện hiển thị
+      // Cập nhật vị trí GPS tức thì vào bộ nhớ RAM và giao diện hiển thị
       if (groupedData[maKhang]) {
         groupedData[maKhang].items.forEach(item => {
           item.lat = lat;
@@ -882,7 +907,7 @@ async function saveCustomerData(maKhang) {
     }
   });
 
-  // HÀM CẬP NHẬT TỨC THÌ DỮ LIỆU LOCAL TRÊN MÀN HÌNH VÀ CACHE
+  // Cập nhật ngay dữ liệu local lên giao diện và bộ nhớ đệm RAM / Cache
   const applyLocalChanges = () => {
     cust.ghi_chu = newGhiChu;
     cust.items.forEach(item => {
@@ -942,7 +967,7 @@ async function saveCustomerData(maKhang) {
     }
   })
   .catch(() => {
-    // MẤT MẠNG: Cập nhật biến RAM & Cache màn hình ngay lập tức!
+    // KHI MẤT MẠNG: Cập nhật biến RAM & Cache màn hình ngay lập tức!
     applyLocalChanges();
     showToast("⚠️ Đã lưu vào file text thiết bị (Chờ đồng bộ)!");
   });
@@ -1038,7 +1063,7 @@ async function cancelCustomerData(maKhang) {
     }
   })
   .catch(() => {
-    // MẤT MẠNG: Xóa ngay dữ liệu trên màn hình & Cache
+    // KHI MẤT MẠNG: Xóa dữ liệu tức thì trên màn hình & Cache
     applyCancelLocalChanges();
     showToast("⚠️ Đã ghi nhận hủy vào file text thiết bị (Chờ đồng bộ)!");
   });
