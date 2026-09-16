@@ -1,7 +1,4 @@
-// ==========================================
-// CẤU HÌNH CƠ BẢN & BIẾN TOÀN CỤC
-// ==========================================
-// Thay URL bên dưới bằng URL Web App Apps Script đã Deploy của bác
+// CẤU HÌNH API URL
 const API_URL = "https://script.google.com/macros/s/AKfycbx.../exec"; 
 
 let globalData = [];
@@ -10,14 +7,12 @@ let currentUser = { ten_ndung: "", ten_nvien: "" };
 let modalInstance = null;
 let currentGPS = { lat: "", lng: "" };
 
-// Khởi tạo trang
 document.addEventListener("DOMContentLoaded", function () {
   modalInstance = new bootstrap.Modal(document.getElementById("modalNhapChiSo"));
   loadUserInfo();
   loadChiSoData();
 });
 
-// Lấy thông tin user đăng nhập từ LocalStorage
 function loadUserInfo() {
   const userStr = localStorage.getItem("user_info");
   if (userStr) {
@@ -30,7 +25,6 @@ function loadUserInfo() {
   }
 }
 
-// Bật/Tắt hiệu ứng Loading
 function showLoading(show, text = "Đang tải dữ liệu...") {
   const overlay = document.getElementById("loadingOverlay");
   document.getElementById("loadingText").innerText = text;
@@ -38,9 +32,6 @@ function showLoading(show, text = "Đang tải dữ liệu...") {
   else overlay.classList.add("d-none");
 }
 
-// ==========================================
-// THAO TÁC DỮ LIỆU TỪ API (APPS SCRIPT)
-// ==========================================
 function loadChiSoData() {
   showLoading(true, "Đang tải danh sách chỉ số...");
 
@@ -72,7 +63,6 @@ function loadChiSoData() {
     });
 }
 
-// Lọc dữ liệu hiển thị
 function filterData() {
   const searchKey = document.getElementById("searchInput").value.trim().toLowerCase();
   const filterStatus = document.getElementById("filterStatus").value;
@@ -86,12 +76,10 @@ function filterData() {
     if (hasCS) doneCount++;
     else pendingCount++;
 
-    // Lọc theo trạng thái
     let matchStatus = true;
     if (filterStatus === "CO_CS") matchStatus = hasCS;
     else if (filterStatus === "CHUA_CS") matchStatus = !hasCS;
 
-    // Lọc theo từ khóa tìm kiếm
     let matchSearch = true;
     if (searchKey !== "") {
       const strKhang = (item.ten_khang || "").toLowerCase();
@@ -115,7 +103,6 @@ function filterData() {
   renderCustomerList(filteredData);
 }
 
-// Render danh sách thẻ khách hàng
 function renderCustomerList(list) {
   const container = document.getElementById("customerList");
   container.innerHTML = "";
@@ -157,9 +144,6 @@ function renderCustomerList(list) {
   });
 }
 
-// ==========================================
-// HÀM XỬ LÝ MODAL & TÍNH TOÁN CS
-// ==========================================
 function openModalNhap(rowIndex) {
   const item = globalData.find(x => x.rowIndex === rowIndex);
   if (!item) return;
@@ -181,14 +165,13 @@ function openModalNhap(rowIndex) {
     document.getElementById("modalToaDo").value = `${item.lat}, ${item.lng}`;
   } else {
     document.getElementById("modalToaDo").value = "";
-    layToaDoGPS(); // Tự động bật GPS lấy tọa độ mới
+    layToaDoGPS();
   }
 
   tinhSanLuong();
   modalInstance.show();
 }
 
-// Tự động tính sản lượng trên giao diện Modal
 function tinhSanLuong() {
   const csCu = parseFloat(document.getElementById("modalCSCu").value) || 0;
   const csMoiInput = document.getElementById("modalCSMoi").value;
@@ -207,7 +190,6 @@ function tinhSanLuong() {
   }
 }
 
-// Lấy tọa độ GPS thiết bị
 function layToaDoGPS() {
   const txtToaDo = document.getElementById("modalToaDo");
   const txtStatus = document.getElementById("gpsStatus");
@@ -238,7 +220,6 @@ function layToaDoGPS() {
   );
 }
 
-// Lưu dữ liệu chỉ số lên Apps Script
 function luuChiSo() {
   const rowIndex = parseInt(document.getElementById("modalRowIndex").value);
   const csMoi = document.getElementById("modalCSMoi").value.trim();
@@ -279,7 +260,7 @@ function luuChiSo() {
       showLoading(false);
       if (res.status === "success") {
         modalInstance.hide();
-        loadChiSoData(); // Tải lại danh sách sau khi lưu
+        loadChiSoData();
       } else {
         alert("Lỗi lưu dữ liệu: " + res.message);
       }
@@ -290,7 +271,6 @@ function luuChiSo() {
     });
 }
 
-// Xóa chỉ số (Hủy chỉ số)
 function xoaChiSo() {
   const rowIndex = parseInt(document.getElementById("modalRowIndex").value);
   if (!confirm("Bạn có chắc chắn muốn hủy chỉ số của khách hàng này?")) return;
