@@ -956,3 +956,19 @@ async function cancelCustomerData(maKhang) {
   })
   .catch(() => showToast("⚠️ Đã ghi nhận hủy vào file text thiết bị (Chờ đồng bộ)!"));
 }
+
+// Hàm xuất file text ra thư mục Download trên điện thoại
+function downloadLocalTextFile(fileName) {
+  const content = localStorage.getItem(fileName) || "";
+  if (!content) {
+    alert("Chưa có dữ liệu trong file " + fileName);
+    return;
+  }
+  const blob = new Blob([content], { type: "text/plain;charset=utf-8" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = fileName;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+}
