@@ -112,7 +112,7 @@ async function uploadToCloudinary(file) {
   const formData = new FormData();
   formData.append("file", compressedFile);
   formData.append("upload_preset", CLOUDINARY_UPLOAD_PRESET);
-  form.append('folder', 'chi_so');
+  formData.append('folder', 'chi_so');
   
   const res = await fetch(CLOUDINARY_UPLOAD_URL, {
     method: "POST",
