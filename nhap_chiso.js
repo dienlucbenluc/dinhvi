@@ -668,58 +668,31 @@ async function uploadImageToCloudinary(base64Data, maKhang) {
 
 // Hàm xóa ảnh trên Cloudinary khi HỦY CS (Đã sửa async/await và bóc tách public_id chuẩn)
 async function deleteImageFromCloudinary(imageUrl) {
-  const imageUrl = payload.image_url;
-  if (!imageUrl) {
-    return { status: "error", message: "Không tìm thấy URL ảnh để xóa" };
-  }
+  if (!imageUrl) return;
 
-  const publicId = extractPublicId_(imageUrl);
-  if (!publicId) {
-    return { status: "error", message: "Không thể trích xuất Public ID từ URL: " + imageUrl };
-  }
-
-  // Thông tin Cloudinary của anh
-  const cloudName = "jokzcdxt"; 
-  const apiKey = "682476588752384";
-  const apiSecret = "wP2otd9x7FqfK_GIJNbGIlfYFzI"; // Cần kiểm tra lại chính xác API Secret
-
-  const timestamp = Math.floor(Date.now() / 1000).toString();
-  
-  // Tạo chuỗi signature
-  const stringToSign = "public_id=" + publicId + "&timestamp=" + timestamp + apiSecret;
-  const signature = computeSha1Hex_(stringToSign);
-
-  const deleteUrl = "https://api.cloudinary.com/v1_1/" + cloudName + "/image/destroy";
-
-  const formData = {
-    public_id: publicId,
-    api_key: apiKey,
-    timestamp: timestamp,
-    signature: signature
-  };
-
-  const options = {
-    method: "post",
-    payload: formData,
-    muteHttpExceptions: true
+  // Khai báo payload gửi lên Google Apps Script
+  const payload = {
+    action: "DELETE_CLOUDINARY_IMAGE",
+    image_url: imageUrl
   };
 
   try {
-    const response = UrlFetchApp.fetch(deleteUrl, options);
-    const resCode = response.getResponseCode();
-    const resText = response.getContentText();
-    const resJson = JSON.parse(resText);
+    const response = await fetch(SCRIPT_URL, {
+      method: "POST",
+      // Đảm bảo dùng Content-Type text/plain để tránh bị dính CORS preflight với Apps Script
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      body: JSON.stringify(payload) // Gửi biến payload đã định nghĩa ở trên
+    });
 
-    if (resJson.result === "ok") {
-      return { status: "success", message: "Xóa thành công Public ID: " + publicId };
+    const resData = await response.json(); // Đổi tên biến nhận về thành resData để tránh nhầm lẫn
+
+    if (resData.status === "success") {
+      console.log("✅ Xóa ảnh Cloudinary thành công:", resData.message);
     } else {
-      return { 
-        status: "error", 
-        message: "Cloudinary phản hồi (" + resCode + "): " + (resJson.error ? resJson.error.message : resText) + " (PublicID: " + publicId + ")" 
-      };
+      console.warn("⚠️ Cloudinary báo lỗi:", resData.message);
     }
-  } catch (e) {
-    return { status: "error", message: "Lỗi kết nối UrlFetchApp: " + e.toString() };
+  } catch (error) {
+    console.error("❌ Lỗi kết nối API xóa ảnh:", error);
   }
 }
 
