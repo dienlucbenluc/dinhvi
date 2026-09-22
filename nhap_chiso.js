@@ -466,7 +466,8 @@ function renderCurrentCustomerCard(slideDirection = null) {
           ${imgHtml}
         </div>
 
-       <input type="file" id="gallery_file_input_${cust.ma_khang}" accept="image/*" style="display:none;" onchange="handleImageSelection(event, '${cust.ma_khang}')">
+        <input type="file" id="camera_file_input_${cust.ma_khang}" accept="image/*" capture="environment" style="display:none;" onchange="handleImageSelection(event, '${cust.ma_khang}')">
+        <input type="file" id="gallery_file_input_${cust.ma_khang}" accept="image/*" style="display:none;" onchange="handleImageSelection(event, '${cust.ma_khang}')">
 
         <div class="card-btn-group-v2">
           <button class="btn-card btn-card-photo" type="button" onclick="triggerPhotoPicker('${cust.ma_khang}')">📷 Chụp ảnh</button>        
@@ -527,23 +528,53 @@ function compressImage(file, maxWidth = 1000, quality = 0.7) {
   });
 }
 
-async function triggerPhotoPicker(maKhang) {
-  // Tham số confirmText = "📷 Máy ảnh", cancelText = "🖼️ Thư viện"
-  const isCamera = await showCustomConfirm(
-    "CHỌN NGUỒN ẢNH",
-    "Bạn muốn chụp hình từ Camera hay chọn từ Thư viện thiết bị?",
-    false,
-    "📷 Máy ảnh",
-    "🖼️ Thư viện"
-  );
+function showCustomConfirm(title, message, isDanger = false, confirmText = "Đồng ý", cancelText = "Hủy") {
+  return new Promise((resolve) => {
+    const modal = document.getElementById("customConfirmModal");
+    const titleEl = document.getElementById("confirmModalTitle");
+    const msgEl = document.getElementById("confirmModalMessage");
+    const btnConfirm = document.getElementById("btnModalConfirm");
+    const btnCancel = document.getElementById("btnModalCancel");
 
-  if (isCamera) {
-    // Người dùng bấm "📷 Máy ảnh" (Đồng ý / Confirm)
-    triggerCameraInput(maKhang);
-  } else {
-    // Người dùng bấm "🖼️ Thư viện" (Hủy / Cancel)
-    triggerGalleryInput(maKhang);
-  }
+    if (titleEl) {
+      titleEl.textContent = title;
+      titleEl.style.color = isDanger ? "#dc3545" : "#007bff";
+    }
+    if (msgEl) {
+      msgEl.textContent = message;
+    }
+
+    // ÉP ĐỔI TEXT 2 NÚT BẰNG THUỘC TÍNH textContent
+    if (btnConfirm) {
+      btnConfirm.textContent = confirmText; // Ép thành "📷 Máy ảnh"
+      btnConfirm.style.backgroundColor = isDanger ? "#dc3545" : "#28a745";
+    }
+
+    if (btnCancel) {
+      btnCancel.textContent = cancelText;   // Ép thành "🖼️ Thư viện"
+      btnCancel.style.backgroundColor = "#0d6efd";
+      btnCancel.style.color = "#ffffff";
+    }
+
+    if (modal) {
+      modal.style.display = "flex";
+    }
+
+    // Gán lại sự kiện click
+    if (btnConfirm) {
+      btnConfirm.onclick = () => {
+        if (modal) modal.style.display = "none";
+        resolve(true);
+      };
+    }
+
+    if (btnCancel) {
+      btnCancel.onclick = () => {
+        if (modal) modal.style.display = "none";
+        resolve(false);
+      };
+    }
+  });
 }
 
 function triggerCameraInput(maKhang) {
