@@ -220,9 +220,8 @@ function showCustomConfirm(title, message, isDanger = false, confirmText = "Đ�
       msgEl.textContent = message;
     }
 
-    // ÉP ĐỔI TEXT 2 NÚT BẰNG THUỘC TÍNH textContent
     if (btnConfirm) {
-      btnConfirm.textContent = confirmText; // Ép thành "📷 Máy ảnh"
+      btnConfirm.textContent = confirmText;
       btnConfirm.style.backgroundColor = isDanger ? "#dc3545" : "#28a745";
     }
 
@@ -236,7 +235,6 @@ function showCustomConfirm(title, message, isDanger = false, confirmText = "Đ�
       modal.style.display = "flex";
     }
 
-    // Gán lại sự kiện click
     if (btnConfirm) {
       btnConfirm.onclick = () => {
         if (modal) modal.style.display = "none";
@@ -409,7 +407,6 @@ function renderCurrentCustomerCard(slideDirection = null) {
   if (slideDirection === "left") initialClass = "slide-left-in";
   else if (slideDirection === "right") initialClass = "slide-right-in";
 
-  // Hiển thị xem trước ảnh (base64 tạm thời hoặc URL Cloudinary)
   const displayImgSrc = cust.temp_image_base64 || cust.hinh_cto || "";
   let imgHtml = displayImgSrc 
     ? `<img src="${displayImgSrc}" onclick="viewFullImage('${displayImgSrc}')"><button class="btn-delete-img" onclick="removeSelectedImage('${cust.ma_khang}')">✕</button>`
@@ -483,13 +480,11 @@ function renderCurrentCustomerCard(slideDirection = null) {
   const cancelDisabledAttr = !alreadyHasCS ? "disabled" : "";
   const saveDisabledAttr = !hasLocation ? "disabled" : "";
 
-  // Bố cục Bảng Nhập Chỉ Số -> Khung Ảnh (Trái) & 3 Nút (Phải)
   html += `
           </tbody>
         </table>
       </div>
 
-      <!-- Bố cục Nút bấm bên phải và Khung hình bên trái dưới Table -->
       <div class="bottom-action-layout">
         <div class="image-preview-container" id="img_container_${cust.ma_khang}">
           ${imgHtml}
@@ -558,7 +553,6 @@ function compressImage(file, maxWidth = 1000, quality = 0.7) {
 }
 
 async function triggerPhotoPicker(maKhang) {
-  // Tham số confirmText = "📷 Máy ảnh", cancelText = "🖼️ Thư viện"
   const isCamera = await showCustomConfirm(
     "CHỌN NGUỒN ẢNH",
     "Chụp ảnh từ Camera hay chọn từ Thư viện thiết bị?",
@@ -568,10 +562,8 @@ async function triggerPhotoPicker(maKhang) {
   );
 
   if (isCamera) {
-    // Người dùng bấm "📷 Máy ảnh" (Đồng ý / Confirm)
     triggerCameraInput(maKhang);
   } else {
-    // Người dùng bấm "🖼️ Thư viện" (Hủy / Cancel)
     triggerGalleryInput(maKhang);
   }
 }
@@ -579,7 +571,7 @@ async function triggerPhotoPicker(maKhang) {
 function triggerCameraInput(maKhang) {
   const fileInput = document.getElementById(`camera_file_input_${maKhang}`);
   if (fileInput) {
-    fileInput.value = ""; // Reset giá trị để chọn lại cùng 1 file nếu muốn
+    fileInput.value = "";
     fileInput.click();
   }
 }
@@ -587,7 +579,7 @@ function triggerCameraInput(maKhang) {
 function triggerGalleryInput(maKhang) {
   const fileInput = document.getElementById(`gallery_file_input_${maKhang}`);
   if (fileInput) {
-    fileInput.value = ""; // Reset giá trị
+    fileInput.value = "";
     fileInput.click();
   }
 }
@@ -634,7 +626,6 @@ function viewFullImage(src) {
   modal.style.display = "flex";
 }
 
-// Upload trực tiếp từ thiết bị lên Cloudinary vào thư mục chi_so
 async function uploadImageToCloudinary(base64Data, maKhang) {
   try {
     const timestamp = Date.now();
@@ -666,27 +657,25 @@ async function uploadImageToCloudinary(base64Data, maKhang) {
   }
 }
 
-// Hàm xóa ảnh trên Cloudinary khi HỦY CS (Đã sửa async/await và bóc tách public_id chuẩn)
+// Hàm xóa ảnh trên Cloudinary khi HỦY CS
 async function deleteImageFromCloudinary(imageUrl) {
   if (!imageUrl) return;
 
-  // Khai báo payload gửi lên Google Apps Script
   const payload = {
     action: "DELETE_CLOUDINARY_IMAGE",
     image_url: imageUrl
   };
 
   try {
-    const response = await fetch(SCRIPT_URL, {
+    const response = await fetch(API_URL, {
       method: "POST",
-      // Đảm bảo dùng Content-Type text/plain để tránh bị dính CORS preflight với Apps Script
       headers: { "Content-Type": "text/plain;charset=utf-8" },
-      body: JSON.stringify(payload) // Gửi biến payload đã định nghĩa ở trên
+      body: JSON.stringify(payload)
     });
 
-    const resData = await response.json(); // Đổi tên biến nhận về thành resData để tránh nhầm lẫn
+    const resData = await response.json();
 
-    if (resData.status === "success") {
+    if (resData.status === "success" || resData.success) {
       console.log("✅ Xóa ảnh Cloudinary thành công:", resData.message);
     } else {
       console.warn("⚠️ Cloudinary báo lỗi:", resData.message);
@@ -1087,7 +1076,6 @@ async function saveCustomerData(maKhang) {
     if (!confirmSave) return;
   }
 
-  // Tải ảnh lên Cloudinary nếu có chọn/chụp ảnh mới
   let uploadedImageUrl = cust.hinh_cto || "";
   if (cust.temp_image_base64) {
     showToast("📸 Đang tải ảnh lên Cloudinary...");
@@ -1226,7 +1214,6 @@ async function saveCustomerData(maKhang) {
 }
 
 // HỦY CHỈ SỐ & XÓA ẢNH CLOUDINARY
-// Hàm HỦY CHỈ SỐ (Đã cập nhật await xóa ảnh trước khi xóa dữ liệu local)
 async function cancelCustomerData(maKhang) {
   const cust = groupedData[maKhang];
   if (!cust) return;
