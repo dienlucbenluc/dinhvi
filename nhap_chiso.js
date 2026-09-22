@@ -305,6 +305,7 @@ function groupAndRender(flatList) {
         so_dthoai: item.so_dthoai || "",
         ghi_chu: item.ghi_chu || "",
         hinh_cto: item.hinh_cto || "",
+        temp_image_file: null,
         temp_image_base64: null,
         items: []
       };
@@ -494,32 +495,68 @@ function renderCurrentCustomerCard(slideDirection = null) {
 // XỬ LÝ HÌNH ẢNH & UPLOAD CLOUDINARY
 // ----------------------------------------------------
 
+function compressImage(file, maxWidth = 1000, quality = 0.7) {
+  return new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = (event) => {
+      const img = new Image();
+      img.src = event.target.result;
+      img.onload = () => {
+        let width = img.width;
+        let height = img.height;
+
+        if (width > maxWidth) {
+          height = Math.round((height * maxWidth) / width);
+          width = maxWidth;
+        }
+
+        const canvas = document.createElement("canvas");
+        canvas.width = width;
+        canvas.height = height;
+
+        const ctx = canvas.getContext("2d");
+        ctx.drawImage(img, 0, 0, width, height);
+
+        const dataUrl = canvas.toDataURL("image/jpeg", quality);
+        resolve(dataUrl);
+      };
+      img.onerror = () => resolve(null);
+    };
+    reader.onerror = () => resolve(null);
+  });
+}
+
 function triggerCameraInput(maKhang) {
   const fileInput = document.getElementById(`camera_file_input_${maKhang}`);
   if (fileInput) fileInput.click();
 }
 
-function handleImageSelection(event, maKhang) {
+async function handleImageSelection(event, maKhang) {
   const file = event.target.files[0];
   if (!file) return;
 
-  const reader = new FileReader();
-  reader.onload = function(e) {
-    const base64Str = e.target.result;
-    if (groupedData[maKhang]) {
-      groupedData[maKhang].temp_image_base64 = base64Str;
-      
-      const container = document.getElementById(`img_container_${maKhang}`);
-      if (container) {
-        container.innerHTML = `<img src="${base64Str}" onclick="viewFullImage('${base64Str}')"><button class="btn-delete-img" onclick="removeSelectedImage('${maKhang}')">✕</button>`;
-      }
+  showToast("⚡ Đang xử lý và nén ảnh...");
+  const compressedBase64 = await compressImage(file, 1000, 0.7);
+  if (!compressedBase64) {
+    showToast("❌ Lỗi khi xử lý nén ảnh!");
+    return;
+  }
+
+  if (groupedData[maKhang]) {
+    groupedData[maKhang].temp_image_file = file;
+    groupedData[maKhang].temp_image_base64 = compressedBase64;
+    
+    const container = document.getElementById(`img_container_${maKhang}`);
+    if (container) {
+      container.innerHTML = `<img src="${compressedBase64}" onclick="viewFullImage('${compressedBase64}')"><button class="btn-delete-img" onclick="removeSelectedImage('${maKhang}')">✕</button>`;
     }
-  };
-  reader.readAsDataURL(file);
+  }
 }
 
 function removeSelectedImage(maKhang) {
   if (groupedData[maKhang]) {
+    groupedData[maKhang].temp_image_file = null;
     groupedData[maKhang].temp_image_base64 = null;
     groupedData[maKhang].hinh_cto = "";
   }
@@ -537,12 +574,13 @@ function viewFullImage(src) {
   modal.style.display = "flex";
 }
 
-// Upload trực tiếp từ thiết bị lên Cloudinary
+// Upload trực tiếp từ thiết bị lên Cloudinary vào thư mục Home/chi_so
 async function uploadImageToCloudinary(base64Data, maKhang) {
   try {
     const formData = new FormData();
     formData.append('file', base64Data);
     formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
+    formData.append('folder', 'Home/chi_so');
     formData.append('public_id', `chiso_${maKhang}_${Date.now()}`);
 
     const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`, {
@@ -570,7 +608,7 @@ async function deleteImageFromCloudinary(publicIdOrUrl) {
   
   let publicId = publicIdOrUrl;
   
-  // Trích xuất public_id chính xác từ URL Cloudinary
+  // Trích xuất public_id chính xác (bao gồm cả thư mục Home/chi_so/...) từ URL Cloudinary
   if (publicIdOrUrl.includes("http")) {
     try {
       const urlParts = publicIdOrUrl.split('/upload/');
@@ -1001,6 +1039,7 @@ async function saveCustomerData(maKhang) {
       uploadedImageUrl = uploadRes.url;
       cust.hinh_cto = uploadedImageUrl;
       cust.temp_image_base64 = null;
+      cust.temp_image_file = null;
     } else {
       showToast("⚠️ Tải ảnh thất bại, sẽ tiếp tục lưu chỉ số!");
     }
@@ -1173,6 +1212,7 @@ async function cancelCustomerData(maKhang) {
 
   const applyCancelLocalChanges = () => {
     cust.hinh_cto = "";
+    cust.temp_image_file = null;
     cust.temp_image_base64 = null;
 
     cust.items.forEach(item => {
