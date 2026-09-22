@@ -466,7 +466,7 @@ function renderCurrentCustomerCard(slideDirection = null) {
           ${imgHtml}
         </div>
 
-        <input type="file" id="camera_file_input_${cust.ma_khang}" accept="image/*" capture="environment" style="display:none;" onchange="handleImageSelection(event, '${cust.ma_khang}')">
+        <input type="file" id="camera_file_input_${cust.ma_khang}" accept="image/*" style="display:none;" onchange="handleImageSelection(event, '${cust.ma_khang}')">
 
         <div class="card-btn-group-v2">
           <button class="btn-card btn-card-save" id="btn_save_${cust.ma_khang}" ${saveDisabledAttr} onclick="saveCustomerData('${cust.ma_khang}')">LƯU CS</button>
