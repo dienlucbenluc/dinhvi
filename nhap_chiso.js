@@ -1235,6 +1235,7 @@ async function saveCustomerData(maKhang) {
 }
 
 // Hủy dữ liệu: Xóa link hinh_cto, xóa ảnh trên Cloudinary và xóa chỉ số
+// Hủy dữ liệu: Xóa link hinh_cto, xóa ảnh trên Cloudinary và xóa chỉ số
 async function cancelCustomerData(maKhang) {
   const cust = groupedData[maKhang];
   if (!cust) return;
@@ -1246,8 +1247,12 @@ async function cancelCustomerData(maKhang) {
   );
   if (!confirmCancel) return;
 
-  // LƯU LINK ẢNH CŨ VÀO BIẾN TRƯỚC KHHI XÓA LOCAL
-  const oldImageUrl = cust.hinh_cto || "";
+  // 1. LẤY CHUẨN XÁC LINK ẢNH CŨ CẦN XÓA (Ưu tiên cust.hinh_cto hoặc từ item)
+  let oldImageUrl = cust.hinh_cto || "";
+  if (!oldImageUrl && cust.items && cust.items.length > 0) {
+    const itemWithImg = cust.items.find(i => i.hinh_cto);
+    if (itemWithImg) oldImageUrl = itemWithImg.hinh_cto;
+  }
 
   const payload = [];
   const nowStr = new Date().toLocaleString("vi-VN");
@@ -1257,18 +1262,75 @@ async function cancelCustomerData(maKhang) {
       id_chiso: item.id_chiso,
       rowIndex: item.rowIndex
     });
+
+    // Ghi nhận log CANCEL vào file text local
+    appendToTextFile(FILE_CHISO_TXT, {
+      id_chiso: item.id_chiso,
+      ma_khang: cust.ma_khang,
+      ten_khang: cust.ten_khang,
+      dia_chi: cust.dia_chi,
+      ma_sogcs: cust.ma_sogcs,
+      danh_so: cust.danh_so,
+      so_cot: cust.so_cot,
+      ma_tram: item.ma_tram,
+      ten_tram: cust.ten_tram,
+      so_cto: cust.so_cto,
+      ten_ndung: currentUser.ten_ndung,
+      ten_nvien: currentUser.ten_nvien || currentUser.ten_ndung,
+      hsn: item.hsn,
+      bcs: item.bcs,
+      chiso_cu: item.chiso_cu,
+      chiso_moi: "",
+      ghi_chu: "",
+      sluong_thao: item.sluong_thao,
+      sluong_kt: item.sluong_kt,
+      lat: item.lat || "",
+      lng: item.lng || "",
+      so_dthoai: cust.so_dthoai,
+      time: nowStr,
+      nguoi_nhap: currentUser.ten_nvien || currentUser.ten_ndung,
+      type: "CANCEL",
+      hinh_cto: oldImageUrl // Lưu oldImageUrl vào text file để offline sync vẫn xóa được
+    });
   });
 
-  // Hàm xóa dữ liệu local
+  // 2. HÀM XÓA DỮ LIỆU LOCAL VÀ RESET UI
   const applyCancelLocalChanges = () => {
     cust.hinh_cto = "";
     delete currentCapturedFiles[maKhang];
-    // ... (giữ nguyên logic reset UI)
+
+    cust.items.forEach(item => {
+      item.chiso_moi = "";
+      item.san_luong = "";
+      item.tong_sluong = "";
+      item.hinh_cto = "";
+    });
+
+    // Cập nhật lại Cache trên trình duyệt
+    const cacheKey = getClientCacheKey();
+    const currentCache = localStorage.getItem(cacheKey);
+    if (currentCache) {
+      try {
+        const obj = JSON.parse(currentCache);
+        obj.list.forEach(flatItem => {
+          if (flatItem.ma_khang === maKhang) {
+            flatItem.chiso_moi = "";
+            flatItem.san_luong = "";
+            flatItem.tong_sluong = "";
+            flatItem.hinh_cto = "";
+          }
+        });
+        localStorage.setItem(cacheKey, JSON.stringify(obj));
+      } catch(e) {}
+    }
+
+    updateSummaryBar();
+    renderCurrentCustomerCard();
   };
 
   showToast(`⏳ Đang hủy chỉ số và xóa ảnh...`);
 
-  // Gửi request lên Apps Script
+  // 3. GỬI REQUEST LÊN GOOGLE APPS SCRIPT
   fetch(API_URL, {
     method: "POST",
     headers: { "Content-Type": "text/plain;charset=utf-8" },
@@ -1276,7 +1338,7 @@ async function cancelCustomerData(maKhang) {
       action: "CANCEL_CHISO",
       ten_ndung: currentUser.ten_ndung,
       items: payload,
-      old_image_url: oldImageUrl // Đảm bảo truyền link ảnh cũ lên server
+      old_image_url: oldImageUrl // Truyền link ảnh cũ lên Cloudinary xóa
     })
   })
   .then(res => res.json())
