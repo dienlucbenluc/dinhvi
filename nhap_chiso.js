@@ -531,7 +531,9 @@ function compressImage(file, maxWidth = 1000, quality = 0.7) {
 async function triggerPhotoPicker(maKhang) {
   const isCamera = await showCustomConfirm(
     "CHỌN NGUỒN ẢNH",
-    "Bấm [Đồng ý] để Chụp từ Camera, hoặc [Hủy] để Chọn từ Thư viện thiết bị."
+    "Bấm [Đồng ý] để Chụp từ Camera, hoặc [Hủy] để Chọn từ Thư viện thiết bị.",
+    "Thư mục",
+    "Máy Ảnh"
   );
 
   if (isCamera) {
