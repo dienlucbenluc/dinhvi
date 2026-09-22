@@ -668,28 +668,35 @@ async function uploadImageToCloudinary(base64Data, maKhang) {
 
 // Hàm xóa ảnh trên Cloudinary khi HỦY CS
 async function deleteImageFromCloudinary(publicIdOrUrl) {
-  if (!publicIdOrUrl) return;
-  
-  let publicId = publicIdOrUrl;
-  
-  // Trích xuất public_id chính xác (bao gồm cả thư mục chi_so/...) từ URL Cloudinary
-  if (publicIdOrUrl.includes("http")) {
+  if (!publicIdOrUrl) return false;
+
+  let publicId = String(publicIdOrUrl).trim();
+
+  // Nếu là URL Cloudinary thì bóc chính xác public_id, bỏ version và extension.
+  if (/^https?:\/\//i.test(publicId)) {
     try {
-      const urlParts = publicIdOrUrl.split('/upload/');
-      if (urlParts.length > 1) {
-        let pathAfterUpload = urlParts[1];
-        // Bỏ qua version prefix nếu có (ví dụ: v123456789/)
-        pathAfterUpload = pathAfterUpload.replace(/^v\d+\//, '');
-        // Cắt bỏ phần mở rộng file (.jpg, .png...)
-        publicId = pathAfterUpload.substring(0, pathAfterUpload.lastIndexOf('.'));
+      const uploadIndex = publicId.indexOf("/upload/");
+      if (uploadIndex !== -1) {
+        let pathAfterUpload = publicId.substring(uploadIndex + 8);
+        pathAfterUpload = pathAfterUpload.replace(/^v\\d+\\//, "");
+
+        const lastDot = pathAfterUpload.lastIndexOf(".");
+        if (lastDot > -1) {
+          pathAfterUpload = pathAfterUpload.substring(0, lastDot);
+        }
+
+        publicId = pathAfterUpload;
       }
     } catch (e) {
       console.error("Lỗi tách public_id:", e);
+      return false;
     }
   }
 
+  if (!publicId) return false;
+
   try {
-    fetch(API_URL, {
+    const response = await fetch(API_URL, {
       method: "POST",
       headers: { "Content-Type": "text/plain;charset=utf-8" },
       body: JSON.stringify({
@@ -698,8 +705,19 @@ async function deleteImageFromCloudinary(publicIdOrUrl) {
         cloud_name: CLOUDINARY_CLOUD_NAME
       })
     });
+
+    const result = await response.json();
+
+    if (result && result.status === "success") {
+      console.log("Đã xóa ảnh Cloudinary:", publicId);
+      return true;
+    }
+
+    console.error("Cloudinary xóa ảnh thất bại:", result);
+    return false;
   } catch (e) {
     console.error("Lỗi gửi yêu cầu xóa ảnh:", e);
+    return false;
   }
 }
 
