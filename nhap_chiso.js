@@ -528,53 +528,19 @@ function compressImage(file, maxWidth = 1000, quality = 0.7) {
   });
 }
 
-function showCustomConfirm(title, message, isDanger = false, confirmText = "Đồng ý", cancelText = "Hủy") {
-  return new Promise((resolve) => {
-    const modal = document.getElementById("customConfirmModal");
-    const titleEl = document.getElementById("confirmModalTitle");
-    const msgEl = document.getElementById("confirmModalMessage");
-    const btnConfirm = document.getElementById("btnModalConfirm");
-    const btnCancel = document.getElementById("btnModalCancel");
+async function triggerPhotoPicker(maKhang) {
+  const isCamera = await showCustomConfirm(
+    "CHỌN NGUỒN ẢNH",
+    "Bấm [Đồng ý] để Chụp từ Camera, hoặc [Hủy] để Chọn từ Thư viện thiết bị."
+  );
 
-    if (titleEl) {
-      titleEl.textContent = title;
-      titleEl.style.color = isDanger ? "#dc3545" : "#007bff";
-    }
-    if (msgEl) {
-      msgEl.textContent = message;
-    }
-
-    // ÉP ĐỔI TEXT 2 NÚT BẰNG THUỘC TÍNH textContent
-    if (btnConfirm) {
-      btnConfirm.textContent = confirmText; // Ép thành "📷 Máy ảnh"
-      btnConfirm.style.backgroundColor = isDanger ? "#dc3545" : "#28a745";
-    }
-
-    if (btnCancel) {
-      btnCancel.textContent = cancelText;   // Ép thành "🖼️ Thư viện"
-      btnCancel.style.backgroundColor = "#0d6efd";
-      btnCancel.style.color = "#ffffff";
-    }
-
-    if (modal) {
-      modal.style.display = "flex";
-    }
-
-    // Gán lại sự kiện click
-    if (btnConfirm) {
-      btnConfirm.onclick = () => {
-        if (modal) modal.style.display = "none";
-        resolve(true);
-      };
-    }
-
-    if (btnCancel) {
-      btnCancel.onclick = () => {
-        if (modal) modal.style.display = "none";
-        resolve(false);
-      };
-    }
-  });
+  if (isCamera) {
+    // Bấm "Đồng ý" -> Kích hoạt Camera
+    triggerCameraInput(maKhang);
+  } else {
+    // Bấm "Hủy" -> Kích hoạt Thư viện
+    triggerGalleryInput(maKhang);
+  }
 }
 
 function triggerCameraInput(maKhang) {
