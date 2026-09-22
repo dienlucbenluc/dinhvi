@@ -204,7 +204,7 @@ function showToast(msg) {
   toastTimer = setTimeout(() => { t.style.display = "none"; }, 3500);
 }
 
-function showCustomConfirm(title, message, isDanger = false) {
+function showCustomConfirm(title, message, isDanger = false, confirmText = "Đồng ý", cancelText = "Hủy") {
   return new Promise((resolve) => {
     const modal = document.getElementById("customConfirmModal");
     const titleEl = document.getElementById("confirmModalTitle");
@@ -212,15 +212,44 @@ function showCustomConfirm(title, message, isDanger = false) {
     const btnConfirm = document.getElementById("btnModalConfirm");
     const btnCancel = document.getElementById("btnModalCancel");
 
-    titleEl.innerText = title;
-    titleEl.style.color = isDanger ? "#dc3545" : "#007bff";
-    msgEl.innerText = message;
-    btnConfirm.style.background = isDanger ? "#dc3545" : "#28a745";
+    if (titleEl) {
+      titleEl.textContent = title;
+      titleEl.style.color = isDanger ? "#dc3545" : "#007bff";
+    }
+    if (msgEl) {
+      msgEl.textContent = message;
+    }
 
-    modal.style.display = "flex";
+    // ÉP ĐỔI TEXT 2 NÚT BẰNG THUỘC TÍNH textContent
+    if (btnConfirm) {
+      btnConfirm.textContent = confirmText; // Ép thành "📷 Máy ảnh"
+      btnConfirm.style.backgroundColor = isDanger ? "#dc3545" : "#28a745";
+    }
 
-    btnConfirm.onclick = () => { modal.style.display = "none"; resolve(true); };
-    btnCancel.onclick = () => { modal.style.display = "none"; resolve(false); };
+    if (btnCancel) {
+      btnCancel.textContent = cancelText;   
+      btnCancel.style.backgroundColor = "#0d6efd";
+      btnCancel.style.color = "#ffffff";
+    }
+
+    if (modal) {
+      modal.style.display = "flex";
+    }
+
+    // Gán lại sự kiện click
+    if (btnConfirm) {
+      btnConfirm.onclick = () => {
+        if (modal) modal.style.display = "none";
+        resolve(true);
+      };
+    }
+
+    if (btnCancel) {
+      btnCancel.onclick = () => {
+        if (modal) modal.style.display = "none";
+        resolve(false);
+      };
+    }
   });
 }
 
@@ -529,18 +558,20 @@ function compressImage(file, maxWidth = 1000, quality = 0.7) {
 }
 
 async function triggerPhotoPicker(maKhang) {
+  // Tham số confirmText = "📷 Máy ảnh", cancelText = "🖼️ Thư viện"
   const isCamera = await showCustomConfirm(
     "CHỌN NGUỒN ẢNH",
-    "Bấm [Đồng ý] để Chụp từ Camera, hoặc [Hủy] để Chọn từ Thư viện thiết bị.",
-    "Thư mục",
-    "Máy Ảnh"
+    "Bạn muốn chụp hình từ Camera hay chọn từ Thư viện thiết bị?",
+    false,
+    "📷 Máy ảnh",
+    "🖼️ Thư viện"
   );
 
   if (isCamera) {
-    // Bấm "Đồng ý" -> Kích hoạt Camera
+    // Người dùng bấm "📷 Máy ảnh" (Đồng ý / Confirm)
     triggerCameraInput(maKhang);
   } else {
-    // Bấm "Hủy" -> Kích hoạt Thư viện
+    // Người dùng bấm "🖼️ Thư viện" (Hủy / Cancel)
     triggerGalleryInput(maKhang);
   }
 }
