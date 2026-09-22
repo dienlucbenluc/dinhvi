@@ -61,8 +61,8 @@
 
     /* Nút Trang chủ kế thừa kiểu dáng nút hệ thống */
     .btn-home {
-      background: #007bff;
-      color: #fff;
+      background: #fff;
+      color: #0056b3;
       border: none;
       border-radius: 4px;
       height: 32px;
@@ -353,12 +353,12 @@
   <div class="sticky-top-container">
     <div class="header">
       <div class="header-left">
-        <span class="title">⚡ NHẬP CHỈ SỐ</span>
+         <div class="title">⚡ GHI CHỈ SỐ</div>
       </div>
       <div class="header-right">
-        <span class="user-info" id="userDisplay">👷 ...</span>
+        <div class="user-info" id="userDisplay" style="display: none;">👷 ...</div>     
+        <button class="btn-menu" onclick="window.location.href='home.html'">🏠 Trang chủ</button>
       </div>
-      <a href="index.html" class="btn-home">🏠 Trang chủ</a>
     </div>
 
     <div class="search-box">
@@ -367,11 +367,12 @@
     </div>
 
     <div class="summary-bar">
-      <!-- 2. Nút Tải TXT nằm ngay trước phần Tổng -->
-      <button class="btn-menu" onclick="downloadAllTextFiles()" title="Tải file text sao lưu" style="height:26px; padding:0 8px; font-size:12px; background:#eef5fc; border:0px solid #eef5fc; border-radius:4px; color:#004085; font-weight:bold;">📥 Tải TXT</button>
-      <span>Tổng: <b id="sumTongKh" class="link-filter-action" onclick="showAllData()">0</b></span>
-      <span>Đã ghi: <b id="sumDaCS" class="link-filter-action" onclick="filterDaCS()">0</b></span>
-      <span>Chưa ghi: <b id="sumChuaGhi" class="link-filter-chuaghi" onclick="filterChuaGhi()">0</b></span>
+      <span style="margin-right:-30px;"><button onclick="downloadAllTextFiles()" style="background: #eef5fc; border: none; border-radius: 4px; cursor: pointer; font-size: 13px;">📥</button></span>
+      <span>Tổng: <b id="sumTongKh">0</b></span>
+      <span style="cursor:pointer;display: none;" onclick="filterDaCS()">Đã ghi: <b id="sumDaCS" style="color:#28a745;">0</b></span>
+      <span style="cursor:pointer;" onclick="filterChuaGhi()">Chưa ghi: <b id="sumChuaGhi" style="color:#d9534f;">0</b></span>
+      <span class="link-filter-chuaghi" onclick="filterChuaGhi()">🔍 Chưa ghi</span>
+      <span class="link-filter-action" onclick="showAllData()">🔍 Tất cả</span>      
     </div>
   </div>
 
