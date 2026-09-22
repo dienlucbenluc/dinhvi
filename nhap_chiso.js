@@ -692,7 +692,7 @@ async function deleteImageFromCloudinary(publicIdOrUrl) {
       headers: { "Content-Type": "text/plain;charset=utf-8" },
       body: JSON.stringify({
         action: "DELETE_CLOUDINARY_IMAGE",
-        public_id: publicId,
+        public_id:  data.public_id,
         cloud_name: CLOUDINARY_CLOUD_NAME
       })
     });
