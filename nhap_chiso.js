@@ -628,7 +628,7 @@ function renderCurrentCustomerCard(slideDirection = null) {
         </div>
         <div style="flex: 1; display: flex; flex-direction: column; gap: 6px;">
           <button class="btn-card btn-card-save" id="btn_save_${cust.ma_khang}" ${saveDisabledAttr} onclick="saveCustomerData('${cust.ma_khang}')">💾 Lưu dữ liệu</button>
-          <button class="btn-card" style="background: #17a2b8;" id="btn_capture_${cust.ma_khang}" onclick="promptImageSource('${cust.ma_khang}')">📷 Chụp ảnh &nbsp;&nbsp;&nbsp;</button>
+          <button class="btn-card" style="background: #17a2b8;" id="btn_capture_${cust.ma_khang}" onclick="promptImageSource('${cust.ma_khang}')">📷 Chụp ảnh&nbsp;&nbsp;</button>
           <button class="btn-card btn-card-cancel" id="btn_cancel_${cust.ma_khang}" ${cancelDisabledAttr} onclick="cancelCustomerData('${cust.ma_khang}')">✂ Hủy dữ liệu</button>
         </div>
       </div>
