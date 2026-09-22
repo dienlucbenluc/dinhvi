@@ -667,24 +667,24 @@ async function uploadImageToCloudinary(base64Data, maKhang) {
 }
 
 // Hàm xóa ảnh trên Cloudinary khi HỦY CS (Đã sửa async/await và bóc tách public_id chuẩn)
+// Hàm xóa ảnh trên Cloudinary qua Google Apps Script API (Đã sửa lỗi SCRIPT_URL và payload)
 async function deleteImageFromCloudinary(imageUrl) {
   if (!imageUrl) return;
 
-  // Khai báo payload gửi lên Google Apps Script
+  // Sử dụng đúng API_URL đã khai báo ở đầu file
   const payload = {
     action: "DELETE_CLOUDINARY_IMAGE",
     image_url: imageUrl
   };
 
   try {
-    const response = await fetch(SCRIPT_URL, {
+    const response = await fetch(API_URL, { // Đã sửa từ SCRIPT_URL thành API_URL
       method: "POST",
-      // Đảm bảo dùng Content-Type text/plain để tránh bị dính CORS preflight với Apps Script
       headers: { "Content-Type": "text/plain;charset=utf-8" },
-      body: JSON.stringify(payload) // Gửi biến payload đã định nghĩa ở trên
+      body: JSON.stringify(payload)
     });
 
-    const resData = await response.json(); // Đổi tên biến nhận về thành resData để tránh nhầm lẫn
+    const resData = await response.json();
 
     if (resData.status === "success") {
       console.log("✅ Xóa ảnh Cloudinary thành công:", resData.message);
