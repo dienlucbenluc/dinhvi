@@ -470,8 +470,8 @@ function renderCurrentCustomerCard(slideDirection = null) {
         <input type="file" id="gallery_file_input_${cust.ma_khang}" accept="image/*" style="display:none;" onchange="handleImageSelection(event, '${cust.ma_khang}')">
 
         <div class="card-btn-group-v2">
+          <button class="btn-card btn-card-photo" type="button" onclick="triggerPhotoPicker('${cust.ma_khang}')">📷 Chụp ảnh</button>        
           <button class="btn-card btn-card-save" id="btn_save_${cust.ma_khang}" ${saveDisabledAttr} onclick="saveCustomerData('${cust.ma_khang}')">LƯU CS</button>
-          <button class="btn-card btn-card-photo" type="button" onclick="triggerPhotoPicker('${cust.ma_khang}')">Chụp hình</button>
           <button class="btn-card btn-card-cancel" id="btn_cancel_${cust.ma_khang}" ${cancelDisabledAttr} onclick="cancelCustomerData('${cust.ma_khang}')">HỦY CS</button>
         </div>
       </div>
@@ -529,17 +529,8 @@ function compressImage(file, maxWidth = 1000, quality = 0.7) {
 }
 
 async function triggerPhotoPicker(maKhang) {
-  const isCamera = await showCustomConfirm(
-    "CHỌN NGUỒN ẢNH",
-    "📷 Máy ảnh",
-    "🖼️ Thư viện"
-  );
-
-  if (isCamera) {
-    triggerCameraInput(maKhang);
-  } else {
-    triggerGalleryInput(maKhang);
-  }
+  const input = document.getElementById('file-' + safeKey);
+  if (input) input.click();
 }
 
 function triggerCameraInput(maKhang) {
