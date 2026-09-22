@@ -1,7 +1,6 @@
 const API_URL = "https://script.google.com/macros/s/AKfycbwjw5x47mNLBpC3Ar4beIIM20XzZJAVXMLusNZV2rHbyCvls7pICldt7UAkM6htgqpa/exec";
 const CLOUDINARY_CLOUD_NAME = "jokzcdxt";  
 const CLOUDINARY_UPLOAD_PRESET = "image_chiso";
-const CLOUDINARY_UPLOAD_URL = `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`;
 
 let currentUser = null;
 let groupedData = {};
