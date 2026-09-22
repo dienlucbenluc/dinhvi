@@ -678,7 +678,7 @@ async function deleteImageFromCloudinary(publicIdOrUrl) {
       const uploadIndex = publicId.indexOf("/upload/");
       if (uploadIndex !== -1) {
         let pathAfterUpload = publicId.substring(uploadIndex + 8);
-        pathAfterUpload = pathAfterUpload.replace(/^v\\d+\\//, "");
+        pathAfterUpload = pathAfterUpload.replace(/^v\d+\//, "");
 
         const lastDot = pathAfterUpload.lastIndexOf(".");
         if (lastDot > -1) {
