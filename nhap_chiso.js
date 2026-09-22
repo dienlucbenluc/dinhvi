@@ -63,7 +63,7 @@ document.addEventListener("DOMContentLoaded", () => {
 // ----------------------------------------------------
 // HÀM BỔ TRỢ NÉN ẢNH VÀ XỬ LÝ CLOUDINARY
 // ----------------------------------------------------
-function compressImage(file, maxWidth = 1000, quality = 0.7) {
+function compressImage(file, fileName = "photo.jpg", maxWidth = 1000, quality = 0.7) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.readAsDataURL(file);
@@ -88,7 +88,7 @@ function compressImage(file, maxWidth = 1000, quality = 0.7) {
         canvas.toBlob(
           (blob) => {
             if (blob) {
-              const compressedFile = new File([blob], file.name || "photo.jpg", {
+              const compressedFile = new File([blob], fileName, {
                 type: "image/jpeg",
                 lastModified: Date.now()
               });
@@ -107,12 +107,19 @@ function compressImage(file, maxWidth = 1000, quality = 0.7) {
   });
 }
 
-async function uploadToCloudinary(file) {
-  const compressedFile = await compressImage(file, 1000, 0.7);
+async function uploadToCloudinary(file, maKhang = "") {
+  // Tạo tên file theo yêu cầu: {maKhang|khachhang}_{Date.now()}
+  const customFileName = `${maKhang || 'khachhang'}_${Date.now()}`;
+  
+  // Nén ảnh với tên file mới
+  const compressedFile = await compressImage(file, `${customFileName}.jpg`, 1000, 0.7);
+  
   const formData = new FormData();
   formData.append("file", compressedFile);
   formData.append("upload_preset", CLOUDINARY_UPLOAD_PRESET);
   formData.append('folder', 'chi_so');
+  // Đặt public_id để Cloudinary lưu đúng tên file mà không tự sinh chuỗi ngẫu nhiên
+  formData.append("public_id", customFileName);
   
   const res = await fetch(CLOUDINARY_UPLOAD_URL, {
     method: "POST",
@@ -1046,10 +1053,11 @@ async function saveCustomerData(maKhang) {
   let imageUrl = cust.hinh_cto || "";
 
   // Upload ảnh lên Cloudinary nếu có ảnh chụp mới
-  if (currentCapturedFiles[maKhang]) {
+if (currentCapturedFiles[maKhang]) {
     try {
       showToast("⏳ Đang nén và tải ảnh lên Cloudinary...");
-      imageUrl = await uploadToCloudinary(currentCapturedFiles[maKhang]);
+      // Truyền maKhang vào làm tham số thứ 2
+      imageUrl = await uploadToCloudinary(currentCapturedFiles[maKhang], maKhang);
       cust.hinh_cto = imageUrl;
     } catch (e) {
       showToast("❌ Lỗi tải ảnh lên Cloudinary: " + e.message);
