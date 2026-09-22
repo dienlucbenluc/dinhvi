@@ -466,11 +466,12 @@ function renderCurrentCustomerCard(slideDirection = null) {
           ${imgHtml}
         </div>
 
-        <input type="file" id="camera_file_input_${cust.ma_khang}" accept="image/*" style="display:none;" onchange="handleImageSelection(event, '${cust.ma_khang}')">
+        <input type="file" id="camera_file_input_${cust.ma_khang}" accept="image/*" capture="environment" style="display:none;" onchange="handleImageSelection(event, '${cust.ma_khang}')">
+        <input type="file" id="gallery_file_input_${cust.ma_khang}" accept="image/*" style="display:none;" onchange="handleImageSelection(event, '${cust.ma_khang}')">
 
         <div class="card-btn-group-v2">
           <button class="btn-card btn-card-save" id="btn_save_${cust.ma_khang}" ${saveDisabledAttr} onclick="saveCustomerData('${cust.ma_khang}')">LƯU CS</button>
-          <button class="btn-card btn-card-photo" type="button" onclick="triggerCameraInput('${cust.ma_khang}')">Chụp hình</button>
+          <button class="btn-card btn-card-photo" type="button" onclick="triggerPhotoPicker('${cust.ma_khang}')">Chụp hình</button>
           <button class="btn-card btn-card-cancel" id="btn_cancel_${cust.ma_khang}" ${cancelDisabledAttr} onclick="cancelCustomerData('${cust.ma_khang}')">HỦY CS</button>
         </div>
       </div>
@@ -527,9 +528,36 @@ function compressImage(file, maxWidth = 1000, quality = 0.7) {
   });
 }
 
+async function triggerPhotoPicker(maKhang) {
+  const isCamera = await showCustomConfirm(
+    "CHỌN NGUỒN ẢNH",
+    "Bạn muốn chụp hình từ Camera hay chọn từ Thư viện thiết bị?",
+    false,
+    "📷 Camera",
+    "🖼️ Thư viện"
+  );
+
+  if (isCamera) {
+    triggerCameraInput(maKhang);
+  } else {
+    triggerGalleryInput(maKhang);
+  }
+}
+
 function triggerCameraInput(maKhang) {
   const fileInput = document.getElementById(`camera_file_input_${maKhang}`);
-  if (fileInput) fileInput.click();
+  if (fileInput) {
+    fileInput.value = ""; // Reset giá trị để chọn lại cùng 1 file nếu muốn
+    fileInput.click();
+  }
+}
+
+function triggerGalleryInput(maKhang) {
+  const fileInput = document.getElementById(`gallery_file_input_${maKhang}`);
+  if (fileInput) {
+    fileInput.value = ""; // Reset giá trị
+    fileInput.click();
+  }
 }
 
 async function handleImageSelection(event, maKhang) {
