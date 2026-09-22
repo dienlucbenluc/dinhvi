@@ -667,7 +667,7 @@ async function uploadImageToCloudinary(base64Data, maKhang) {
 }
 
 // Hàm xóa ảnh trên Cloudinary khi HỦY CS (Đã sửa async/await và bóc tách public_id chuẩn)
-async function deleteImageFromCloudinary(imageUrl)
+async function deleteImageFromCloudinary(imageUrl) {
   const imageUrl = payload.image_url;
   if (!imageUrl) {
     return { status: "error", message: "Không tìm thấy URL ảnh để xóa" };
