@@ -466,8 +466,7 @@ function renderCurrentCustomerCard(slideDirection = null) {
           ${imgHtml}
         </div>
 
-        <input type="file" id="camera_file_input_${cust.ma_khang}" accept="image/*" capture="environment" style="display:none;" onchange="handleImageSelection(event, '${cust.ma_khang}')">
-        <input type="file" id="gallery_file_input_${cust.ma_khang}" accept="image/*" style="display:none;" onchange="handleImageSelection(event, '${cust.ma_khang}')">
+       <input type="file" id="gallery_file_input_${cust.ma_khang}" accept="image/*" style="display:none;" onchange="handleImageSelection(event, '${cust.ma_khang}')">
 
         <div class="card-btn-group-v2">
           <button class="btn-card btn-card-photo" type="button" onclick="triggerPhotoPicker('${cust.ma_khang}')">📷 Chụp ảnh</button>        
@@ -529,8 +528,22 @@ function compressImage(file, maxWidth = 1000, quality = 0.7) {
 }
 
 async function triggerPhotoPicker(maKhang) {
-  const input = document.getElementById('file-' + safeKey);
-  if (input) input.click();
+  // Tham số confirmText = "📷 Máy ảnh", cancelText = "🖼️ Thư viện"
+  const isCamera = await showCustomConfirm(
+    "CHỌN NGUỒN ẢNH",
+    "Bạn muốn chụp hình từ Camera hay chọn từ Thư viện thiết bị?",
+    false,
+    "📷 Máy ảnh",
+    "🖼️ Thư viện"
+  );
+
+  if (isCamera) {
+    // Người dùng bấm "📷 Máy ảnh" (Đồng ý / Confirm)
+    triggerCameraInput(maKhang);
+  } else {
+    // Người dùng bấm "🖼️ Thư viện" (Hủy / Cancel)
+    triggerGalleryInput(maKhang);
+  }
 }
 
 function triggerCameraInput(maKhang) {
