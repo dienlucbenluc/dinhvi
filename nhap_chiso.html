@@ -75,7 +75,7 @@
       justify-content: center;
       white-space: nowrap;
     }
-    .btn-home:active { background: #0056b3; }
+    .btn-home:active { background: #fff; }
 
     .title { font-size: 16px; font-weight: bold; color: #0056b3; }
     .user-info { font-weight: 600; font-size: 15px; color: #28a745; }
@@ -353,13 +353,12 @@
   <div class="sticky-top-container">
     <div class="header">
       <div class="header-left">
-        <!-- 1. Nút Trang chủ nằm ở đầu thanh header -->
-        <a href="index.html" class="btn-home">🏠 Trang chủ</a>
         <span class="title">⚡ NHẬP CHỈ SỐ</span>
       </div>
       <div class="header-right">
         <span class="user-info" id="userDisplay">👷 ...</span>
       </div>
+      <a href="index.html" class="btn-home">🏠 Trang chủ</a>
     </div>
 
     <div class="search-box">
@@ -369,7 +368,7 @@
 
     <div class="summary-bar">
       <!-- 2. Nút Tải TXT nằm ngay trước phần Tổng -->
-      <button class="btn-menu" onclick="downloadAllTextFiles()" title="Tải file text sao lưu" style="height:26px; padding:0 8px; font-size:12px; background:#fff; border:1px solid #b8daff; border-radius:4px; color:#004085; font-weight:bold;">📥 Tải TXT</button>
+      <button class="btn-menu" onclick="downloadAllTextFiles()" title="Tải file text sao lưu" style="height:26px; padding:0 8px; font-size:12px; background:#eef5fc; border:0px solid #eef5fc; border-radius:4px; color:#004085; font-weight:bold;">📥 Tải TXT</button>
       <span>Tổng: <b id="sumTongKh" class="link-filter-action" onclick="showAllData()">0</b></span>
       <span>Đã ghi: <b id="sumDaCS" class="link-filter-action" onclick="filterDaCS()">0</b></span>
       <span>Chưa ghi: <b id="sumChuaGhi" class="link-filter-chuaghi" onclick="filterChuaGhi()">0</b></span>
