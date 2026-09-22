@@ -1,207 +1,139 @@
 <!DOCTYPE html>
 <html lang="vi">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Nhập chỉ số</title>
-  <style>
-    * { box-sizing: border-box; }
-    body { margin:0; font-family:Arial,sans-serif; background:#eef2f5; color:#222; }
-    .app-container { max-width:500px; margin:0 auto; background:#f3f5f7; min-height:100vh; box-shadow:0 0 15px rgba(0,0,0,.1); position:relative; cursor: grab; user-select: none; }
-    .topbar { position:sticky; top:0; z-index:20; background:#fff; border-bottom:1px solid #ddd; padding:10px; }
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nhập Chỉ Số</title>
 
-    .title {
-      font-size:19px;
-      font-weight:700;
-      margin-bottom:8px;
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      gap:8px;
-    }
-    
-    .spinner {
-      width: 24px;
-      height: 24px;
-      border: 3px solid #f3f3f3;
-      border-top: 3px solid #007bff;
-      border-radius: 50%;
-      display: inline-block;
-      animation: spin 0.8s linear infinite;
-      vertical-align: middle;
-      margin-right: 10px;
-    }
+    <!-- jQuery & jQuery EasyUI -->
+    <link rel="stylesheet" type="text/css" href="https://www.jeasyui.com/easyui/themes/default/easyui.css">
+    <link rel="stylesheet" type="text/css" href="https://www.jeasyui.com/easyui/themes/icon.css">
+    <script type="text/javascript" src="https://code.jquery.com/jquery-1.12.4.min.js"></script>
+    <script type="text/javascript" src="https://www.jeasyui.com/easyui/jquery.easyui.min.js"></script>
 
-    @keyframes spin {
-      0% { transform: rotate(0deg); }
-      100% { transform: rotate(360deg); }
-    }
-        
-    .btn-home {
-      background: #fff;
-      border: none;
-      color:#000;
-      height:36px;
-      padding:0 10px;
-      font-size:13px;
-      white-space:nowrap;
-      flex-shrink:0;
-    }
-    
-    .toolbar { display:flex; flex-direction:column; gap:8px; }
-    .filter-row { display:flex; gap:6px; align-items:center; margin-bottom:2px; width:100%; }
-    .input-date { flex:1; min-width:0; height:37px; border:1px solid #ccc; border-radius:9px; padding:0 8px; font-size:14px; outline:none; }
-    .btn-search { white-space:nowrap; height:37px; padding:0 8px; font-size:13px; flex-shrink:0; }
-    #searchBox { width:100%; height:42px; border:1px solid #ccc; border-radius:9px; padding:0 12px; font-size:15px; outline:none; }
-    
-    button { border:0; border-radius:9px; height:42px; padding:0 12px; font-size:14px; font-weight:700; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:6px; }
-    .btn-photo { background:#B0E0E6; color:#000; width:100%; }
-    .btn-save { background:#E6E6FA; color:#000; width:100%; }
-    .btn-cancel { background:#FFE4E1; color:#000; width:100%; }
-    button:disabled { opacity:.55; cursor:not-allowed; }
-
-    .stats-summary {
-      margin-bottom:-5px;
-      background: rgb(232,232,232);
-      border:1px solid #ccc;
-      padding: 5px;
-      font-size: 14px;
-      font-weight: bold;
-      color: #333;
-    }
-
-    .list {
-      padding: 10px;
-      position: relative;
-      overflow: hidden;
-      min-height: 400px;
-    }
-
-    .customer-box {
-      width: 100%;
-      background: #fff;
-      border: 2px solid #0056b3;
-      border-radius: 12px;
-      box-shadow: 0 1px 4px rgba(0,0,0,.08);
-      overflow: hidden;
-      user-select: none;
-      transition: transform 0.22s ease-out, opacity 0.22s ease-out;
-      will-change: transform, opacity;
-    }
-
-    .slide-left-out  { transform: translateX(-120%); opacity: 0; }
-    .slide-right-out { transform: translateX(120%);  opacity: 0; }
-    .slide-left-in   { transform: translateX(100%);  opacity: 0; }
-    .slide-right-in  { transform: translateX(-100%); opacity: 0; }
-    
-    .cust-row-group { 
-      display: flex; 
-      flex-wrap: wrap; 
-      gap: 6px; 
-      margin-top: 5px; 
-      align-items: center;
-      font-size: 13px;
-    }
-    
-    .box-stt-bar {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 5px 5px;
-      background: #f0f4f8;
-      border-bottom: 1px solid #e2e8f0;
-      font-size: 13px;
-    }
-    .stt-badge {
-      background: #e0edff;
-      color: #0288d1;
-      font-weight: 700;
-      padding: 3px 8px;
-      border-radius: 6px;
-    }
-    .swipe-hint {
-      color: #666;
-      font-size: 12px;
-      font-weight: 500;
-    }
-
-    .box-head { padding:5px 5px; background:#fafafa; border-bottom:1px solid #eee; }
-    .box-maps { padding:5px 5px; font-size:14px; background: rgb(232,232,232); border-bottom:1px solid #eee; text-align:center; margin-top: 7px;}
-    .ma-khang { font-size:16px; font-weight:600; color:#0056b3; }
-    .ten-khang { margin-top:3px; font-size:16px; font-weight:600; color:#0056b3; }
-    .grid { gap:7px 12px; padding: 5px 5px; font-size:13px; margin-bottom: 10px;}
-    
-    .photo-actions-container { display:grid; grid-template-columns:1fr 1fr; gap:10px; padding:0 12px 12px; align-items:stretch; }
-    .picture-box { width:100%; height:186px; border:1px dashed #bbb; border-radius:8px; display:flex; align-items:center; justify-content:center; color:#888; font-size:12px; overflow:hidden; background:#fafafa; }
-    .picture-box img { width:100%; height:100%; object-fit:cover; }
-    .actions-right { display:flex; flex-direction:column; gap:6px; justify-content:space-between; }
-    .check-wrap { display:flex; align-items:center; gap:6px; font-size:13px; font-weight:bold; }
-
-    /* MODAL XÁC NHẬN HỦY */
-    .modal-overlay {
-      position: fixed;
-      top: 0; left: 0; right: 0; bottom: 0;
-      background: rgba(0,0,0,0.5);
-      display: none;
-      align-items: center;
-      justify-content: center;
-      z-index: 10000;
-    }
-    .modal-box {
-      background: #fff;
-      width: 85%;
-      max-width: 380px;
-      border-radius: 12px;
-      padding: 16px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-      text-align: center;
-    }
-    .modal-title { font-size: 16px; font-weight: bold; margin-bottom: 8px; color: #b71c1c; }
-    .modal-msg { font-size: 13px; color: #333; margin-bottom: 16px; line-height: 1.4; }
-    .modal-actions { display: flex; gap: 8px; justify-content: center; }
-    .btn-modal-cancel { background: #e0e0e0; color: #333; height: 36px; padding: 0 16px; border-radius: 6px; }
-    .btn-modal-confirm { background: #d32f2f; color: #fff; height: 36px; padding: 0 16px; border-radius: 6px; }
-  </style>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 10px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: #ffffff;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        .form-group label {
+            display: block;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        .btn-capture {
+            background-color: #28a745;
+            color: #ffffff;
+            border: none;
+            padding: 10px 16px;
+            font-size: 15px;
+            font-weight: bold;
+            border-radius: 6px;
+            cursor: pointer;
+            width: 100%;
+            margin-top: 5px;
+        }
+        .btn-capture:active {
+            background-color: #218838;
+        }
+        .preview-box {
+            margin-top: 10px;
+            text-align: center;
+            display: none;
+        }
+        .preview-box img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 8px;
+            border: 1px solid #ddd;
+        }
+    </style>
 </head>
 <body>
 
-  <div class="app-container">
-    <div class="topbar">
-      <div class="title">
-        <span>Ghi Chỉ Số Công Tơ</span>
-        <button type="button" class="btn-home" onclick="location.href='index.html'">🏠 Trang chủ</button>
-      </div>
+<div class="container">
+    <h2>Ghi Chỉ Số Công Tơ</h2>
 
-      <div class="toolbar">
-        <div class="filter-row">
-          <input type="date" id="filterDate" class="input-date">
-          <button type="button" id="btnSearch" class="btn-search" onclick="loadCustomers(true)">🔍 Tìm</button>
+    <form id="ff" method="post">
+        <div class="form-group">
+            <label>Mã khách hàng:</label>
+            <input class="easyui-textbox" name="ma_kh" style="width:100%" required="true">
         </div>
-        <input type="text" id="searchBox" placeholder="Nhập tên, mã KH, số chỉ số...">
-      </div>
-    </div>
 
-    <div class="stats-summary" id="statsSummary">
-      Tổng khách hàng: 0 - Chưa ghi: 0
-    </div>
+        <div class="form-group">
+            <label>Chỉ số mới:</label>
+            <input class="easyui-numberbox" name="chi_so_moi" style="width:100%" required="true" precision="0">
+        </div>
 
-    <div class="list" id="customerList">
-      <!-- Khung hiển thị chi tiết thông tin KH + Nút Chụp Ảnh sẽ được render từ JS -->
-    </div>
-  </div>
+        <div class="form-group">
+            <label>Ghi chú / Trạng thái:</label>
+            <input class="easyui-textbox" name="ghi_chu" multiline="true" style="width:100%; height:60px">
+        </div>
 
-  <!-- Modal xác nhận Hủy -->
-  <div class="modal-overlay" id="cancelModal">
-    <div class="modal-box">
-      <div class="modal-title">Xác nhận hủy dữ liệu</div>
-      <div class="modal-msg" id="cancelModalMsg">Bạn có chắc chắn muốn hủy trạng thái và xóa ảnh?</div>
-      <div class="modal-actions">
-        <button class="btn-modal-cancel" onclick="closeCancelModal()">Không</button>
-        <button class="btn-modal-confirm" id="btnConfirmCancel">Xác nhận Hủy</button>
-      </div>
-    </div>
-  </div>
+        <!-- NÚT CHỤP HÌNH VÀ CAMERA -->
+        <div class="form-group">
+            <label>Ảnh chụp công tơ:</label>
+            <button type="button" id="btnCapture" class="btn-capture">📷 Chụp Hình Công Tơ</button>
+            <input type="file" id="cameraInput" accept="image/*" capture="environment" style="display: none;">
+            
+            <div id="previewContainer" class="preview-box">
+                <img id="imgPreview" src="" alt="Ảnh công tơ xem trước">
+            </div>
+        </div>
 
-  <script src="nhap_chiso.js"></script>
+        <div style="text-align:center; margin-top:20px;">
+            <a href="javascript:void(0)" class="easyui-linkbutton" iconCls="icon-ok" onclick="submitForm()" style="width:100px">Lưu</a>
+        </div>
+    </form>
+</div>
+
+<script>
+    var capturedImageBase64 = "";
+
+    $(document).ready(function() {
+        // Nhấn nút Chụp Hình -> Mở Camera
+        $('#btnCapture').on('click', function() {
+            $('#cameraInput').click();
+        });
+
+        // Xử lý sau khi người dùng chụp xong ảnh
+        $('#cameraInput').on('change', function(e) {
+            var file = e.target.files[0];
+            if (file) {
+                var reader = new FileReader();
+                reader.onload = function(evt) {
+                    capturedImageBase64 = evt.target.result;
+                    $('#imgPreview').attr('src', capturedImageBase64);
+                    $('#previewContainer').show();
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+    });
+
+    function submitForm() {
+        $('#ff').form('submit', {
+            onSubmit: function() {
+                return $(this).form('validate');
+            },
+            success: function(data) {
+                $.messager.alert('Thông báo', 'Đã lưu chỉ số thành công!');
+            }
+        });
+    }
+</script>
+
 </body>
 </html>
