@@ -672,7 +672,6 @@ async function deleteImageFromCloudinary(publicIdOrUrl) {
   
   let publicId = publicIdOrUrl;
   
-  // Trích xuất public_id chính xác từ URL
   if (publicIdOrUrl.startsWith("http")) {
     try {
       const urlParts = publicIdOrUrl.split('/upload/');
@@ -689,6 +688,7 @@ async function deleteImageFromCloudinary(publicIdOrUrl) {
   try {
     const res = await fetch(API_URL, {
       method: "POST",
+      // Dùng text/plain để tránh bị Google Apps Script chặn CORS Preflight
       headers: { "Content-Type": "text/plain;charset=utf-8" },
       body: JSON.stringify({
         action: "DELETE_CLOUDINARY_IMAGE",
@@ -696,25 +696,23 @@ async function deleteImageFromCloudinary(publicIdOrUrl) {
         cloud_name: CLOUDINARY_CLOUD_NAME
       })
     });
-    
-    // Đọc dưới dạng Text trước để tránh lỗi SyntaxError nếu Server trả về Text/HTML
+
     const textResponse = await res.text();
     let result;
     try {
       result = JSON.parse(textResponse);
-    } catch (parseError) {
-      console.error("Server trả về văn bản không phải JSON:", textResponse);
+    } catch (e) {
+      console.error("Server không trả về JSON:", textResponse);
       return false;
     }
 
     if (result.status === "success") {
-      console.log("Xóa ảnh Cloudinary thành công:", result);
+      console.log("✅ Đã xóa ảnh Cloudinary thành công:", result);
       return true;
     } else {
-      console.warn("Cloudinary báo lỗi:", result);
+      console.error("❌ Cloudinary báo lỗi:", result.message);
       return false;
     }
-
   } catch (e) {
     console.error("Lỗi kết nối API xóa ảnh:", e);
     return false;
