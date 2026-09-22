@@ -529,17 +529,20 @@ function compressImage(file, maxWidth = 1000, quality = 0.7) {
 }
 
 async function triggerPhotoPicker(maKhang) {
+  // Tham số confirmText = "📷 Máy ảnh", cancelText = "🖼️ Thư viện"
   const isCamera = await showCustomConfirm(
     "CHỌN NGUỒN ẢNH",
     "Bạn muốn chụp hình từ Camera hay chọn từ Thư viện thiết bị?",
     false,
-    "📷 Camera",
+    "📷 Máy ảnh",
     "🖼️ Thư viện"
   );
 
   if (isCamera) {
+    // Người dùng bấm "📷 Máy ảnh" (Đồng ý / Confirm)
     triggerCameraInput(maKhang);
   } else {
+    // Người dùng bấm "🖼️ Thư viện" (Hủy / Cancel)
     triggerGalleryInput(maKhang);
   }
 }
