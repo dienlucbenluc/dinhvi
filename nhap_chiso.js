@@ -561,7 +561,7 @@ async function triggerPhotoPicker(maKhang) {
   // Tham số confirmText = "📷 Máy ảnh", cancelText = "🖼️ Thư viện"
   const isCamera = await showCustomConfirm(
     "CHỌN NGUỒN ẢNH",
-    "Bạn muốn chụp hình từ Camera hay chọn từ Thư viện thiết bị?",
+    "Chụp ảnh từ Camera hay chọn từ Thư viện thiết bị?",
     false,
     "📷 Máy ảnh",
     "🖼️ Thư viện"
