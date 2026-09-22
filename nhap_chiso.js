@@ -1,14 +1,9 @@
-const API_URL = "https://script.google.com/macros/s/AKfycbwjw5x47mNLBpC3Ar4beIIM20XzZJAVXMLusNZV2rHbyCvls7pICldt7UAkM6htgqpa/exec";
-
-// Cấu hình Cloudinary
-const CLOUDINARY_CLOUD_NAME = 'jokzcdxt';
-const CLOUDINARY_UPLOAD_PRESET = 'image_chiso';
-
+const API_URL = "https://script.google.com/macros/s/AKfycbyKaG42B8RFzHToMu2Gqk7y5mCQ4wqDxxB5NWftA5lOZdB_mrLkCy6GkVs7zyOgRrHd/exec";
 let currentUser = null;
 let groupedData = {};
 let customerKeys = []; // Mã KH sắp xếp theo ma_sogcs -> danh_so -> ma_khang
 let currentCardIndex = 0; 
-let isAnimating = false;
+let isAnimating = false; // Chống vuốt quá nhanh gây lỗi animation
 
 const BCS_ORDER = ["BT", "CD", "TD", "SG", "VC", "BN", "CN", "TN", "SN", "VN"];
 
@@ -23,20 +18,24 @@ document.addEventListener("DOMContentLoaded", () => {
   currentUser = JSON.parse(sessionStr);
   document.getElementById("userDisplay").innerText = `👷 ${currentUser.ten_nvien || currentUser.ten_ndung}`;
   
+  // 1. Khởi tạo file text nếu chưa có
   initLocalTextFiles();
 
+  // 2. Kiểm tra nếu có mạng -> Đồng bộ dữ liệu từ text file lên Sheet TRƯỚC, xong mới Load danh sách
   if (navigator.onLine) {
     syncLocalTextFilesToSheet().then(() => {
       loadChiSoData();
     });
   } else {
+    // Nếu mất mạng -> Load dữ liệu từ Cache local / File text backup
     loadChiSoData();
   }
 
   setupSwipeEvents();
 
+  // 3. Sự kiện tự động đồng bộ khi thiết bị vừa khôi phục kết nối Internet
   window.addEventListener("online", () => {
-    showToast("📶 Đã kết nối mạng, Đang đồng bộ dữ liệu...");
+    showToast("📶 Đã kết nối mạng, Đang đồng bộ dữ liệu lại...");
     syncLocalTextFilesToSheet().then(() => {
       if (currentUser && currentUser.ten_ndung) {
         fetchSilentLatestData(currentUser.ten_ndung, false);
@@ -44,6 +43,7 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   });
 
+  // Đặt lịch tự động đồng bộ ngầm định kỳ 30 phút
   setInterval(() => {
     if (navigator.onLine) {
       syncLocalTextFilesToSheet();
@@ -51,6 +51,10 @@ document.addEventListener("DOMContentLoaded", () => {
   }, 30 * 60 * 1000);
 });
 
+// ----------------------------------------------------
+// HÀM BỔ TRỢ ĐỊNH DẠNG SỐ (FORMAT & PARSE)
+// ----------------------------------------------------
+// Định dạng số dạng 999,999.000 cho các thông số chỉ số/sản lượng
 function formatNumberText(val) {
   if (val === "" || val === null || val === undefined || isNaN(Number(val))) return "";
   return Number(val).toLocaleString("en-US", {
@@ -59,6 +63,7 @@ function formatNumberText(val) {
   });
 }
 
+// Định dạng tọa độ lat/lng dạng (999,999.00) cho file text
 function formatCoordText(val) {
   if (val === "" || val === null || val === undefined || isNaN(Number(val))) return "";
   return Number(val).toLocaleString("en-US", {
@@ -67,15 +72,19 @@ function formatCoordText(val) {
   });
 }
 
+// Xóa dấu phẩy phân cách ngàn để lấy lại số chuẩn trước khi đồng bộ lên Server
 function parseFormattedNumber(val) {
   if (val === "" || val === null || val === undefined) return "";
   const cleanStr = String(val).replace(/,/g, "").trim();
   return isNaN(Number(cleanStr)) ? "" : Number(cleanStr);
 }
 
+// ----------------------------------------------------
+// QUẢN LÝ TỰ ĐỘNG TẠO VÀ GHI HÀNG VÀO FILE TEXT CỤC BỘ
+// ----------------------------------------------------
 function initLocalTextFiles() {
   if (!localStorage.getItem(FILE_CHISO_TXT)) {
-    const headerChiSo = "id_chiso\tma_khang\tten_khang\tdia_chi\tma_sogcs\tdanh_so\tso_cot\tma_tram\tten_tram\tso_cto\tten_ndung\tten_nvien\thsn\tbcs\tchiso_cu\tchiso_moi\tsan_luong\tsluong_thao\ttong_sluong\tsluong_kt\tchenh_lech\ttyle_clech\tky\tthang\tnam\tngay_nhap\tnguoi_nhap\tlat\tlng\tso_dthoai\tghi_chu\thinh_cto\ttype";
+    const headerChiSo = "id_chiso\tma_khang\tten_khang\tdia_chi\tma_sogcs\tdanh_so\tso_cot\tma_tram\tten_tram\tso_cto\tten_ndung\tten_nvien\thsn\tbcs\tchiso_cu\tchiso_moi\tsan_luong\tsluong_thao\ttong_sluong\tsluong_kt\tchenh_lech\ttyle_clech\tky\tthang\tnam\tngay_nhap\tnguoi_nhap\tlat\tlng\tso_dthoai\tghi_chu\ttype";
     localStorage.setItem(FILE_CHISO_TXT, headerChiSo);
   }
 
@@ -106,7 +115,6 @@ function appendToTextFile(fileName, rowDataObj) {
       formatCoordText(rowDataObj.lat),
       formatCoordText(rowDataObj.lng), 
       rowDataObj.so_dthoai || "", rowDataObj.ghi_chu || "",
-      rowDataObj.hinh_cto || "",
       rowDataObj.type || "SAVE"
     ].join("\t");
     content += "\n" + line;
@@ -124,6 +132,9 @@ function appendToTextFile(fileName, rowDataObj) {
   localStorage.setItem(fileName, content);
 }
 
+// ----------------------------------------------------
+// ĐỒNG BỘ NỘI DUNG 2 FILE TEXT LÊN GOOGLE SHEET
+// ----------------------------------------------------
 function syncLocalTextFilesToSheet() {
   return new Promise((resolve) => {
     const chisoRaw = localStorage.getItem(FILE_CHISO_TXT) || "";
@@ -132,6 +143,7 @@ function syncLocalTextFilesToSheet() {
     const chisoLines = chisoRaw.split("\n").filter(l => l.trim().length > 0);
     const dinhviLines = dinhviRaw.split("\n").filter(l => l.trim().length > 0);
 
+    // Không có bản ghi mới -> Kết thúc ngay
     if (chisoLines.length <= 1 && dinhviLines.length <= 1) {
       resolve(false);
       return;
@@ -155,7 +167,7 @@ function syncLocalTextFilesToSheet() {
         nam: cols[24], time: cols[25], nguoi_nhap: cols[26], 
         lat: parseFormattedNumber(cols[27]),
         lng: parseFormattedNumber(cols[28]), 
-        so_dthoai: cols[29], ghi_chu: cols[30], hinh_cto: cols[31], type: cols[32]
+        so_dthoai: cols[29], ghi_chu: cols[30], type: cols[31]
       });
     }
 
@@ -204,7 +216,7 @@ function showToast(msg) {
   toastTimer = setTimeout(() => { t.style.display = "none"; }, 3500);
 }
 
-function showCustomConfirm(title, message, isDanger = false, confirmText = "Đồng ý", cancelText = "Hủy") {
+function showCustomConfirm(title, message, isDanger = false) {
   return new Promise((resolve) => {
     const modal = document.getElementById("customConfirmModal");
     const titleEl = document.getElementById("confirmModalTitle");
@@ -212,42 +224,15 @@ function showCustomConfirm(title, message, isDanger = false, confirmText = "Đ�
     const btnConfirm = document.getElementById("btnModalConfirm");
     const btnCancel = document.getElementById("btnModalCancel");
 
-    if (titleEl) {
-      titleEl.textContent = title;
-      titleEl.style.color = isDanger ? "#dc3545" : "#007bff";
-    }
-    if (msgEl) {
-      msgEl.textContent = message;
-    }
+    titleEl.innerText = title;
+    titleEl.style.color = isDanger ? "#dc3545" : "#007bff";
+    msgEl.innerText = message;
+    btnConfirm.style.background = isDanger ? "#dc3545" : "#28a745";
 
-    if (btnConfirm) {
-      btnConfirm.textContent = confirmText;
-      btnConfirm.style.backgroundColor = isDanger ? "#dc3545" : "#28a745";
-    }
+    modal.style.display = "flex";
 
-    if (btnCancel) {
-      btnCancel.textContent = cancelText;   
-      btnCancel.style.backgroundColor = "#0d6efd";
-      btnCancel.style.color = "#ffffff";
-    }
-
-    if (modal) {
-      modal.style.display = "flex";
-    }
-
-    if (btnConfirm) {
-      btnConfirm.onclick = () => {
-        if (modal) modal.style.display = "none";
-        resolve(true);
-      };
-    }
-
-    if (btnCancel) {
-      btnCancel.onclick = () => {
-        if (modal) modal.style.display = "none";
-        resolve(false);
-      };
-    }
+    btnConfirm.onclick = () => { modal.style.display = "none"; resolve(true); };
+    btnCancel.onclick = () => { modal.style.display = "none"; resolve(false); };
   });
 }
 
@@ -258,6 +243,7 @@ function getClientCacheKey() {
 function loadChiSoData() {
   let cachedList = null;
   
+  // 1. Kiểm tra cache chính của ứng dụng
   try {
     const raw = localStorage.getItem(getClientCacheKey());
     if (raw) {
@@ -268,6 +254,7 @@ function loadChiSoData() {
     }
   } catch (e) {}
 
+  // 2. Nếu mất cache (hoặc bị dọn dẹp) -> Đọc từ bản sao dự phòng từ Server gần nhất
   if (!cachedList) {
     try {
       const backupRaw = localStorage.getItem(FILE_SERVER_BACKUP_TXT);
@@ -277,10 +264,12 @@ function loadChiSoData() {
     } catch (e) {}
   }
 
+  // 3. Render dữ liệu offline ra màn hình
   if (cachedList && Array.isArray(cachedList) && cachedList.length > 0) {
     groupAndRender(cachedList);
   }
 
+  // 4. Nếu có mạng -> Gọi ngầm để cập nhật dữ liệu Server tươi mới nhất
   if (navigator.onLine && currentUser && currentUser.ten_ndung) {
     fetchSilentLatestData(currentUser.ten_ndung, !cachedList);
   }
@@ -298,7 +287,10 @@ function fetchSilentLatestData(username, isFirstLoad = false) {
   .then(res => res.json())
   .then(res => {
     if (res.status === "success") {
+      // Lưu vào Cache hoạt động
       localStorage.setItem(getClientCacheKey(), JSON.stringify({ time: Date.now(), list: res.list }));
+      
+      // Lưu thêm 1 bản sao dự phòng riêng biệt phục vụ offline lâu dài
       try {
         localStorage.setItem(FILE_SERVER_BACKUP_TXT, JSON.stringify(res.list));
       } catch (e) {}
@@ -331,9 +323,6 @@ function groupAndRender(flatList) {
         so_cto: item.so_cto,
         so_dthoai: item.so_dthoai || "",
         ghi_chu: item.ghi_chu || "",
-        hinh_cto: item.hinh_cto || "",
-        temp_image_file: null,
-        temp_image_base64: null,
         items: []
       };
     }
@@ -406,11 +395,6 @@ function renderCurrentCustomerCard(slideDirection = null) {
   let initialClass = "";
   if (slideDirection === "left") initialClass = "slide-left-in";
   else if (slideDirection === "right") initialClass = "slide-right-in";
-
-  const displayImgSrc = cust.temp_image_base64 || cust.hinh_cto || "";
-  let imgHtml = displayImgSrc 
-    ? `<img src="${displayImgSrc}" onclick="viewFullImage('${displayImgSrc}')"><button class="btn-delete-img" onclick="removeSelectedImage('${cust.ma_khang}')">✕</button>`
-    : `<div class="image-placeholder-text">Chưa có ảnh<br>📷 Chụp/Chọn</div>`;
 
   let html = `
     <div class="customer-card ${initialClass}" id="activeCustomerCard">
@@ -485,21 +469,10 @@ function renderCurrentCustomerCard(slideDirection = null) {
         </table>
       </div>
 
-      <div class="bottom-action-layout">
-        <div class="image-preview-container" id="img_container_${cust.ma_khang}">
-          ${imgHtml}
-        </div>
-
-        <input type="file" id="camera_file_input_${cust.ma_khang}" accept="image/*" capture="environment" style="display:none;" onchange="handleImageSelection(event, '${cust.ma_khang}')">
-        <input type="file" id="gallery_file_input_${cust.ma_khang}" accept="image/*" style="display:none;" onchange="handleImageSelection(event, '${cust.ma_khang}')">
-
-        <div class="card-btn-group-v2">
-          <button class="btn-card btn-card-photo" type="button" onclick="triggerPhotoPicker('${cust.ma_khang}')">📷 Chụp ảnh</button>        
-          <button class="btn-card btn-card-save" id="btn_save_${cust.ma_khang}" ${saveDisabledAttr} onclick="saveCustomerData('${cust.ma_khang}')">LƯU CS</button>
-          <button class="btn-card btn-card-cancel" id="btn_cancel_${cust.ma_khang}" ${cancelDisabledAttr} onclick="cancelCustomerData('${cust.ma_khang}')">HỦY CS</button>
-        </div>
+      <div class="card-btn-group">
+        <button class="btn-card btn-card-save" id="btn_save_${cust.ma_khang}" ${saveDisabledAttr} onclick="saveCustomerData('${cust.ma_khang}')">LƯU CS</button>
+        <button class="btn-card btn-card-cancel" id="btn_cancel_${cust.ma_khang}" ${cancelDisabledAttr} onclick="cancelCustomerData('${cust.ma_khang}')">HỦY CS</button>
       </div>
-
     </div>
   `;
 
@@ -515,179 +488,6 @@ function renderCurrentCustomerCard(slideDirection = null) {
     isAnimating = false;
   }
 }
-
-// ----------------------------------------------------
-// XỬ LÝ HÌNH ẢNH & UPLOAD CLOUDINARY
-// ----------------------------------------------------
-
-function compressImage(file, maxWidth = 1000, quality = 0.7) {
-  return new Promise((resolve) => {
-    const reader = new FileReader();
-    reader.readAsDataURL(file);
-    reader.onload = (event) => {
-      const img = new Image();
-      img.src = event.target.result;
-      img.onload = () => {
-        let width = img.width;
-        let height = img.height;
-
-        if (width > maxWidth) {
-          height = Math.round((height * maxWidth) / width);
-          width = maxWidth;
-        }
-
-        const canvas = document.createElement("canvas");
-        canvas.width = width;
-        canvas.height = height;
-
-        const ctx = canvas.getContext("2d");
-        ctx.drawImage(img, 0, 0, width, height);
-
-        const dataUrl = canvas.toDataURL("image/jpeg", quality);
-        resolve(dataUrl);
-      };
-      img.onerror = () => resolve(null);
-    };
-    reader.onerror = () => resolve(null);
-  });
-}
-
-async function triggerPhotoPicker(maKhang) {
-  const isCamera = await showCustomConfirm(
-    "CHỌN NGUỒN ẢNH",
-    "Chụp ảnh từ Camera hay chọn từ Thư viện thiết bị?",
-    false,
-    "📷 Máy ảnh",
-    "🖼️ Thư viện"
-  );
-
-  if (isCamera) {
-    triggerCameraInput(maKhang);
-  } else {
-    triggerGalleryInput(maKhang);
-  }
-}
-
-function triggerCameraInput(maKhang) {
-  const fileInput = document.getElementById(`camera_file_input_${maKhang}`);
-  if (fileInput) {
-    fileInput.value = "";
-    fileInput.click();
-  }
-}
-
-function triggerGalleryInput(maKhang) {
-  const fileInput = document.getElementById(`gallery_file_input_${maKhang}`);
-  if (fileInput) {
-    fileInput.value = "";
-    fileInput.click();
-  }
-}
-
-async function handleImageSelection(event, maKhang) {
-  const file = event.target.files[0];
-  if (!file) return;
-
-  showToast("⚡ Đang xử lý và nén ảnh...");
-  const compressedBase64 = await compressImage(file, 1000, 0.7);
-  if (!compressedBase64) {
-    showToast("❌ Lỗi khi xử lý nén ảnh!");
-    return;
-  }
-
-  if (groupedData[maKhang]) {
-    groupedData[maKhang].temp_image_file = file;
-    groupedData[maKhang].temp_image_base64 = compressedBase64;
-    
-    const container = document.getElementById(`img_container_${maKhang}`);
-    if (container) {
-      container.innerHTML = `<img src="${compressedBase64}" onclick="viewFullImage('${compressedBase64}')"><button class="btn-delete-img" onclick="removeSelectedImage('${maKhang}')">✕</button>`;
-    }
-  }
-}
-
-function removeSelectedImage(maKhang) {
-  if (groupedData[maKhang]) {
-    groupedData[maKhang].temp_image_file = null;
-    groupedData[maKhang].temp_image_base64 = null;
-    groupedData[maKhang].hinh_cto = "";
-  }
-  const container = document.getElementById(`img_container_${maKhang}`);
-  if (container) {
-    container.innerHTML = `<div class="image-placeholder-text">Chưa có ảnh<br>📷 Chụp/Chọn</div>`;
-  }
-}
-
-function viewFullImage(src) {
-  if (!src) return;
-  const modal = document.getElementById("imageViewerModal");
-  const img = document.getElementById("fullImageView");
-  img.src = src;
-  modal.style.display = "flex";
-}
-
-async function uploadImageToCloudinary(base64Data, maKhang) {
-  try {
-    const timestamp = Date.now();
-    const cleanMaKhang = String(maKhang || "").trim().replace(/[^a-zA-Z0-9]/g, "_");
-    const publicId = `${cleanMaKhang}_${timestamp}`;
-
-    const formData = new FormData();
-    formData.append('file', base64Data);
-    formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
-    formData.append('folder', 'chi_so');
-    formData.append('public_id', publicId);
-
-    const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`, {
-      method: 'POST',
-      body: formData
-    });
-
-    const data = await res.json();
-    if (data && data.secure_url) {
-      return {
-        url: data.secure_url,
-        public_id: data.public_id
-      };
-    }
-    return null;
-  } catch (err) {
-    console.error("Lỗi upload Cloudinary:", err);
-    return null;
-  }
-}
-
-// Hàm xóa ảnh trên Cloudinary khi HỦY CS
-async function deleteImageFromCloudinary(imageUrl) {
-  if (!imageUrl) return;
-
-  const payload = {
-    action: "DELETE_CLOUDINARY_IMAGE",
-    image_url: imageUrl
-  };
-
-  try {
-    const response = await fetch(API_URL, {
-      method: "POST",
-      headers: { "Content-Type": "text/plain;charset=utf-8" },
-      body: JSON.stringify(payload)
-    });
-
-    const resData = await response.json();
-
-    if (resData.status === "success" || resData.success) {
-      console.log("✅ Xóa ảnh Cloudinary thành công:", resData.message);
-    } else {
-      console.warn("⚠️ Cloudinary báo lỗi:", resData.message);
-    }
-  } catch (error) {
-    console.error("❌ Lỗi kết nối API xóa ảnh:", error);
-  }
-}
-
-// ----------------------------------------------------
-// ĐỊNH VỊ GPS VÀ XỬ LÝ CHỈ SỐ
-// ----------------------------------------------------
 
 function getLocationAndSave(maKhang) {
   if (!navigator.geolocation) {
@@ -705,6 +505,7 @@ function getLocationAndSave(maKhang) {
       const firstItem = (cust.items && cust.items[0]) ? cust.items[0] : {};
       const nowStr = new Date().toLocaleString("vi-VN");
 
+      // Ghi ngay vào file dinhvi.txt cục bộ trên thiết bị
       const newDinhViRecord = {
         id: String(Date.now()) + Math.floor(Math.random() * 10),
         ma_khang: maKhang,
@@ -725,6 +526,7 @@ function getLocationAndSave(maKhang) {
       };
       appendToTextFile(FILE_DINHVI_TXT, newDinhViRecord);
 
+      // Cập nhật vị trí GPS tức thì vào bộ nhớ RAM và giao diện hiển thị
       if (groupedData[maKhang]) {
         groupedData[maKhang].items.forEach(item => {
           item.lat = lat;
@@ -785,6 +587,7 @@ function updateKwKtDisplay(maKhang, bcs, sluongKt, sluongThao) {
 
 function nextCustomer() {
   if (isAnimating) return;
+
   isAnimating = true;
   const activeCard = document.getElementById("activeCustomerCard");
   if (activeCard) {
@@ -801,6 +604,7 @@ function nextCustomer() {
 
 function prevCustomer() {
   if (isAnimating) return;
+
   isAnimating = true;
   const activeCard = document.getElementById("activeCustomerCard");
   if (activeCard) {
@@ -822,17 +626,20 @@ function setupSwipeEvents() {
   let isMouseDown = false;
 
   container.addEventListener('touchstart', (e) => {
-    if (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA" || e.target.closest("button")) return;
+    if (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA") return;
     startX = e.touches[0].clientX;
     startY = e.touches[0].clientY;
   }, { passive: true });
 
   container.addEventListener('touchend', (e) => {
     if (!startX || !startY || isAnimating) return;
+
     let endX = e.changedTouches[0].clientX;
     let endY = e.changedTouches[0].clientY;
     handleSwipeGesture(startX, startY, endX, endY);
-    startX = 0; startY = 0;
+
+    startX = 0;
+    startY = 0;
   }, { passive: true });
 
   container.addEventListener('mousedown', (e) => {
@@ -849,16 +656,23 @@ function setupSwipeEvents() {
     container.style.cursor = "default";
 
     if (!startX || !startY || isAnimating) return;
+
     let endX = e.clientX;
     let endY = e.clientY;
     handleSwipeGesture(startX, startY, endX, endY);
-    startX = 0; startY = 0;
+
+    startX = 0;
+    startY = 0;
   });
 
   window.addEventListener('keydown', (e) => {
     if (["INPUT", "TEXTAREA"].includes(document.activeElement.tagName)) return;
-    if (e.key === "ArrowLeft") prevCustomer();
-    else if (e.key === "ArrowRight") nextCustomer();
+
+    if (e.key === "ArrowLeft") {
+      prevCustomer();
+    } else if (e.key === "ArrowRight") {
+      nextCustomer();
+    }
   });
 }
 
@@ -867,8 +681,11 @@ function handleSwipeGesture(startX, startY, endX, endY) {
   let diffY = startY - endY;
 
   if (Math.abs(diffX) > Math.abs(diffY) && Math.abs(diffX) > 40) {
-    if (diffX > 0) nextCustomer();
-    else prevCustomer();
+    if (diffX > 0) {
+      nextCustomer();
+    } else {
+      prevCustomer();
+    }
   }
 }
 
@@ -1018,7 +835,7 @@ function filterData() {
   }
 }
 
-// LƯU CHỈ SỐ & TẢI ẢNH LÊN CLOUDINARY
+// Lưu dữ liệu: Ghi vào file chiso.txt thiết bị + đồng bộ API
 async function saveCustomerData(maKhang) {
   const cust = groupedData[maKhang];
   if (!cust) return;
@@ -1072,22 +889,8 @@ async function saveCustomerData(maKhang) {
     const confirmAbnormal = await showCustomConfirm("⚠️ CẢNH BÁO BẤT THƯỜNG", abnormalMsg, true);
     if (!confirmAbnormal) return;
   } else {
-    const confirmSave = await showCustomConfirm("XÁC NHẬN GHI DỮ LIỆU", "Lưu chỉ số và hình ảnh cho khách hàng này?");
+    const confirmSave = await showCustomConfirm("XÁC NHẬN GHI DỮ LIỆU", "Lưu chỉ số và ghi chú cho khách hàng này?");
     if (!confirmSave) return;
-  }
-
-  let uploadedImageUrl = cust.hinh_cto || "";
-  if (cust.temp_image_base64) {
-    showToast("📸 Đang tải ảnh lên Cloudinary...");
-    const uploadRes = await uploadImageToCloudinary(cust.temp_image_base64, maKhang);
-    if (uploadRes && uploadRes.url) {
-      uploadedImageUrl = uploadRes.url;
-      cust.hinh_cto = uploadedImageUrl;
-      cust.temp_image_base64 = null;
-      cust.temp_image_file = null;
-    } else {
-      showToast("⚠️ Tải ảnh thất bại, sẽ tiếp tục lưu chỉ số!");
-    }
   }
 
   const ghiChuInput = document.getElementById(`ghi_chu_${maKhang}`);
@@ -1117,7 +920,6 @@ async function saveCustomerData(maKhang) {
         chiso_cu: item.chiso_cu,
         chiso_moi: inputEl.value !== "" ? Number(inputEl.value) : "",
         ghi_chu: newGhiChu,
-        hinh_cto: uploadedImageUrl,
         sluong_thao: item.sluong_thao,
         sluong_kt: item.sluong_kt,
         lat: item.lat || "",
@@ -1128,6 +930,7 @@ async function saveCustomerData(maKhang) {
         type: "SAVE"
       };
 
+      // 1. Lưu ngay vào file chiso.txt thiết bị
       appendToTextFile(FILE_CHISO_TXT, itemRecord);
 
       payload.push({
@@ -1136,7 +939,6 @@ async function saveCustomerData(maKhang) {
         chiso_cu: item.chiso_cu,
         chiso_moi: inputEl.value !== "" ? Number(inputEl.value) : "",
         ghi_chu: newGhiChu,
-        hinh_cto: uploadedImageUrl,
         hsn: item.hsn,
         sluong_thao: item.sluong_thao,
         sluong_kt: item.sluong_kt,
@@ -1146,9 +948,9 @@ async function saveCustomerData(maKhang) {
     }
   });
 
+  // Cập nhật ngay dữ liệu local lên giao diện và bộ nhớ đệm RAM / Cache
   const applyLocalChanges = () => {
     cust.ghi_chu = newGhiChu;
-    cust.hinh_cto = uploadedImageUrl;
     cust.items.forEach(item => {
       const inputEl = document.getElementById(`cs_moi_${item.rowIndex}`);
       if (inputEl && inputEl.value !== "") {
@@ -1158,7 +960,6 @@ async function saveCustomerData(maKhang) {
         const slThao = Number(item.sluong_thao) || 0;
         item.san_luong = Math.round((item.chiso_moi - csCu) * hsn);
         item.tong_sluong = item.san_luong + slThao;
-        item.hinh_cto = uploadedImageUrl;
       }
     });
 
@@ -1177,7 +978,6 @@ async function saveCustomerData(maKhang) {
               flatItem.san_luong = matchedInRam.san_luong;
               flatItem.tong_sluong = matchedInRam.tong_sluong;
               flatItem.ghi_chu = newGhiChu;
-              flatItem.hinh_cto = uploadedImageUrl;
             }
           }
         });
@@ -1208,28 +1008,23 @@ async function saveCustomerData(maKhang) {
     }
   })
   .catch(() => {
+    // KHI MẤT MẠNG: Cập nhật biến RAM & Cache màn hình ngay lập tức!
     applyLocalChanges();
     showToast("⚠️ Đã lưu vào file text thiết bị (Chờ đồng bộ)!");
   });
 }
 
-// HỦY CHỈ SỐ & XÓA ẢNH CLOUDINARY
+// Hủy dữ liệu: Ghi log HỦY vào file chiso.txt thiết bị + đồng bộ API
 async function cancelCustomerData(maKhang) {
   const cust = groupedData[maKhang];
   if (!cust) return;
 
   const confirmCancel = await showCustomConfirm(
     "XÁC NHẬN HỦY DỮ LIỆU", 
-    "Bạn có chắc chắn muốn hủy chỉ số và xóa ảnh đã lưu của khách hàng này?", 
+    "Bạn có chắc chắn muốn hủy chỉ số đã nhập của khách hàng này?", 
     true
   );
   if (!confirmCancel) return;
-
-  // Thực hiện xóa ảnh khỏi Cloudinary nếu có ảnh
-  if (cust.hinh_cto) {
-    showToast("🗑️ Đang xóa ảnh trên Cloudinary...");
-    await deleteImageFromCloudinary(cust.hinh_cto);
-  }
 
   const payload = [];
   const nowStr = new Date().toLocaleString("vi-VN");
@@ -1240,13 +1035,13 @@ async function cancelCustomerData(maKhang) {
       ma_khang: cust.ma_khang,
       bcs: item.bcs,
       chiso_moi: "",
-      hinh_cto: "",
       time: nowStr,
       ten_ndung: currentUser.ten_ndung,
       ten_nvien: currentUser.ten_nvien || currentUser.ten_ndung,
       type: "CANCEL"
     };
 
+    // 1. Lưu hành động HỦY vào file chiso.txt thiết bị
     appendToTextFile(FILE_CHISO_TXT, itemRecord);
 
     payload.push({
@@ -1256,16 +1051,10 @@ async function cancelCustomerData(maKhang) {
   });
 
   const applyCancelLocalChanges = () => {
-    cust.hinh_cto = "";
-    cust.temp_image_file = null;
-    cust.temp_image_base64 = null;
-
     cust.items.forEach(item => {
       item.chiso_moi = "";
       item.san_luong = "";
       item.tong_sluong = "";
-      item.hinh_cto = "";
-
       const inputEl = document.getElementById(`cs_moi_${item.rowIndex}`);
       if (inputEl) inputEl.value = "";
       const slHiddenEl = document.getElementById(`sl_val_${item.rowIndex}`);
@@ -1273,11 +1062,6 @@ async function cancelCustomerData(maKhang) {
       const tongSlCell = document.getElementById(`tong_sl_${item.rowIndex}`);
       if (tongSlCell) tongSlCell.innerText = "-";
     });
-
-    const imgContainer = document.getElementById(`img_container_${maKhang}`);
-    if (imgContainer) {
-      imgContainer.innerHTML = `<div class="image-placeholder-text">Chưa có ảnh<br>📷 Chụp/Chọn</div>`;
-    }
 
     checkCancelButtonStatus(maKhang);
     updateSummaryBar();
@@ -1292,7 +1076,6 @@ async function cancelCustomerData(maKhang) {
             flatItem.chiso_moi = "";
             flatItem.san_luong = "";
             flatItem.tong_sluong = "";
-            flatItem.hinh_cto = "";
           }
         });
         localStorage.setItem(cacheKey, JSON.stringify(obj));
@@ -1321,11 +1104,13 @@ async function cancelCustomerData(maKhang) {
     }
   })
   .catch(() => {
+    // KHI MẤT MẠNG: Xóa dữ liệu tức thì trên màn hình & Cache
     applyCancelLocalChanges();
     showToast("⚠️ Đã ghi nhận hủy vào file text thiết bị (Chờ đồng bộ)!");
   });
 }
 
+// Hàm tải cùng lúc 2 file chiso.txt và dinhvi.txt về thư mục Download
 function downloadAllTextFiles() {
   const files = ['chiso.txt', 'dinhvi.txt'];
   let count = 0;
