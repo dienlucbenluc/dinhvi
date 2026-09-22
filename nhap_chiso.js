@@ -992,6 +992,39 @@ function filterData() {
   }
 }
 
+// ----------------------------------------------------
+// HÀM KIỂM TRA ĐIỀU KIỆN BẮT BUỘC CHỤP ẢNH KHI BIẾN ĐỘNG CÔNG SUẤT
+// ----------------------------------------------------
+function checkPhotoRequirement(maKhang) {
+  const cust = groupedData[maKhang];
+  if (!cust) return false;
+
+  for (let item of cust.items) {
+    const inputEl = document.getElementById(`cs_moi_${item.rowIndex}`);
+    const csMoi = inputEl ? Number(inputEl.value.trim()) : 0;
+    const csCu = Number(item.chiso_cu) || 0;
+    const hsn = Number(item.hsn) || 1;
+    const slThao = Number(item.sluong_thao) || 0;
+    const sluongKtVal = Number(item.sluong_kt) || 0;
+
+    const sanLuong = Math.round((csMoi - csCu) * hsn);
+    const tongSluong = sanLuong + slThao;
+
+    if (sluongKtVal > 0) {
+      const diffPercent = ((tongSluong - sluongKtVal) / sluongKtVal) * 100;
+      // Điều kiện: biến động >= +100% hoặc <= -100% VÀ tổng kW >= 100
+      if (Math.abs(diffPercent) >= 100 && tongSluong >= 100) {
+        return true; // Bắt buộc phải có ảnh
+      }
+    } else if (sluongKtVal === 0 && tongSluong >= 100) {
+      // Trường hợp kỳ trước bằng 0, kỳ này >= 100 (tương đương tăng >= 100%)
+      return true;
+    }
+  }
+  return false;
+}
+
+// Lưu dữ liệu: Nén và tải ảnh lên Cloudinary -> Ghi vào chiso.txt -> Cập nhật Google Sheet (cột hinh_cto)
 // Lưu dữ liệu: Nén và tải ảnh lên Cloudinary -> Ghi vào chiso.txt -> Cập nhật Google Sheet (cột hinh_cto)
 async function saveCustomerData(maKhang) {
   const cust = groupedData[maKhang];
@@ -1015,6 +1048,19 @@ async function saveCustomerData(maKhang) {
     if (emptyItem.inputEl) {
       setTimeout(() => emptyItem.inputEl.focus(), 100);
     }
+    return;
+  }
+
+  // --- BỔ SUNG: RÀNG BUỘC CHỤP ẢNH KHI BIẾN ĐỘNG SL >= +/-100% VÀ TỔNG kW >= 100 ---
+  const isPhotoRequired = checkPhotoRequirement(maKhang);
+  const hasPhoto = Boolean(cust.hinh_cto || currentCapturedFiles[maKhang]);
+
+  if (isPhotoRequired && !hasPhoto) {
+    await showCustomConfirm(
+      "📸 YÊU CẦU CHỤP ẢNH", 
+      "Sản lượng biến động ≥ ±100% và Tổng kW ≥ 100!\nBắt buộc phải chụp ảnh công tơ trước khi lưu chỉ số.", 
+      true
+    );
     return;
   }
 
@@ -1053,7 +1099,7 @@ async function saveCustomerData(maKhang) {
   let imageUrl = cust.hinh_cto || "";
 
   // Upload ảnh lên Cloudinary nếu có ảnh chụp mới
-if (currentCapturedFiles[maKhang]) {
+  if (currentCapturedFiles[maKhang]) {
     try {
       showToast("⏳ Đang nén và tải ảnh lên Cloudinary...");
       // Truyền maKhang vào làm tham số thứ 2
