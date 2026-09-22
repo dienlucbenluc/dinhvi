@@ -667,55 +667,32 @@ async function uploadImageToCloudinary(base64Data, maKhang) {
 }
 
 // Hàm xóa ảnh trên Cloudinary khi HỦY CS (Đã sửa async/await và bóc tách public_id chuẩn)
-async function deleteImageFromCloudinary(publicIdOrUrl) {
-  if (!publicIdOrUrl) return false;
-  
-  let publicId = publicIdOrUrl;
-  
-  if (publicIdOrUrl.startsWith("http")) {
-    try {
-      const urlParts = publicIdOrUrl.split('/upload/');
-      if (urlParts.length > 1) {
-        let pathAfterUpload = urlParts[1];
-        pathAfterUpload = pathAfterUpload.replace(/^v\d+\//, '');
-        publicId = pathAfterUpload.substring(0, pathAfterUpload.lastIndexOf('.'));
-      }
-    } catch (e) {
-      console.error("Lỗi tách public_id:", e);
-    }
-  }
+async function deleteImageFromCloudinary(imageUrl) {
+  if (!imageUrl) return;
+
+  // Khai báo payload gửi lên Google Apps Script
+  const payload = {
+    action: "DELETE_CLOUDINARY_IMAGE",
+    image_url: imageUrl
+  };
 
   try {
-    const res = await fetch(API_URL, {
+    const response = await fetch(SCRIPT_URL, {
       method: "POST",
-      // Dùng text/plain để tránh bị Google Apps Script chặn CORS Preflight
+      // Đảm bảo dùng Content-Type text/plain để tránh bị dính CORS preflight với Apps Script
       headers: { "Content-Type": "text/plain;charset=utf-8" },
-      body: JSON.stringify({
-        action: "DELETE_CLOUDINARY_IMAGE",
-        public_id:  public_id,
-        cloud_name: CLOUDINARY_CLOUD_NAME
-      })
+      body: JSON.stringify(payload) // Gửi biến payload đã định nghĩa ở trên
     });
 
-    const textResponse = await res.text();
-    let result;
-    try {
-      result = JSON.parse(textResponse);
-    } catch (e) {
-      console.error("Server không trả về JSON:", textResponse);
-      return false;
-    }
+    const resData = await response.json(); // Đổi tên biến nhận về thành resData để tránh nhầm lẫn
 
-    if (result.status === "success") {
-      console.log("✅ Đã xóa ảnh Cloudinary thành công:", result);
-      return true;
+    if (resData.status === "success") {
+      console.log("✅ Xóa ảnh Cloudinary thành công:", resData.message);
     } else {
-      console.error("❌ Cloudinary báo lỗi:", result.message);
-      return false;
+      console.warn("⚠️ Cloudinary báo lỗi:", resData.message);
     }
-  } catch (e) {
-    console.error("Lỗi kết nối API xóa ảnh:", e);
-    return false;
+  } catch (error) {
+    console.error("❌ Lỗi kết nối API xóa ảnh:", error);
   }
 }
 
