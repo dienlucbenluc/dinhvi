@@ -105,8 +105,7 @@ function compressImage(file, fileName = "photo.jpg", maxWidth = 1000, quality = 
 }
 
 async function uploadToCloudinary(file, maKhang = "") {
-  // Tạo tên file theo yêu cầu: {maKhang|khachhang}_{Date.now()}
-  const customFileName = `${maKhang || 'khachhang'}_${Date.now()}`;
+const customFileName = `${maKhang || 'khachhang'}_${Date.now()}`;
   
   // Nén ảnh với tên file mới
   const compressedFile = await compressImage(file, `${customFileName}.jpg`, 1000, 0.7);
@@ -1021,7 +1020,6 @@ function checkPhotoRequirement(maKhang) {
 }
 
 // Lưu dữ liệu: Nén và tải ảnh lên Cloudinary -> Ghi vào chiso.txt -> Cập nhật Google Sheet (cột hinh_cto)
-// Lưu dữ liệu: Nén và tải ảnh lên Cloudinary -> Ghi vào chiso.txt -> Cập nhật Google Sheet (cột hinh_cto)
 async function saveCustomerData(maKhang) {
   const cust = groupedData[maKhang];
   if (!cust) return;
@@ -1054,7 +1052,7 @@ async function saveCustomerData(maKhang) {
   if (isPhotoRequired && !hasPhoto) {
     await showCustomConfirm(
       "📸 YÊU CẦU CHỤP ẢNH", 
-      "Sản lượng biến động ≥ ±100% và Tổng kW ≥ 100!\nBắt buộc phải chụp ảnh công tơ trước khi lưu chỉ số.", 
+      "Sản lượng biến động ≥ ±100% và Tổng kW ≥ 100!\nBắt buộc phải chụp ảnh chỉ số trước khi lưu.", 
       true
     );
     return;
@@ -1231,14 +1229,13 @@ async function saveCustomerData(maKhang) {
 }
 
 // Hủy dữ liệu: Xóa link hinh_cto, xóa ảnh trên Cloudinary và xóa chỉ số
-// Hủy dữ liệu: Xóa link hinh_cto, xóa ảnh trên Cloudinary và xóa chỉ số
 async function cancelCustomerData(maKhang) {
   const cust = groupedData[maKhang];
   if (!cust) return;
 
   const confirmCancel = await showCustomConfirm(
     "XÁC NHẬN HỦY DỮ LIỆU", 
-    "Bạn có chắc chắn muốn hủy chỉ số và xóa ảnh đã lưu của khách hàng này?", 
+    "Bạn có muốn hủy chỉ số và xóa ảnh của khách hàng này?", 
     true
   );
   if (!confirmCancel) return;
