@@ -666,14 +666,14 @@ async function uploadImageToCloudinary(base64Data, maKhang) {
   }
 }
 
-// Hàm xóa ảnh trên Cloudinary khi HỦY CS
+// Hàm xóa ảnh trên Cloudinary khi HỦY CS (Đã sửa async/await và bóc tách public_id chuẩn)
 async function deleteImageFromCloudinary(publicIdOrUrl) {
-  if (!publicIdOrUrl) return;
+  if (!publicIdOrUrl) return false;
   
   let publicId = publicIdOrUrl;
   
   // Trích xuất public_id chính xác (bao gồm cả thư mục chi_so/...) từ URL Cloudinary
-  if (publicIdOrUrl.includes("http")) {
+  if (publicIdOrUrl.startsWith("http")) {
     try {
       const urlParts = publicIdOrUrl.split('/upload/');
       if (urlParts.length > 1) {
@@ -689,7 +689,7 @@ async function deleteImageFromCloudinary(publicIdOrUrl) {
   }
 
   try {
-    fetch(API_URL, {
+    const res = await fetch(API_URL, {
       method: "POST",
       headers: { "Content-Type": "text/plain;charset=utf-8" },
       body: JSON.stringify({
@@ -698,8 +698,11 @@ async function deleteImageFromCloudinary(publicIdOrUrl) {
         cloud_name: CLOUDINARY_CLOUD_NAME
       })
     });
+    const result = await res.json();
+    return result.status === "success";
   } catch (e) {
     console.error("Lỗi gửi yêu cầu xóa ảnh:", e);
+    return false;
   }
 }
 
@@ -1233,6 +1236,7 @@ async function saveCustomerData(maKhang) {
 }
 
 // HỦY CHỈ SỐ & XÓA ẢNH CLOUDINARY
+// Hàm HỦY CHỈ SỐ (Đã cập nhật await xóa ảnh trước khi xóa dữ liệu local)
 async function cancelCustomerData(maKhang) {
   const cust = groupedData[maKhang];
   if (!cust) return;
@@ -1247,7 +1251,7 @@ async function cancelCustomerData(maKhang) {
   // Thực hiện xóa ảnh khỏi Cloudinary nếu có ảnh
   if (cust.hinh_cto) {
     showToast("🗑️ Đang xóa ảnh trên Cloudinary...");
-    deleteImageFromCloudinary(cust.hinh_cto);
+    await deleteImageFromCloudinary(cust.hinh_cto);
   }
 
   const payload = [];
