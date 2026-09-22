@@ -1,8 +1,8 @@
 const API_URL = "https://script.google.com/macros/s/AKfycbwjw5x47mNLBpC3Ar4beIIM20XzZJAVXMLusNZV2rHbyCvls7pICldt7UAkM6htgqpa/exec";
 
 // Cấu hình Cloudinary
-const CLOUDINARY_UPLOAD_PRESET = "nhap_chiso_preset"; // Thay bằng upload_preset của bạn nếu cần
-const CLOUDINARY_CLOUD_NAME = "dienlucbenluc";       // Thay bằng cloud_name của bạn nếu cần
+const CLOUDINARY_UPLOAD_PRESET = "image_chiso"; // Thay bằng upload_preset của bạn nếu cần
+const CLOUDINARY_CLOUD_NAME = "jokzcdxt";       // Thay bằng cloud_name của bạn nếu cần
 const CLOUDINARY_UPLOAD_URL = `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`;
 
 let currentUser = null;
