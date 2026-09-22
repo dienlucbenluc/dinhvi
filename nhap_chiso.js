@@ -574,7 +574,7 @@ function viewFullImage(src) {
   modal.style.display = "flex";
 }
 
-// Upload trực tiếp từ thiết bị lên Cloudinary vào thư mục Home/chi_so
+// Upload trực tiếp từ thiết bị lên Cloudinary vào thư mục chi_so
 async function uploadImageToCloudinary(base64Data, maKhang) {
   try {
     const timestamp = Date.now();
@@ -584,7 +584,7 @@ async function uploadImageToCloudinary(base64Data, maKhang) {
     const formData = new FormData();
     formData.append('file', base64Data);
     formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
-    formData.append('folder', 'Home/chi_so');
+    formData.append('folder', 'chi_so');
     formData.append('public_id', publicId);
 
     const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`, {
@@ -612,7 +612,7 @@ async function deleteImageFromCloudinary(publicIdOrUrl) {
   
   let publicId = publicIdOrUrl;
   
-  // Trích xuất public_id chính xác (bao gồm cả thư mục Home/chi_so/...) từ URL Cloudinary
+  // Trích xuất public_id chính xác (bao gồm cả thư mục chi_so/...) từ URL Cloudinary
   if (publicIdOrUrl.includes("http")) {
     try {
       const urlParts = publicIdOrUrl.split('/upload/');
