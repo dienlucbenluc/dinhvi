@@ -577,11 +577,15 @@ function viewFullImage(src) {
 // Upload trực tiếp từ thiết bị lên Cloudinary vào thư mục Home/chi_so
 async function uploadImageToCloudinary(base64Data, maKhang) {
   try {
+    const timestamp = Date.now();
+    const cleanMaKhang = String(maKhang || "").trim().replace(/[^a-zA-Z0-9]/g, "_");
+    const publicId = `${cleanMaKhang}_${timestamp}`;
+
     const formData = new FormData();
     formData.append('file', base64Data);
     formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
     formData.append('folder', 'Home/chi_so');
-    formData.append('public_id', `chiso_${maKhang}_${Date.now()}`);
+    formData.append('public_id', publicId);
 
     const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`, {
       method: 'POST',
