@@ -1062,6 +1062,9 @@ async function saveCustomerData(maKhang) {
       "Sản lượng biến động ≥ ±70% so với kỳ trước.\nBắt buộc phải chụp ảnh chỉ số trước khi lưu.", 
       true
     );
+    if (confirmCapture) {
+      promptImageSource(maKhang);
+    }
     return;
   }
 
