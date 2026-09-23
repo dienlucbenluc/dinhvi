@@ -4,19 +4,34 @@ const CLOUDINARY_UPLOAD_PRESET = "image_chiso";
 
 let currentUser = null;
 let groupedData = {};
-let customerKeys = []; // Mã KH sắp xếp theo ma_sogcs -> danh_so -> ma_khang
+let customerKeys = []; 
 let currentCardIndex = 0; 
-let isAnimating = false; // Chống vuốt quá nhanh gây lỗi animation
+let isAnimating = false; 
 
-// Biến lưu trữ ảnh tạm thời dạng File/Blob theo từng ma_khang
+// Lưu trữ ảnh dạng File/Blob tạm thời theo ma_khang
 const currentCapturedFiles = {};
 
 const BCS_ORDER = ["BT", "CD", "TD", "SG", "VC", "BN", "CN", "TN", "SN", "VN"];
 
-// Tên các file text lưu trữ cục bộ trên thiết bị
-const FILE_CHISO_TXT = "chiso.txt";
-const FILE_DINHVI_TXT = "dinhvi.txt";
-const FILE_SERVER_BACKUP_TXT = "chiso_server_backup.txt";
+// Các hàm lấy tên Key lưu trữ phân biệt theo ten_ndung người dùng
+function getExcelKeyChiSo() {
+  const user = String(currentUser?.ten_ndung || "").trim().toLowerCase();
+  return `chiso_excel_data_${user}`;
+}
+
+function getExcelKeyDinhVi() {
+  const user = String(currentUser?.ten_ndung || "").trim().toLowerCase();
+  return `dinhvi_excel_data_${user}`;
+}
+
+function getOfflineImagesKey() {
+  const user = String(currentUser?.ten_ndung || "").trim().toLowerCase();
+  return `offline_images_${user}`;
+}
+
+function getClientCacheKey() {
+  return "cmis_chiso_cache_" + String(currentUser?.ten_ndung || "").trim().toLowerCase();
+}
 
 document.addEventListener("DOMContentLoaded", () => {
   const sessionStr = localStorage.getItem("cmis_user_session");
@@ -24,238 +39,150 @@ document.addEventListener("DOMContentLoaded", () => {
   currentUser = JSON.parse(sessionStr);
   document.getElementById("userDisplay").innerText = `👷 ${currentUser.ten_nvien || currentUser.ten_ndung}`;
   
-  // 1. Khởi tạo file text nếu chưa có
-  initLocalTextFiles();
+  // 1. Khởi tạo danh sách Excel cục bộ phân biệt theo ten_ndung
+  initLocalExcelStore();
 
-  // 2. Kiểm tra nếu có mạng -> Đồng bộ dữ liệu từ text file lên Sheet TRƯỚC, xong mới Load danh sách
+  // 2. Tải và đồng bộ dữ liệu
   if (navigator.onLine) {
-    syncLocalTextFilesToSheet().then(() => {
+    syncLocalExcelToSheet().then(() => {
       loadChiSoData();
     });
   } else {
-    // Nếu mất mạng -> Load dữ liệu từ Cache local / File text backup
     loadChiSoData();
   }
 
   setupSwipeEvents();
 
-  // 3. Sự kiện tự động đồng bộ khi thiết bị vừa khôi phục kết nối Internet
-  window.addEventListener("online", () => {
-    showToast("📶 Đã kết nối mạng, Đang đồng bộ dữ liệu lại...");
-    syncLocalTextFilesToSheet().then(() => {
+  // 3. Tự động đẩy ảnh offline + đồng bộ dữ liệu khi khôi phục mạng
+  window.addEventListener("online", async () => {
+    showToast("📶 Đã kết nối mạng. Đang xử lý ảnh offline và đồng bộ dữ liệu...");
+    await processOfflineImagesToCloudinary();
+    syncLocalExcelToSheet().then(() => {
       if (currentUser && currentUser.ten_ndung) {
         fetchSilentLatestData(currentUser.ten_ndung, false);
       }
     });
   });
 
-  // Đặt lịch tự động đồng bộ ngầm định kỳ 30 phút
-  setInterval(() => {
+  setInterval(async () => {
     if (navigator.onLine) {
-      syncLocalTextFilesToSheet();
+      await processOfflineImagesToCloudinary();
+      syncLocalExcelToSheet();
     }
   }, 30 * 60 * 1000);
 });
 
 // ----------------------------------------------------
-// HÀM BỔ TRỢ NÉN ẢNH VÀ XỬ LÝ CLOUDINARY
+// QUẢN LÝ DỮ LIỆU EXCEL VÀ HÌNH ẢNH CỤC BỘ (OFFLINE)
 // ----------------------------------------------------
-function compressImage(file, fileName = "photo.jpg", maxWidth = 1000, quality = 0.7) {
+function initLocalExcelStore() {
+  const csKey = getExcelKeyChiSo();
+  const dvKey = getExcelKeyDinhVi();
+  const imgKey = getOfflineImagesKey();
+
+  if (!localStorage.getItem(csKey)) {
+    localStorage.setItem(csKey, JSON.stringify([]));
+  }
+  if (!localStorage.getItem(dvKey)) {
+    localStorage.setItem(dvKey, JSON.stringify([]));
+  }
+  if (!localStorage.getItem(imgKey)) {
+    localStorage.setItem(imgKey, JSON.stringify({}));
+  }
+}
+
+// Lưu log dạng Object vào danh sách Excel cục bộ
+function appendToExcelStore(storeKey, rowObj) {
+  try {
+    const list = JSON.parse(localStorage.getItem(storeKey) || "[]");
+    list.push(rowObj);
+    localStorage.setItem(storeKey, JSON.stringify(list));
+  } catch(e) {
+    console.error("Lỗi lưu Excel store:", e);
+  }
+}
+
+// Chuyển File/Blob sang Base64 để lưu offline an toàn không die khi F5
+function fileToBase64(file) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.readAsDataURL(file);
-    reader.onload = (event) => {
-      const img = new Image();
-      img.src = event.target.result;
-      img.onload = () => {
-        let width = img.width;
-        let height = img.height;
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = error => reject(error);
+  });
+}
 
-        if (width > maxWidth) {
-          height = Math.round((height * maxWidth) / width);
-          width = maxWidth;
+// Chuyển Base64 trở lại File object khi có mạng để upload Cloudinary
+function base64ToFile(base64Str, fileName) {
+  const arr = base64Str.split(',');
+  const mime = arr[0].match(/:(.*?);/)[1];
+  const bstr = atob(arr[1]);
+  let n = bstr.length;
+  const u8arr = new Uint8Array(n);
+  while (n--) {
+    u8arr[n] = bstr.charCodeAt(n);
+  }
+  return new File([u8arr], fileName, { type: mime });
+}
+
+// Lưu giữ ảnh offline
+async function saveOfflineImage(maKhang, file) {
+  try {
+    const base64 = await fileToBase64(file);
+    const imgKey = getOfflineImagesKey();
+    const imgs = JSON.parse(localStorage.getItem(imgKey) || "{}");
+    imgs[maKhang] = base64;
+    localStorage.setItem(imgKey, JSON.stringify(imgs));
+  } catch (e) {
+    console.error("Lỗi lưu ảnh offline:", e);
+  }
+}
+
+// Đẩy ảnh offline lên Cloudinary khi online
+async function processOfflineImagesToCloudinary() {
+  const imgKey = getOfflineImagesKey();
+  const imgs = JSON.parse(localStorage.getItem(imgKey) || "{}");
+  const keys = Object.keys(imgs);
+  if (keys.length === 0) return;
+
+  for (const makh of keys) {
+    try {
+      const base64Str = imgs[makh];
+      const file = base64ToFile(base64Str, `${makh}_offline.jpg`);
+      const url = await uploadToCloudinary(file, makh);
+
+      // Cập nhật URL mới vào dữ liệu ghi chép Excel cục bộ
+      const csKey = getExcelKeyChiSo();
+      const logs = JSON.parse(localStorage.getItem(csKey) || "[]");
+      logs.forEach(item => {
+        if (item.ma_khang === makh && (!item.hinh_cto || item.hinh_cto.startsWith("data:"))) {
+          item.hinh_cto = url;
         }
+      });
+      localStorage.setItem(csKey, JSON.stringify(logs));
 
-        const canvas = document.createElement("canvas");
-        canvas.width = width;
-        canvas.height = height;
-        const ctx = canvas.getContext("2d");
-        ctx.drawImage(img, 0, 0, width, height);
-
-        canvas.toBlob(
-          (blob) => {
-            if (blob) {
-              const compressedFile = new File([blob], fileName, {
-                type: "image/jpeg",
-                lastModified: Date.now()
-              });
-              resolve(compressedFile);
-            } else {
-              reject(new Error("Lỗi nén ảnh"));
-            }
-          },
-          "image/jpeg",
-          quality
-        );
-      };
-      img.onerror = (err) => reject(err);
-    };
-    reader.onerror = (err) => reject(err);
-  });
-}
-
-async function uploadToCloudinary(file, maKhang = "") {
-const customFileName = `${maKhang || 'khachhang'}_${Date.now()}`;
-  
-  // Nén ảnh với tên file mới
-  const compressedFile = await compressImage(file, `${customFileName}.jpg`, 1000, 0.7);
-  
-  const formData = new FormData();
-  formData.append("file", compressedFile);
-  formData.append("upload_preset", CLOUDINARY_UPLOAD_PRESET);
-  formData.append('folder', 'chi_so');
-  // Đặt public_id để Cloudinary lưu đúng tên file mà không tự sinh chuỗi ngẫu nhiên
-  formData.append("public_id", customFileName);
-  
-  const res = await fetch(
-    `https://api.cloudinary.com/v1_1/${encodeURIComponent(CLOUDINARY_CLOUD_NAME)}/image/upload`,
-  {method: "POST",body: formData}
-   );
-  const data = await res.json();
-  if (data.secure_url) {
-    return data.secure_url;
-  } else {
-    throw new Error(data.error?.message || "Lỗi tải ảnh lên Cloudinary!");
+      delete imgs[makh];
+    } catch (e) {
+      console.error("Lỗi đẩy ảnh offline makh: " + makh, e);
+    }
   }
+  localStorage.setItem(imgKey, JSON.stringify(imgs));
 }
 
 // ----------------------------------------------------
-// HÀM BỔ TRỢ ĐỊNH DẠNG SỐ (FORMAT & PARSE)
+// ĐỒNG BỘ DỮ LIỆU CỤC BỘ LÊN SHEET
 // ----------------------------------------------------
-function formatNumberText(val) {
-  if (val === "" || val === null || val === undefined || isNaN(Number(val))) return "";
-  return Number(val).toLocaleString("en-US", {
-    minimumFractionDigits: 3,
-    maximumFractionDigits: 3
-  });
-}
-
-function formatCoordText(val) {
-  if (val === "" || val === null || val === undefined || isNaN(Number(val))) return "";
-  return Number(val).toLocaleString("en-US", {
-    minimumFractionDigits: 8,
-    maximumFractionDigits: 8
-  });
-}
-
-function parseFormattedNumber(val) {
-  if (val === "" || val === null || val === undefined) return "";
-  const cleanStr = String(val).replace(/,/g, "").trim();
-  return isNaN(Number(cleanStr)) ? "" : Number(cleanStr);
-}
-
-// ----------------------------------------------------
-// QUẢN LÝ TỰ ĐỘNG TẠO VÀ GHI HÀNG VÀO FILE TEXT CỤC BỘ
-// ----------------------------------------------------
-function initLocalTextFiles() {
-  if (!localStorage.getItem(FILE_CHISO_TXT)) {
-    const headerChiSo = "id_chiso\tma_khang\tten_khang\tdia_chi\tma_sogcs\tdanh_so\tso_cot\tma_tram\tten_tram\tso_cto\tten_ndung\tten_nvien\thsn\tbcs\tchiso_cu\tchiso_moi\tsan_luong\tsluong_thao\ttong_sluong\tsluong_kt\tchenh_lech\ttyle_clech\tky\tthang\tnam\tngay_nhap\tnguoi_nhap\tlat\tlng\tso_dthoai\tghi_chu\ttype\thinh_cto";
-    localStorage.setItem(FILE_CHISO_TXT, headerChiSo);
-  }
-
-  if (!localStorage.getItem(FILE_DINHVI_TXT)) {
-    const headerDinhVi = "id\tma_khang\tten_khang\tso_cto\tma_tram\tten_tram\tso_cot\tten_ndung\tten_nvien\tten_cviec\tnote\tlat\tlng\ttime\ttrang_thai\tnhap_cmis";
-    localStorage.setItem(FILE_DINHVI_TXT, headerDinhVi);
-  }
-}
-
-function appendToTextFile(fileName, rowDataObj) {
-  let content = localStorage.getItem(fileName) || "";
-  if (fileName === FILE_CHISO_TXT) {
-    const line = [
-      rowDataObj.id_chiso || "", rowDataObj.ma_khang || "", rowDataObj.ten_khang || "",
-      rowDataObj.dia_chi || "", rowDataObj.ma_sogcs || "", rowDataObj.danh_so || "",
-      rowDataObj.so_cot || "", rowDataObj.ma_tram || "", rowDataObj.ten_tram || "",
-      rowDataObj.so_cto || "", rowDataObj.ten_ndung || "", rowDataObj.ten_nvien || "",
-      rowDataObj.hsn || 1, rowDataObj.bcs || "", 
-      formatNumberText(rowDataObj.chiso_cu),
-      rowDataObj.chiso_moi !== undefined && rowDataObj.chiso_moi !== "" ? formatNumberText(rowDataObj.chiso_moi) : "",
-      formatNumberText(rowDataObj.san_luong),
-      formatNumberText(rowDataObj.sluong_thao),
-      formatNumberText(rowDataObj.tong_sluong),
-      formatNumberText(rowDataObj.sluong_kt),
-      rowDataObj.chenh_lech || "", rowDataObj.tyle_clech || "",
-      rowDataObj.ky || "", rowDataObj.thang || "", rowDataObj.nam || "",
-      rowDataObj.time || "", rowDataObj.nguoi_nhap || "", 
-      formatCoordText(rowDataObj.lat),
-      formatCoordText(rowDataObj.lng), 
-      rowDataObj.so_dthoai || "", rowDataObj.ghi_chu || "",
-      rowDataObj.type || "SAVE",
-      rowDataObj.hinh_cto || ""
-    ].join("\t");
-    content += "\n" + line;
-  } else if (fileName === FILE_DINHVI_TXT) {
-    const line = [
-      rowDataObj.id || "", rowDataObj.ma_khang || "", rowDataObj.ten_khang || "",
-      rowDataObj.so_cto || "", rowDataObj.ma_tram || "", rowDataObj.ten_tram || "",
-      rowDataObj.so_cot || "", rowDataObj.ten_ndung || "", rowDataObj.ten_nvien || "",
-      rowDataObj.ten_cviec || "Ghi điện", rowDataObj.ghi_chu || "", rowDataObj.lat || "",
-      rowDataObj.lng || "", rowDataObj.time || "", rowDataObj.trang_thai || "1",
-      rowDataObj.nhap_cmis || ""
-    ].join("\t");
-    content += "\n" + line;
-  }
-  localStorage.setItem(fileName, content);
-}
-
-// ----------------------------------------------------
-// ĐỒNG BỘ NỘI DUNG 2 FILE TEXT LÊN GOOGLE SHEET
-// ----------------------------------------------------
-function syncLocalTextFilesToSheet() {
+function syncLocalExcelToSheet() {
   return new Promise((resolve) => {
-    const chisoRaw = localStorage.getItem(FILE_CHISO_TXT) || "";
-    const dinhviRaw = localStorage.getItem(FILE_DINHVI_TXT) || "";
+    const csKey = getExcelKeyChiSo();
+    const dvKey = getExcelKeyDinhVi();
 
-    const chisoLines = chisoRaw.split("\n").filter(l => l.trim().length > 0);
-    const dinhviLines = dinhviRaw.split("\n").filter(l => l.trim().length > 0);
+    const chisoLogs = JSON.parse(localStorage.getItem(csKey) || "[]");
+    const dinhviLogs = JSON.parse(localStorage.getItem(dvKey) || "[]");
 
-    if (chisoLines.length <= 1 && dinhviLines.length <= 1) {
+    if (chisoLogs.length === 0 && dinhviLogs.length === 0) {
       resolve(false);
       return;
-    }
-
-    const chisoLogs = [];
-    for (let i = 1; i < chisoLines.length; i++) {
-      const cols = chisoLines[i].split("\t");
-      chisoLogs.push({
-        id_chiso: cols[0], ma_khang: cols[1], ten_khang: cols[2], dia_chi: cols[3],
-        ma_sogcs: cols[4], danh_so: cols[5], so_cot: cols[6], ma_tram: cols[7],
-        ten_tram: cols[8], so_cto: cols[9], ten_ndung: cols[10], ten_nvien: cols[11],
-        hsn: cols[12], bcs: cols[13], 
-        chiso_cu: parseFormattedNumber(cols[14]), 
-        chiso_moi: parseFormattedNumber(cols[15]),
-        san_luong: parseFormattedNumber(cols[16]), 
-        sluong_thao: parseFormattedNumber(cols[17]), 
-        tong_sluong: parseFormattedNumber(cols[18]), 
-        sluong_kt: parseFormattedNumber(cols[19]),
-        chenh_lech: cols[20], tyle_clech: cols[21], ky: cols[22], thang: cols[23],
-        nam: cols[24], time: cols[25], nguoi_nhap: cols[26], 
-        lat: parseFormattedNumber(cols[27]),
-        lng: parseFormattedNumber(cols[28]), 
-        so_dthoai: cols[29], ghi_chu: cols[30], type: cols[31],
-        hinh_cto: cols[32] || ""
-      });
-    }
-
-    const dinhviLogs = [];
-    for (let i = 1; i < dinhviLines.length; i++) {
-      const cols = dinhviLines[i].split("\t");
-      dinhviLogs.push({
-        id: cols[0], ma_khang: cols[1], ten_khang: cols[2], so_cto: cols[3],
-        ma_tram: cols[4], ten_tram: cols[5], so_cot: cols[6], ten_ndung: cols[7],
-        ten_nvien: cols[8], ten_cviec: cols[9], ghi_chu: cols[10], lat: cols[11],
-        lng: cols[12], time: cols[13], trang_thai: cols[14], nhap_cmis: cols[15]
-      });
     }
 
     fetch(API_URL, {
@@ -270,10 +197,9 @@ function syncLocalTextFilesToSheet() {
     .then(res => res.json())
     .then(res => {
       if (res.status === "success") {
-        localStorage.removeItem(FILE_CHISO_TXT);
-        localStorage.removeItem(FILE_DINHVI_TXT);
-        initLocalTextFiles();
-        showToast("🔄 Đã đồng bộ dữ liệu từ thiết bị lên server.");
+        localStorage.setItem(csKey, JSON.stringify([]));
+        localStorage.setItem(dvKey, JSON.stringify([]));
+        showToast("🔄 Đã đồng bộ dữ liệu Excel từ thiết bị lên server.");
         resolve(true);
       } else {
         resolve(false);
@@ -281,6 +207,96 @@ function syncLocalTextFilesToSheet() {
     })
     .catch(() => resolve(false));
   });
+}
+
+// ----------------------------------------------------
+// XUẤT FILE EXCEL (.XLSX) TRỰC TIẾP
+// ----------------------------------------------------
+function downloadAllExcelFiles() {
+  const csKey = getExcelKeyChiSo();
+  const dvKey = getExcelKeyDinhVi();
+
+  const chisoData = JSON.parse(localStorage.getItem(csKey) || "[]");
+  const dinhviData = JSON.parse(localStorage.getItem(dvKey) || "[]");
+
+  if (typeof XLSX === "undefined") {
+    showToast("❌ Thư viện Excel chưa được tải xong!");
+    return;
+  }
+
+  const wb = XLSX.utils.book_new();
+
+  const wsChiSo = XLSX.utils.json_to_sheet(chisoData.length > 0 ? chisoData : [{}]);
+  XLSX.utils.book_append_sheet(wb, wsChiSo, "chi_so");
+
+  const wsDinhVi = XLSX.utils.json_to_sheet(dinhviData.length > 0 ? dinhviData : [{}]);
+  XLSX.utils.book_append_sheet(wb, wsDinhVi, "dinh_vi");
+
+  const fileName = `ChiSo_${currentUser?.ten_ndung || 'User'}_${Date.now()}.xlsx`;
+  XLSX.writeFile(wb, fileName);
+  showToast("📊 Đã xuất file Excel dữ liệu về máy!");
+}
+
+// ----------------------------------------------------
+// NÉN & TẢI ẢNH LÊN CLOUDINARY
+// ----------------------------------------------------
+function compressImage(file, fileName = "photo.jpg", maxWidth = 1000, quality = 0.7) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = (event) => {
+      const img = new Image();
+      img.src = event.target.result;
+      img.onload = () => {
+        let width = img.width;
+        let height = img.height;
+        if (width > maxWidth) {
+          height = Math.round((height * maxWidth) / width);
+          width = maxWidth;
+        }
+        const canvas = document.createElement("canvas");
+        canvas.width = width; canvas.height = height;
+        const ctx = canvas.getContext("2d");
+        ctx.drawImage(img, 0, 0, width, height);
+        canvas.toBlob((blob) => {
+          if (blob) {
+            resolve(new File([blob], fileName, { type: "image/jpeg", lastModified: Date.now() }));
+          } else reject(new Error("Lỗi nén ảnh"));
+        }, "image/jpeg", quality);
+      };
+      img.onerror = (err) => reject(err);
+    };
+    reader.onerror = (err) => reject(err);
+  });
+}
+
+async function uploadToCloudinary(file, maKhang = "") {
+  const customFileName = `${maKhang || 'khachhang'}_${Date.now()}`;
+  const compressedFile = await compressImage(file, `${customFileName}.jpg`, 1000, 0.7);
+  
+  const formData = new FormData();
+  formData.append("file", compressedFile);
+  formData.append("upload_preset", CLOUDINARY_UPLOAD_PRESET);
+  formData.append('folder', 'chi_so');
+  formData.append("public_id", customFileName);
+  
+  const res = await fetch(`https://api.cloudinary.com/v1_1/${encodeURIComponent(CLOUDINARY_CLOUD_NAME)}/image/upload`, {
+    method: "POST", body: formData
+  });
+  const data = await res.json();
+  if (data.secure_url) return data.secure_url;
+  throw new Error(data.error?.message || "Lỗi tải ảnh lên Cloudinary!");
+}
+
+function formatNumberText(val) {
+  if (val === "" || val === null || val === undefined || isNaN(Number(val))) return "";
+  return Number(val).toLocaleString("en-US", { minimumFractionDigits: 3, maximumFractionDigits: 3 });
+}
+
+function parseFormattedNumber(val) {
+  if (val === "" || val === null || val === undefined) return "";
+  const cleanStr = String(val).replace(/,/g, "").trim();
+  return isNaN(Number(cleanStr)) ? "" : Number(cleanStr);
 }
 
 let toastTimer = null;
@@ -306,37 +322,20 @@ function showCustomConfirm(title, message, isDanger = false) {
     btnConfirm.style.background = isDanger ? "#dc3545" : "#28a745";
 
     modal.style.display = "flex";
-
     btnConfirm.onclick = () => { modal.style.display = "none"; resolve(true); };
     btnCancel.onclick = () => { modal.style.display = "none"; resolve(false); };
   });
 }
 
-function getClientCacheKey() {
-  return "cmis_chiso_cache_" + String(currentUser?.ten_ndung || "").trim().toLowerCase();
-}
-
 function loadChiSoData() {
   let cachedList = null;
-  
   try {
     const raw = localStorage.getItem(getClientCacheKey());
     if (raw) {
       const obj = JSON.parse(raw);
-      if (obj && Array.isArray(obj.list) && obj.list.length > 0) {
-        cachedList = obj.list;
-      }
+      if (obj && Array.isArray(obj.list) && obj.list.length > 0) cachedList = obj.list;
     }
   } catch (e) {}
-
-  if (!cachedList) {
-    try {
-      const backupRaw = localStorage.getItem(FILE_SERVER_BACKUP_TXT);
-      if (backupRaw) {
-        cachedList = JSON.parse(backupRaw);
-      }
-    } catch (e) {}
-  }
 
   if (cachedList && Array.isArray(cachedList) && cachedList.length > 0) {
     groupAndRender(cachedList);
@@ -360,10 +359,6 @@ function fetchSilentLatestData(username, isFirstLoad = false) {
   .then(res => {
     if (res.status === "success") {
       localStorage.setItem(getClientCacheKey(), JSON.stringify({ time: Date.now(), list: res.list }));
-      try {
-        localStorage.setItem(FILE_SERVER_BACKUP_TXT, JSON.stringify(res.list));
-      } catch (e) {}
-
       groupAndRender(res.list);
     } else if (isFirstLoad) {
       document.getElementById("listContainer").innerHTML = `<p style='color:red; text-align:center;'>❌ ${res.message || 'Lỗi tải dữ liệu!'}</p>`;
@@ -410,13 +405,10 @@ function groupAndRender(flatList) {
   customerKeys = Object.keys(groupedData).sort((a, b) => {
     const custA = groupedData[a];
     const custB = groupedData[b];
-
     const sogcsCompare = String(custA.ma_sogcs).localeCompare(String(custB.ma_sogcs), undefined, { numeric: true, sensitivity: 'base' });
     if (sogcsCompare !== 0) return sogcsCompare;
-
     const danhSoCompare = String(custA.danh_so).localeCompare(String(custB.danh_so), undefined, { numeric: true, sensitivity: 'base' });
     if (danhSoCompare !== 0) return danhSoCompare;
-
     return String(custA.ma_khang).localeCompare(String(custB.ma_khang), undefined, { numeric: true, sensitivity: 'base' });
   });
 
@@ -427,24 +419,18 @@ function groupAndRender(flatList) {
 function updateSummaryBar() {
   const tongKh = customerKeys.length;
   let daCoCS = 0;
-
   customerKeys.forEach(makh => {
     const hasCS = groupedData[makh].items.some(i => i.chiso_moi !== "" && i.chiso_moi !== undefined && i.chiso_moi !== null);
     if (hasCS) daCoCS++;
   });
-
   document.getElementById("sumTongKh").innerText = tongKh;
   document.getElementById("sumDaCS").innerText = daCoCS;
   document.getElementById("sumChuaGhi").innerText = tongKh - daCoCS;
 }
 
-// ----------------------------------------------------
-// THAO TÁC NÚT CHỤP ẢNH & HIỂN THỊ HÌNH ẢNH
-// ----------------------------------------------------
 function promptImageSource(maKhang) {
   const inputCamera = document.getElementById(`input_camera_${maKhang}`);
   const inputGallery = document.getElementById(`input_gallery_${maKhang}`);
-
   const modal = document.getElementById("customConfirmModal");
   const titleEl = document.getElementById("confirmModalTitle");
   const msgEl = document.getElementById("confirmModalMessage");
@@ -462,18 +448,8 @@ function promptImageSource(maKhang) {
   btnCancel.style.color = "white";
 
   modal.style.display = "flex";
-
-  btnConfirm.onclick = () => {
-    modal.style.display = "none";
-    resetConfirmModalButtons();
-    if (inputCamera) inputCamera.click();
-  };
-
-  btnCancel.onclick = () => {
-    modal.style.display = "none";
-    resetConfirmModalButtons();
-    if (inputGallery) inputGallery.click();
-  };
+  btnConfirm.onclick = () => { modal.style.display = "none"; resetConfirmModalButtons(); if (inputCamera) inputCamera.click(); };
+  btnCancel.onclick = () => { modal.style.display = "none"; resetConfirmModalButtons(); if (inputGallery) inputGallery.click(); };
 }
 
 function resetConfirmModalButtons() {
@@ -491,6 +467,11 @@ function handleImageSelected(event, maKhang) {
   if (!file) return;
 
   currentCapturedFiles[maKhang] = file;
+
+  // Nếu offline, lưu ngay bản đệm ảnh vào bộ nhớ thiết bị
+  if (!navigator.onLine) {
+    saveOfflineImage(maKhang, file);
+  }
 
   const reader = new FileReader();
   reader.onload = (e) => {
@@ -613,7 +594,6 @@ function renderCurrentCustomerCard(slideDirection = null) {
         </table>
       </div>
 
-      <!-- Inputs ẩn để chọn file máy ảnh / thư viện -->
       <input type="file" id="input_camera_${cust.ma_khang}" accept="image/*" capture="environment" style="display:none;" onchange="handleImageSelected(event, '${cust.ma_khang}')">
       <input type="file" id="input_gallery_${cust.ma_khang}" accept="image/*" style="display:none;" onchange="handleImageSelected(event, '${cust.ma_khang}')">
 
@@ -648,7 +628,6 @@ function getLocationAndSave(maKhang) {
     showToast("❌ Trình duyệt không hỗ trợ định vị GPS!");
     return;
   }
-
   showToast("⏳ Đang lấy vị trí GPS...");
 
   navigator.geolocation.getCurrentPosition(
@@ -677,7 +656,9 @@ function getLocationAndSave(maKhang) {
         trang_thai: "1",
         nhap_cmis: ""
       };
-      appendToTextFile(FILE_DINHVI_TXT, newDinhViRecord);
+      
+      // Ghi vao store Excel dinh vi offline
+      appendToExcelStore(getExcelKeyDinhVi(), newDinhViRecord);
 
       if (groupedData[maKhang]) {
         groupedData[maKhang].items.forEach(item => {
@@ -687,8 +668,12 @@ function getLocationAndSave(maKhang) {
         renderCurrentCustomerCard();
       }
 
-      showToast("⏳ Đang cập nhật tọa độ...");
+      if (!navigator.onLine) {
+        showToast("⚠️ Đã lưu tọa độ vào bộ nhớ Excel thiết bị (Offline)!");
+        return;
+      }
 
+      showToast("⏳ Đang cập nhật tọa độ...");
       fetch(API_URL, {
         method: "POST",
         headers: { "Content-Type": "text/plain;charset=utf-8" },
@@ -718,9 +703,7 @@ function getLocationAndSave(maKhang) {
       })
       .catch(() => showToast("⚠️ Đã lưu tọa độ vào thiết bị!"));
     },
-    (error) => {
-      showToast("❌ Lỗi định vị GPS. Vui lòng bật vị trí!");
-    },
+    (error) => { showToast("❌ Lỗi định vị GPS. Vui lòng bật vị trí!"); },
     { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
   );
 }
@@ -739,7 +722,6 @@ function updateKwKtDisplay(maKhang, bcs, sluongKt, sluongThao) {
 
 function nextCustomer() {
   if (isAnimating) return;
-
   isAnimating = true;
   const activeCard = document.getElementById("activeCustomerCard");
   if (activeCard) {
@@ -756,7 +738,6 @@ function nextCustomer() {
 
 function prevCustomer() {
   if (isAnimating) return;
-
   isAnimating = true;
   const activeCard = document.getElementById("activeCustomerCard");
   if (activeCard) {
@@ -773,9 +754,7 @@ function prevCustomer() {
 
 function setupSwipeEvents() {
   const container = document.getElementById("listContainer");
-  let startX = 0;
-  let startY = 0;
-  let isMouseDown = false;
+  let startX = 0, startY = 0, isMouseDown = false;
 
   container.addEventListener('touchstart', (e) => {
     if (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA") return;
@@ -785,66 +764,42 @@ function setupSwipeEvents() {
 
   container.addEventListener('touchend', (e) => {
     if (!startX || !startY || isAnimating) return;
-
-    let endX = e.changedTouches[0].clientX;
-    let endY = e.changedTouches[0].clientY;
-    handleSwipeGesture(startX, startY, endX, endY);
-
-    startX = 0;
-    startY = 0;
+    handleSwipeGesture(startX, startY, e.changedTouches[0].clientX, e.changedTouches[0].clientY);
+    startX = 0; startY = 0;
   }, { passive: true });
 
   container.addEventListener('mousedown', (e) => {
     if (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA" || e.target.closest("button")) return;
-    isMouseDown = true;
-    startX = e.clientX;
-    startY = e.clientY;
+    isMouseDown = true; startX = e.clientX; startY = e.clientY;
     container.style.cursor = "grabbing";
   });
 
   window.addEventListener('mouseup', (e) => {
     if (!isMouseDown) return;
-    isMouseDown = false;
-    container.style.cursor = "default";
-
+    isMouseDown = false; container.style.cursor = "default";
     if (!startX || !startY || isAnimating) return;
-
-    let endX = e.clientX;
-    let endY = e.clientY;
-    handleSwipeGesture(startX, startY, endX, endY);
-
-    startX = 0;
-    startY = 0;
+    handleSwipeGesture(startX, startY, e.clientX, e.clientY);
+    startX = 0; startY = 0;
   });
 
   window.addEventListener('keydown', (e) => {
     if (["INPUT", "TEXTAREA"].includes(document.activeElement.tagName)) return;
-
-    if (e.key === "ArrowLeft") {
-      prevCustomer();
-    } else if (e.key === "ArrowRight") {
-      nextCustomer();
-    }
+    if (e.key === "ArrowLeft") prevCustomer();
+    else if (e.key === "ArrowRight") nextCustomer();
   });
 }
 
 function handleSwipeGesture(startX, startY, endX, endY) {
   let diffX = startX - endX;
   let diffY = startY - endY;
-
   if (Math.abs(diffX) > Math.abs(diffY) && Math.abs(diffX) > 40) {
-    if (diffX > 0) {
-      nextCustomer();
-    } else {
-      prevCustomer();
-    }
+    if (diffX > 0) nextCustomer(); else prevCustomer();
   }
 }
 
 async function calculateRow(maKhang, bcs, rowIndex, csCu, hsn, sluongThao) {
   const inputEl = document.getElementById(`cs_moi_${rowIndex}`);
   const val = inputEl ? inputEl.value.trim() : "";
-
   const slHiddenEl = document.getElementById(`sl_val_${rowIndex}`);
   const tongSlCell = document.getElementById(`tong_sl_${rowIndex}`);
 
@@ -861,11 +816,7 @@ async function calculateRow(maKhang, bcs, rowIndex, csCu, hsn, sluongThao) {
   const slThao = Number(sluongThao) || 0;
 
   if (csMoi < csCuVal) {
-    await showCustomConfirm(
-      "⚠️ CẢNH BÁO CHỈ SỐ LỖI", 
-      `Chỉ số mới (${csMoi}) nhỏ hơn chỉ số cũ (${csCuVal})!\nVui lòng kiểm tra và nhập lại.`, 
-      true
-    );
+    await showCustomConfirm("⚠️ CẢNH BÁO CHỈ SỐ LỖI", `Chỉ số mới (${csMoi}) nhỏ hơn chỉ số cũ (${csCuVal})!\nVui lòng kiểm tra và nhập lại.`, true);
     inputEl.value = "";
     if (slHiddenEl) slHiddenEl.value = "-";
     if (tongSlCell) tongSlCell.innerText = "-";
@@ -886,13 +837,11 @@ async function calculateRow(maKhang, bcs, rowIndex, csCu, hsn, sluongThao) {
 function checkCancelButtonStatus(maKhang) {
   const cust = groupedData[maKhang];
   if (!cust) return;
-
   let hasNewCS = false;
   cust.items.forEach(item => {
     const inputEl = document.getElementById(`cs_moi_${item.rowIndex}`);
     if (inputEl && inputEl.value !== "") hasNewCS = true;
   });
-
   const btnCancel = document.getElementById(`btn_cancel_${maKhang}`);
   if (btnCancel) btnCancel.disabled = !hasNewCS && !cust.hinh_cto && !currentCapturedFiles[maKhang];
 }
@@ -900,69 +849,46 @@ function checkCancelButtonStatus(maKhang) {
 function filterDaCS() {
   document.getElementById("searchInput").value = "";
   const recordedKeys = [];
-
   Object.keys(groupedData).forEach(makh => {
     const cust = groupedData[makh];
     const hasCS = cust.items.some(i => i.chiso_moi !== "" && i.chiso_moi !== undefined && i.chiso_moi !== null);
     if (hasCS) recordedKeys.push(makh);
   });
-
   if (recordedKeys.length > 0) {
-    customerKeys = recordedKeys;
-    currentCardIndex = 0;
-    updateSummaryBar();
-    renderCurrentCustomerCard();
-  } else {
-    showToast("⚠️ Chưa có khách hàng nào được ghi chỉ số!");
-  }
+    customerKeys = recordedKeys; currentCardIndex = 0; updateSummaryBar(); renderCurrentCustomerCard();
+  } else showToast("⚠️ Chưa có khách hàng nào được ghi chỉ số!");
 }
 
 function filterChuaGhi() {
   document.getElementById("searchInput").value = "";
   const unrecordedKeys = [];
-
   Object.keys(groupedData).forEach(makh => {
     const cust = groupedData[makh];
     const hasCS = cust.items.some(i => i.chiso_moi !== "" && i.chiso_moi !== undefined && i.chiso_moi !== null);
     if (!hasCS) unrecordedKeys.push(makh);
   });
-
   if (unrecordedKeys.length > 0) {
-    customerKeys = unrecordedKeys;
-    currentCardIndex = 0;
-    updateSummaryBar();
-    renderCurrentCustomerCard();
-  } else {
-    showToast("Tất cả khách hàng đã được ghi xong.");
-  }
+    customerKeys = unrecordedKeys; currentCardIndex = 0; updateSummaryBar(); renderCurrentCustomerCard();
+  } else showToast("Tất cả khách hàng đã được ghi xong.");
 }
 
 function showAllData() {
   document.getElementById("searchInput").value = "";
-  
   customerKeys = Object.keys(groupedData).sort((a, b) => {
     const custA = groupedData[a];
     const custB = groupedData[b];
-
     const sogcsCompare = String(custA.ma_sogcs).localeCompare(String(custB.ma_sogcs), undefined, { numeric: true, sensitivity: 'base' });
     if (sogcsCompare !== 0) return sogcsCompare;
-
     const danhSoCompare = String(custA.danh_so).localeCompare(String(custB.danh_so), undefined, { numeric: true, sensitivity: 'base' });
     if (danhSoCompare !== 0) return danhSoCompare;
-
     return String(custA.ma_khang).localeCompare(String(custB.ma_khang), undefined, { numeric: true, sensitivity: 'base' });
   });
-
-  currentCardIndex = 0;
-  updateSummaryBar();
-  renderCurrentCustomerCard();
-  showToast("📋 Danh sách tất cả khách hàng.");
+  currentCardIndex = 0; updateSummaryBar(); renderCurrentCustomerCard(); showToast("📋 Danh sách tất cả khách hàng.");
 }
 
 function filterData() {
   const q = document.getElementById("searchInput").value.toLowerCase().trim();
   if (!q) return;
-
   const targetIndex = customerKeys.findIndex(makh => {
     const cust = groupedData[makh];
     return (
@@ -978,22 +904,13 @@ function filterData() {
       String(cust.ghi_chu || "").toLowerCase().includes(q)
     );
   });
-
-  if (targetIndex !== -1) {
-    currentCardIndex = targetIndex;
-    renderCurrentCustomerCard();
-  } else {
-    showToast("❌ Không tìm thấy khách hàng theo yêu cầu.");
-  }
+  if (targetIndex !== -1) { currentCardIndex = targetIndex; renderCurrentCustomerCard(); } 
+  else showToast("❌ Không tìm thấy khách hàng theo yêu cầu.");
 }
 
-// ----------------------------------------------------
-// HÀM KIỂM TRA ĐIỀU KIỆN BẮT BUỘC CHỤP ẢNH KHI BIẾN ĐỘNG CÔNG SUẤT
-// ----------------------------------------------------
 function checkPhotoRequirement(maKhang) {
   const cust = groupedData[maKhang];
   if (!cust) return false;
-
   for (let item of cust.items) {
     const inputEl = document.getElementById(`cs_moi_${item.rowIndex}`);
     const csMoi = inputEl ? Number(inputEl.value.trim()) : 0;
@@ -1004,29 +921,18 @@ function checkPhotoRequirement(maKhang) {
 
     const sanLuong = Math.round((csMoi - csCu) * hsn);
     const tongSluong = sanLuong + slThao;
-//Đều kiện chụp ảnh chỉ số công tơ ---------------------------------------------------------
+
     if (sluongKtVal > 0) {
       const diffPercent = ((tongSluong - sluongKtVal) / sluongKtVal) * 100;
-      // Điều kiện: biến động >= +100% hoặc <= -100% VÀ tổng kW >= 100
-      //if (Math.abs(diffPercent) >= 100 && tongSluong >= 100) {
-       if (Math.abs(diffPercent) >= 70) {
-        return true; // Bắt buộc phải có ảnh
-      }
+      if (Math.abs(diffPercent) >= 70) return true;
     } 
-    else if (sluongKtVal === 0 && tongSluong >= 100) {
-      // Trường hợp kỳ trước bằng 0, kỳ này >= 100 (tương đương tăng >= 100%)
-      return true;
-    }
-    else if (sluongKtVal >= 100 && tongSluong === 0) {
-      // Trường hợp kỳ trước >= 100, kỳ này = 0 (tương đương tăng >= 100%)
-      return true;
-    }
-//Hết đều kiện chụp ảnh chỉ số công tơ ---------------------------------------------------------    
+    else if (sluongKtVal === 0 && tongSluong >= 100) return true;
+    else if (sluongKtVal >= 100 && tongSluong === 0) return true;
   }
   return false;
 }
 
-// Lưu dữ liệu: Nén và tải ảnh lên Cloudinary -> Ghi vào chiso.txt -> Cập nhật Google Sheet (cột hinh_cto)
+// Lưu dữ liệu: Tải ảnh Cloudinary khi Online / Lưu bản đệm khi Offline -> Ghi vào Store Excel
 async function saveCustomerData(maKhang) {
   const cust = groupedData[maKhang];
   if (!cust) return;
@@ -1043,30 +949,17 @@ async function saveCustomerData(maKhang) {
   });
 
   if (emptyItem) {
-    await showCustomConfirm(
-      "⚠️ CHƯA NHẬP CHỈ SỐ", 
-      `Chưa nhập đủ chỉ số cho các BCS (${emptyItem.item.bcs})!\nVui lòng kiểm tra lại trước khi lưu.`, 
-      true
-    );
-    if (emptyItem.inputEl) {
-      setTimeout(() => emptyItem.inputEl.focus(), 100);
-    }
+    await showCustomConfirm("⚠️ CHƯA NHẬP CHỈ SỐ", `Chưa nhập đủ chỉ số cho các BCS (${emptyItem.item.bcs})!\nVui lòng kiểm tra lại trước khi lưu.`, true);
+    if (emptyItem.inputEl) setTimeout(() => emptyItem.inputEl.focus(), 100);
     return;
   }
 
-  // --- BỔ SUNG: RÀNG BUỘC CHỤP ẢNH KHI BIẾN ĐỘNG SL >= +/-100% VÀ TỔNG kW >= 100 ---
   const isPhotoRequired = checkPhotoRequirement(maKhang);
   const hasPhoto = Boolean(cust.hinh_cto || currentCapturedFiles[maKhang]);
 
   if (isPhotoRequired && !hasPhoto) {
-    const confirmCapture = await showCustomConfirm(
-      "📸 YÊU CẦU CHỤP ẢNH", 
-      "Sản lượng biến động ≥ ±70% so với kỳ trước.\nBắt buộc phải chụp ảnh chỉ số trước khi lưu.", 
-      true
-    );
-    if (confirmCapture) {
-      promptImageSource(maKhang);
-    }
+    const confirmCapture = await showCustomConfirm("📸 YÊU CẦU CHỤP ẢNH", "Sản lượng biến động ≥ ±70% so với kỳ trước.\nBắt buộc phải chụp ảnh chỉ số trước khi lưu.", true);
+    if (confirmCapture) promptImageSource(maKhang);
     return;
   }
 
@@ -1092,10 +985,7 @@ async function saveCustomerData(maKhang) {
   });
 
   if (abnormalList.length > 0) {
-    const abnormalMsg = "Phát hiện sản lượng biến động bất thường:\n" + 
-                        abnormalList.join("\n") + 
-                        "\n\nBạn có chắc chắn muốn lưu chỉ số này không?";
-    const confirmAbnormal = await showCustomConfirm("⚠️ CẢNH BÁO BẤT THƯỜNG", abnormalMsg, true);
+    const confirmAbnormal = await showCustomConfirm("⚠️ CẢNH BÁO BẤT THƯỜNG", "Phát hiện sản lượng biến động bất thường:\n" + abnormalList.join("\n") + "\n\nBạn có chắc chắn muốn lưu chỉ số này không?", true);
     if (!confirmAbnormal) return;
   } else {
     const confirmSave = await showCustomConfirm("XÁC NHẬN GHI DỮ LIỆU", "Lưu chỉ số và ghi chú cho khách hàng này?");
@@ -1106,17 +996,20 @@ async function saveCustomerData(maKhang) {
 
   let imageUrl = cust.hinh_cto || "";
 
-  // Upload ảnh lên Cloudinary nếu có ảnh chụp mới
+  // Tải ảnh lên Cloudinary nếu đang ONLINE, ngược lại lưu Offline
   if (currentCapturedFiles[maKhang]) {
-    try {
-      //showToast("⏳ Đang nén và tải ảnh lên Cloudinary...");
-      // Truyền maKhang vào làm tham số thứ 2
-      imageUrl = await uploadToCloudinary(currentCapturedFiles[maKhang], maKhang);
-      cust.hinh_cto = imageUrl;
-    } catch (e) {
-      showToast("❌ Lỗi tải ảnh lên Cloudinary: " + e.message);
-      if (btnSave) btnSave.disabled = false;
-      return;
+    if (navigator.onLine) {
+      try {
+        imageUrl = await uploadToCloudinary(currentCapturedFiles[maKhang], maKhang);
+        cust.hinh_cto = imageUrl;
+      } catch (e) {
+        showToast("❌ Lỗi tải ảnh lên Cloudinary: " + e.message);
+        if (btnSave) btnSave.disabled = false;
+        return;
+      }
+    } else {
+      await saveOfflineImage(maKhang, currentCapturedFiles[maKhang]);
+      imageUrl = "OFFLINE_IMAGE_PENDING";
     }
   }
 
@@ -1158,7 +1051,8 @@ async function saveCustomerData(maKhang) {
         hinh_cto: imageUrl
       };
 
-      appendToTextFile(FILE_CHISO_TXT, itemRecord);
+      // Lưu log vào Store Excel offline
+      appendToExcelStore(getExcelKeyChiSo(), itemRecord);
 
       payload.push({
         id_chiso: item.id_chiso,
@@ -1217,6 +1111,13 @@ async function saveCustomerData(maKhang) {
   };
 
   showToast(`⏳ Đang lưu dữ liệu...`);
+
+  if (!navigator.onLine) {
+    applyLocalChanges();
+    showToast("⚠️ Đã lưu vào bộ nhớ Excel thiết bị (Đang Offline)!");
+    if (btnSave) btnSave.disabled = false;
+    return;
+  }
   
   fetch(API_URL, {
     method: "POST",
@@ -1234,35 +1135,29 @@ async function saveCustomerData(maKhang) {
     if (res.status === "success") {
       showToast("✅ " + res.message);
     } else {
-      showToast("⚠️ Đã lưu vào file text thiết bị (Chờ đồng bộ)!");
+      showToast("⚠️ Đã lưu vào file Excel thiết bị (Chờ đồng bộ)!");
     }
   })
   .catch(() => {
     applyLocalChanges();
-    showToast("⚠️ Đã lưu vào file text thiết bị (Chờ đồng bộ)!");
+    showToast("⚠️ Đã lưu vào file Excel thiết bị (Chờ đồng bộ)!");
   })
   .finally(() => {
     if (btnSave) btnSave.disabled = false;
   });
 }
 
-// Hủy dữ liệu: Xóa link hinh_cto, xóa ảnh trên Cloudinary và xóa chỉ số
 async function cancelCustomerData(maKhang) {
   const cust = groupedData[maKhang];
   if (!cust) return;
 
   const btnCancel = document.getElementById(`btn_cancel_${maKhang}`);
 
-  const confirmCancel = await showCustomConfirm(
-    "XÁC NHẬN HỦY DỮ LIỆU", 
-    "Bạn có muốn hủy dữ liệu chỉ số của khách hàng này không?", 
-    true
-  );
+  const confirmCancel = await showCustomConfirm("XÁC NHẬN HỦY DỮ LIỆU", "Bạn có muốn hủy dữ liệu chỉ số của khách hàng này không?", true);
   if (!confirmCancel) return;
 
   if (btnCancel) btnCancel.disabled = true;
 
-  // 1. LẤY CHUẨN XÁC LINK ẢNH CŨ CẦN XÓA (Ưu tiên cust.hinh_cto hoặc từ item)
   let oldImageUrl = cust.hinh_cto || "";
   if (!oldImageUrl && cust.items && cust.items.length > 0) {
     const itemWithImg = cust.items.find(i => i.hinh_cto);
@@ -1278,8 +1173,7 @@ async function cancelCustomerData(maKhang) {
       rowIndex: item.rowIndex
     });
 
-    // Ghi nhận log CANCEL vào file text local
-    appendToTextFile(FILE_CHISO_TXT, {
+    appendToExcelStore(getExcelKeyChiSo(), {
       id_chiso: item.id_chiso,
       ma_khang: cust.ma_khang,
       ten_khang: cust.ten_khang,
@@ -1305,11 +1199,10 @@ async function cancelCustomerData(maKhang) {
       time: nowStr,
       nguoi_nhap: currentUser.ten_nvien || currentUser.ten_ndung,
       type: "CANCEL",
-      hinh_cto: oldImageUrl // Lưu oldImageUrl vào text file để offline sync vẫn xóa được
+      hinh_cto: oldImageUrl
     });
   });
 
-  // 2. HÀM XÓA DỮ LIỆU LOCAL VÀ RESET UI
   const applyCancelLocalChanges = () => {
     cust.hinh_cto = "";
     delete currentCapturedFiles[maKhang];
@@ -1321,7 +1214,6 @@ async function cancelCustomerData(maKhang) {
       item.hinh_cto = "";
     });
 
-    // Cập nhật lại Cache trên trình duyệt
     const cacheKey = getClientCacheKey();
     const currentCache = localStorage.getItem(cacheKey);
     if (currentCache) {
@@ -1345,7 +1237,13 @@ async function cancelCustomerData(maKhang) {
 
   showToast(`⏳ Đang hủy dữ liệu chỉ số...`);
 
-  // 3. GỬI REQUEST LÊN GOOGLE APPS SCRIPT
+  if (!navigator.onLine) {
+    applyCancelLocalChanges();
+    showToast("⚠️ Đã ghi nhận hủy vào bộ nhớ Excel thiết bị (Offline)!");
+    if (btnCancel) btnCancel.disabled = false;
+    return;
+  }
+
   fetch(API_URL, {
     method: "POST",
     headers: { "Content-Type": "text/plain;charset=utf-8" },
@@ -1353,7 +1251,7 @@ async function cancelCustomerData(maKhang) {
       action: "CANCEL_CHISO",
       ten_ndung: currentUser.ten_ndung,
       items: payload,
-      old_image_url: oldImageUrl // Truyền link ảnh cũ lên Cloudinary xóa
+      old_image_url: oldImageUrl
     })
   })
   .then(res => res.json())
@@ -1362,39 +1260,14 @@ async function cancelCustomerData(maKhang) {
     if (res.status === "success") {
       showToast("✅ " + res.message);
     } else {
-      showToast("⚠️ Đã ghi nhận hủy vào file text thiết bị!");
+      showToast("⚠️ Đã ghi nhận hủy vào file Excel thiết bị!");
     }
   })
   .catch(() => {
     applyCancelLocalChanges();
-    showToast("⚠️ Đã ghi nhận hủy vào file text thiết bị!");
+    showToast("⚠️ Đã ghi nhận hủy vào file Excel thiết bị!");
   })
   .finally(() => {
     if (btnCancel) btnCancel.disabled = false;
-  });
-}
-
-function downloadAllTextFiles() {
-  const files = ['chiso.txt', 'dinhvi.txt'];
-  let count = 0;
-
-  files.forEach((fileName, index) => {
-    const content = localStorage.getItem(fileName) || "";
-    
-    setTimeout(() => {
-      const blob = new Blob([content], { type: "text/plain;charset=utf-8" });
-      const a = document.createElement("a");
-      a.href = URL.createObjectURL(blob);
-      a.download = fileName;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(a.href);
-      
-      count++;
-      if (count === files.length && typeof showToast === "function") {
-        showToast("📥 Đã tải 2 file text về thư mục Download!");
-      }
-    }, index * 300);
   });
 }
