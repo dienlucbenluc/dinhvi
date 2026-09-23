@@ -113,7 +113,7 @@ const customFileName = `${maKhang || 'khachhang'}_${Date.now()}`;
   const formData = new FormData();
   formData.append("file", compressedFile);
   formData.append("upload_preset", CLOUDINARY_UPLOAD_PRESET);
-  formData.append('folder', 'chi_so');
+  formData.append('folder', 'tamngung_capdien');
   // Đặt public_id để Cloudinary lưu đúng tên file mà không tự sinh chuỗi ngẫu nhiên
   formData.append("public_id", customFileName);
   
