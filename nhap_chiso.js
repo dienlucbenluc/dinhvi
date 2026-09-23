@@ -1009,7 +1009,7 @@ function checkPhotoRequirement(maKhang) {
       const diffPercent = ((tongSluong - sluongKtVal) / sluongKtVal) * 100;
       // Điều kiện: biến động >= +100% hoặc <= -100% VÀ tổng kW >= 100
       //if (Math.abs(diffPercent) >= 100 && tongSluong >= 100) {
-       if (Math.abs(diffPercent) >= 100) {
+       if (Math.abs(diffPercent) >= 70) {
         return true; // Bắt buộc phải có ảnh
       }
     } 
@@ -1059,7 +1059,7 @@ async function saveCustomerData(maKhang) {
   if (isPhotoRequired && !hasPhoto) {
     await showCustomConfirm(
       "📸 YÊU CẦU CHỤP ẢNH", 
-      "Sản lượng biến động ≥ ±100% và Tổng kW ≥ 100!\nBắt buộc phải chụp ảnh chỉ số trước khi lưu.", 
+      "Sản lượng biến động ≥ ±70% so với kỳ trước.\nBắt buộc phải chụp ảnh chỉ số trước khi lưu.", 
       true
     );
     return;
