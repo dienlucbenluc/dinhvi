@@ -557,7 +557,7 @@ function renderCurrentCustomerCard(slideDirection = null) {
         </div>
         <div class="cust-address" style="margin-top: 4px;"> Cột - Trạm: ${cotTramText || ''}</div>
 
-        <div class="cust-row-group" style="margin-top: 0px;">
+        <div class="cust-row-group">
           <input type="text" class="input-ghichu" 
                  id="ghi_chu_${cust.ma_khang}" 
                  value="${cust.ghi_chu || ''}" 
