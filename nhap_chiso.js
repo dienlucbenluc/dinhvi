@@ -1105,7 +1105,7 @@ async function saveCustomerData(maKhang) {
   // Upload ảnh lên Cloudinary nếu có ảnh chụp mới
   if (currentCapturedFiles[maKhang]) {
     try {
-      showToast("⏳ Đang nén và tải ảnh lên Cloudinary...");
+      //showToast("⏳ Đang nén và tải ảnh lên Cloudinary...");
       // Truyền maKhang vào làm tham số thứ 2
       imageUrl = await uploadToCloudinary(currentCapturedFiles[maKhang], maKhang);
       cust.hinh_cto = imageUrl;
