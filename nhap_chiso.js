@@ -543,7 +543,7 @@ function renderCurrentCustomerCard(slideDirection = null) {
   let html = `
     <div class="customer-card ${initialClass}" id="activeCustomerCard">
       <div class="cust-header">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0px;">
+        <div style="display:flex; justify-content:space-between; align-items:center;">
           <span style="font-size:13px; color:#0056b3; font-weight:bold; background:#fff; padding:2px 0px; border-radius:4px;">
             STT: ${currentCardIndex + 1} / ${customerKeys.length}
           </span>
@@ -555,7 +555,7 @@ function renderCurrentCustomerCard(slideDirection = null) {
         <div class="cust-row-group">
          Sổ: ${cust.ma_sogcs}-DS: ${cust.danh_so || ''}-ĐT: ${cust.so_dthoai || ''}
         </div>
-        <div class="cust-address" style="margin-top: 4px;"> Cột - Trạm: ${cotTramText || ''}</div>
+        <div class="cust-address"> Cột - Trạm: ${cotTramText || ''}</div>
 
         <div class="cust-row-group">
           <input type="text" class="input-ghichu" 
