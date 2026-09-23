@@ -1008,7 +1008,8 @@ function checkPhotoRequirement(maKhang) {
     if (sluongKtVal > 0) {
       const diffPercent = ((tongSluong - sluongKtVal) / sluongKtVal) * 100;
       // Điều kiện: biến động >= +100% hoặc <= -100% VÀ tổng kW >= 100
-      if (Math.abs(diffPercent) >= 100 && tongSluong >= 100) {
+      //if (Math.abs(diffPercent) >= 100 && tongSluong >= 100) {
+       if (Math.abs(diffPercent) >= 100) {
         return true; // Bắt buộc phải có ảnh
       }
     } 
