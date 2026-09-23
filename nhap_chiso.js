@@ -1004,17 +1004,23 @@ function checkPhotoRequirement(maKhang) {
 
     const sanLuong = Math.round((csMoi - csCu) * hsn);
     const tongSluong = sanLuong + slThao;
-
+//Đều kiện chụp ảnh chỉ số công tơ ---------------------------------------------------------
     if (sluongKtVal > 0) {
       const diffPercent = ((tongSluong - sluongKtVal) / sluongKtVal) * 100;
       // Điều kiện: biến động >= +100% hoặc <= -100% VÀ tổng kW >= 100
       if (Math.abs(diffPercent) >= 100 && tongSluong >= 100) {
         return true; // Bắt buộc phải có ảnh
       }
-    } else if (sluongKtVal === 0 && tongSluong >= 100) {
+    } 
+    else if (sluongKtVal === 0 && tongSluong >= 100) {
       // Trường hợp kỳ trước bằng 0, kỳ này >= 100 (tương đương tăng >= 100%)
       return true;
     }
+    else if (sluongKtVal >= 100 && tongSluong === 0) {
+      // Trường hợp kỳ trước >= 100, kỳ này = 0 (tương đương tăng >= 100%)
+      return true;
+    }
+//Hết đều kiện chụp ảnh chỉ số công tơ ---------------------------------------------------------    
   }
   return false;
 }
