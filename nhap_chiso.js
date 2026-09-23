@@ -544,7 +544,7 @@ function renderCurrentCustomerCard(slideDirection = null) {
     <div class="customer-card ${initialClass}" id="activeCustomerCard">
       <div class="cust-header">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0px;">
-          <span style="font-size:13px; color:#0056b3; font-weight:bold; background:#eef5fc; padding:2px 6px; border-radius:4px;">
+          <span style="font-size:13px; color:#0056b3; font-weight:bold; background:#fff; padding:2px 6px; border-radius:4px;">
             STT: ${currentCardIndex + 1} / ${customerKeys.length}
           </span>
           <span style="font-size:12px; color:#666;">⬅️ Vuốt để đổi KH ➡️</span>
