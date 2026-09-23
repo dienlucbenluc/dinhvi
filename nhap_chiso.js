@@ -1057,7 +1057,7 @@ async function saveCustomerData(maKhang) {
   const hasPhoto = Boolean(cust.hinh_cto || currentCapturedFiles[maKhang]);
 
   if (isPhotoRequired && !hasPhoto) {
-    await showCustomConfirm(
+    const confirmCapture = await showCustomConfirm(
       "📸 YÊU CẦU CHỤP ẢNH", 
       "Sản lượng biến động ≥ ±70% so với kỳ trước.\nBắt buộc phải chụp ảnh chỉ số trước khi lưu.", 
       true
