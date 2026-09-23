@@ -1,6 +1,6 @@
 const API_URL = "https://script.google.com/macros/s/AKfycbwjw5x47mNLBpC3Ar4beIIM20XzZJAVXMLusNZV2rHbyCvls7pICldt7UAkM6htgqpa/exec";
 const CLOUDINARY_CLOUD_NAME = "jokzcdxt";  
-const CLOUDINARY_UPLOAD_PRESET = "image_catdien";
+const CLOUDINARY_UPLOAD_PRESET = "image_chiso";
 
 let currentUser = null;
 let groupedData = {};
@@ -113,7 +113,7 @@ const customFileName = `${maKhang || 'khachhang'}_${Date.now()}`;
   const formData = new FormData();
   formData.append("file", compressedFile);
   formData.append("upload_preset", CLOUDINARY_UPLOAD_PRESET);
-  formData.append('folder', 'tamngung_capdien');
+  formData.append('folder', 'chi_so');
   // Đặt public_id để Cloudinary lưu đúng tên file mà không tự sinh chuỗi ngẫu nhiên
   formData.append("public_id", customFileName);
   
