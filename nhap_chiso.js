@@ -138,20 +138,22 @@ async function saveOfflineImage(maKhang, file) {
   }
 }
 
-// Đẩy ảnh offline lên Cloudinary khi online
+// Đẩy ảnh offline lên Cloudinary khi online (SỬA LỖI 2: Đồng bộ triệt để từng KH)
 async function processOfflineImagesToCloudinary() {
   const imgKey = getOfflineImagesKey();
-  const imgs = JSON.parse(localStorage.getItem(imgKey) || "{}");
+  let imgs = JSON.parse(localStorage.getItem(imgKey) || "{}");
   const keys = Object.keys(imgs);
   if (keys.length === 0) return;
 
   for (const makh of keys) {
     try {
       const base64Str = imgs[makh];
+      if (!base64Str) continue;
+
       const file = base64ToFile(base64Str, `${makh}_offline.jpg`);
       const url = await uploadToCloudinary(file, makh);
 
-      // Cập nhật URL Cloudinary mới vào dữ liệu ghi chép Excel cục bộ
+      // 1. Cập nhật URL Cloudinary mới vào dữ liệu ghi chép Excel cục bộ
       const csKey = getExcelKeyChiSo();
       const logs = JSON.parse(localStorage.getItem(csKey) || "[]");
       logs.forEach(item => {
@@ -161,7 +163,7 @@ async function processOfflineImagesToCloudinary() {
       });
       localStorage.setItem(csKey, JSON.stringify(logs));
 
-      // Cập nhật URL Cloudinary vào RAM groupedData
+      // 2. Cập nhật URL Cloudinary vào RAM groupedData
       if (groupedData[makh]) {
         groupedData[makh].hinh_cto = url;
         groupedData[makh].items.forEach(item => {
@@ -169,12 +171,13 @@ async function processOfflineImagesToCloudinary() {
         });
       }
 
+      // 3. Cập nhật lại bộ đệm ảnh Offline và lưu ngay lập tức
       delete imgs[makh];
+      localStorage.setItem(imgKey, JSON.stringify(imgs));
     } catch (e) {
       console.error("Lỗi đẩy ảnh offline makh: " + makh, e);
     }
   }
-  localStorage.setItem(imgKey, JSON.stringify(imgs));
 }
 
 // ----------------------------------------------------
@@ -470,7 +473,8 @@ function resetConfirmModalButtons() {
   btnCancel.style.color = "#333";
 }
 
-function handleImageSelected(event, maKhang) {
+// SỬA LỖI 1: Reset giá trị input file để có thể chọn lại ảnh cho các KH tiếp theo
+async function handleImageSelected(event, maKhang) {
   const file = event.target.files && event.target.files[0];
   if (!file) return;
 
@@ -478,7 +482,7 @@ function handleImageSelected(event, maKhang) {
 
   // Nếu offline, lưu ngay bản đệm ảnh vào bộ nhớ thiết bị
   if (!navigator.onLine) {
-    saveOfflineImage(maKhang, file);
+    await saveOfflineImage(maKhang, file);
   }
 
   const reader = new FileReader();
@@ -489,6 +493,9 @@ function handleImageSelected(event, maKhang) {
     }
   };
   reader.readAsDataURL(file);
+
+  // Reset value để lượt chọn sau không bị kẹt sự kiện
+  event.target.value = "";
 }
 
 function renderCurrentCustomerCard(slideDirection = null) {
@@ -963,7 +970,7 @@ function checkPhotoRequirement(maKhang) {
   return false;
 }
 
-// Lưu dữ liệu: Tải ảnh Cloudinary khi Online / Lưu bản đệm khi Offline -> Ghi vào Store Excel
+// SỬA LỖI 2: Xử lý lưu dữ liệu chính xác khi Online & Offline
 async function saveCustomerData(maKhang) {
   const cust = groupedData[maKhang];
   if (!cust) return;
@@ -1039,6 +1046,7 @@ async function saveCustomerData(maKhang) {
       try {
         imageUrl = await uploadToCloudinary(currentCapturedFiles[maKhang], maKhang);
         cust.hinh_cto = imageUrl;
+        delete currentCapturedFiles[maKhang];
       } catch (e) {
         showToast("❌ Lỗi tải ảnh lên Cloudinary: " + e.message);
         if (btnSave) btnSave.disabled = false;
@@ -1047,6 +1055,7 @@ async function saveCustomerData(maKhang) {
     } else {
       await saveOfflineImage(maKhang, currentCapturedFiles[maKhang]);
       imageUrl = "OFFLINE_IMAGE_PENDING";
+      delete currentCapturedFiles[maKhang];
     }
   } else if (offlineImgBase64 && !navigator.onLine) {
     imageUrl = "OFFLINE_IMAGE_PENDING";
@@ -1124,7 +1133,6 @@ async function saveCustomerData(maKhang) {
       }
     });
 
-    delete currentCapturedFiles[maKhang];
     updateSummaryBar();
 
     const cacheKey = getClientCacheKey();
