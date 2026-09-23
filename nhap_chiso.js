@@ -151,15 +151,23 @@ async function processOfflineImagesToCloudinary() {
       const file = base64ToFile(base64Str, `${makh}_offline.jpg`);
       const url = await uploadToCloudinary(file, makh);
 
-      // Cập nhật URL mới vào dữ liệu ghi chép Excel cục bộ
+      // Cập nhật URL Cloudinary mới vào dữ liệu ghi chép Excel cục bộ
       const csKey = getExcelKeyChiSo();
       const logs = JSON.parse(localStorage.getItem(csKey) || "[]");
       logs.forEach(item => {
-        if (item.ma_khang === makh && (!item.hinh_cto || item.hinh_cto.startsWith("data:"))) {
+        if (item.ma_khang === makh && (item.hinh_cto === "OFFLINE_IMAGE_PENDING" || !item.hinh_cto || item.hinh_cto.startsWith("data:"))) {
           item.hinh_cto = url;
         }
       });
       localStorage.setItem(csKey, JSON.stringify(logs));
+
+      // Cập nhật URL Cloudinary vào RAM groupedData
+      if (groupedData[makh]) {
+        groupedData[makh].hinh_cto = url;
+        groupedData[makh].items.forEach(item => {
+          item.hinh_cto = url;
+        });
+      }
 
       delete imgs[makh];
     } catch (e) {
@@ -511,11 +519,20 @@ function renderCurrentCustomerCard(slideDirection = null) {
   if (slideDirection === "left") initialClass = "slide-left-in";
   else if (slideDirection === "right") initialClass = "slide-right-in";
 
+  // SỬA LỖI 1: Kiểm tra ảnh trong LocalStorage khi Offline để không bị mất khi vuốt qua lại
+  let offlineImgBase64 = null;
+  try {
+    const offlineImgs = JSON.parse(localStorage.getItem(getOfflineImagesKey()) || "{}");
+    offlineImgBase64 = offlineImgs[makh] || null;
+  } catch(e) {}
+
   let imgPreviewHtml = "";
   if (currentCapturedFiles[makh]) {
     const tempUrl = URL.createObjectURL(currentCapturedFiles[makh]);
     imgPreviewHtml = `<img src="${tempUrl}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 4px;" />`;
-  } else if (cust.hinh_cto) {
+  } else if (offlineImgBase64) {
+    imgPreviewHtml = `<img src="${offlineImgBase64}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 4px;" />`;
+  } else if (cust.hinh_cto && cust.hinh_cto !== "OFFLINE_IMAGE_PENDING") {
     imgPreviewHtml = `<a href="${cust.hinh_cto}" target="_blank"><img src="${cust.hinh_cto}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 4px;" /></a>`;
   } else {
     imgPreviewHtml = `<span style="font-size: 12px; color: #888;">Khung ảnh</span>`;
@@ -586,7 +603,7 @@ function renderCurrentCustomerCard(slideDirection = null) {
     `;
   });
 
-  const cancelDisabledAttr = !alreadyHasCS && !cust.hinh_cto && !currentCapturedFiles[makh] ? "disabled" : "";
+  const cancelDisabledAttr = !alreadyHasCS && !cust.hinh_cto && !currentCapturedFiles[makh] && !offlineImgBase64 ? "disabled" : "";
   const saveDisabledAttr = !hasLocation ? "disabled" : "";
 
   html += `
@@ -842,8 +859,15 @@ function checkCancelButtonStatus(maKhang) {
     const inputEl = document.getElementById(`cs_moi_${item.rowIndex}`);
     if (inputEl && inputEl.value !== "") hasNewCS = true;
   });
+
+  let offlineImgBase64 = null;
+  try {
+    const offlineImgs = JSON.parse(localStorage.getItem(getOfflineImagesKey()) || "{}");
+    offlineImgBase64 = offlineImgs[maKhang] || null;
+  } catch(e) {}
+
   const btnCancel = document.getElementById(`btn_cancel_${maKhang}`);
-  if (btnCancel) btnCancel.disabled = !hasNewCS && !cust.hinh_cto && !currentCapturedFiles[maKhang];
+  if (btnCancel) btnCancel.disabled = !hasNewCS && !cust.hinh_cto && !currentCapturedFiles[maKhang] && !offlineImgBase64;
 }
 
 function filterDaCS() {
@@ -911,6 +935,13 @@ function filterData() {
 function checkPhotoRequirement(maKhang) {
   const cust = groupedData[maKhang];
   if (!cust) return false;
+  
+  let offlineImgBase64 = null;
+  try {
+    const offlineImgs = JSON.parse(localStorage.getItem(getOfflineImagesKey()) || "{}");
+    offlineImgBase64 = offlineImgs[maKhang] || null;
+  } catch(e) {}
+
   for (let item of cust.items) {
     const inputEl = document.getElementById(`cs_moi_${item.rowIndex}`);
     const csMoi = inputEl ? Number(inputEl.value.trim()) : 0;
@@ -954,8 +985,14 @@ async function saveCustomerData(maKhang) {
     return;
   }
 
+  let offlineImgBase64 = null;
+  try {
+    const offlineImgs = JSON.parse(localStorage.getItem(getOfflineImagesKey()) || "{}");
+    offlineImgBase64 = offlineImgs[maKhang] || null;
+  } catch(e) {}
+
   const isPhotoRequired = checkPhotoRequirement(maKhang);
-  const hasPhoto = Boolean(cust.hinh_cto || currentCapturedFiles[maKhang]);
+  const hasPhoto = Boolean(cust.hinh_cto || currentCapturedFiles[maKhang] || offlineImgBase64);
 
   if (isPhotoRequired && !hasPhoto) {
     const confirmCapture = await showCustomConfirm("📸 YÊU CẦU CHỤP ẢNH", "Sản lượng biến động ≥ ±70% so với kỳ trước.\nBắt buộc phải chụp ảnh chỉ số trước khi lưu.", true);
@@ -1011,6 +1048,8 @@ async function saveCustomerData(maKhang) {
       await saveOfflineImage(maKhang, currentCapturedFiles[maKhang]);
       imageUrl = "OFFLINE_IMAGE_PENDING";
     }
+  } else if (offlineImgBase64 && !navigator.onLine) {
+    imageUrl = "OFFLINE_IMAGE_PENDING";
   }
 
   const ghiChuInput = document.getElementById(`ghi_chu_${maKhang}`);
@@ -1206,6 +1245,14 @@ async function cancelCustomerData(maKhang) {
   const applyCancelLocalChanges = () => {
     cust.hinh_cto = "";
     delete currentCapturedFiles[maKhang];
+
+    // Xóa ảnh đệm offline nếu hủy
+    try {
+      const imgKey = getOfflineImagesKey();
+      const imgs = JSON.parse(localStorage.getItem(imgKey) || "{}");
+      delete imgs[maKhang];
+      localStorage.setItem(imgKey, JSON.stringify(imgs));
+    } catch(e) {}
 
     cust.items.forEach(item => {
       item.chiso_moi = "";
