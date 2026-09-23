@@ -1031,6 +1031,8 @@ async function saveCustomerData(maKhang) {
   const cust = groupedData[maKhang];
   if (!cust) return;
 
+  const btnSave = document.getElementById(`btn_save_${maKhang}`);
+
   let emptyItem = null;
   cust.items.forEach(item => {
     const inputEl = document.getElementById(`cs_moi_${item.rowIndex}`);
@@ -1100,6 +1102,8 @@ async function saveCustomerData(maKhang) {
     if (!confirmSave) return;
   }
 
+  if (btnSave) btnSave.disabled = true;
+
   let imageUrl = cust.hinh_cto || "";
 
   // Upload ảnh lên Cloudinary nếu có ảnh chụp mới
@@ -1111,6 +1115,7 @@ async function saveCustomerData(maKhang) {
       cust.hinh_cto = imageUrl;
     } catch (e) {
       showToast("❌ Lỗi tải ảnh lên Cloudinary: " + e.message);
+      if (btnSave) btnSave.disabled = false;
       return;
     }
   }
@@ -1235,6 +1240,9 @@ async function saveCustomerData(maKhang) {
   .catch(() => {
     applyLocalChanges();
     showToast("⚠️ Đã lưu vào file text thiết bị (Chờ đồng bộ)!");
+  })
+  .finally(() => {
+    if (btnSave) btnSave.disabled = false;
   });
 }
 
@@ -1243,12 +1251,16 @@ async function cancelCustomerData(maKhang) {
   const cust = groupedData[maKhang];
   if (!cust) return;
 
+  const btnCancel = document.getElementById(`btn_cancel_${maKhang}`);
+
   const confirmCancel = await showCustomConfirm(
     "XÁC NHẬN HỦY DỮ LIỆU", 
     "Bạn có muốn hủy chỉ số và xóa ảnh của khách hàng này?", 
     true
   );
   if (!confirmCancel) return;
+
+  if (btnCancel) btnCancel.disabled = true;
 
   // 1. LẤY CHUẨN XÁC LINK ẢNH CŨ CẦN XÓA (Ưu tiên cust.hinh_cto hoặc từ item)
   let oldImageUrl = cust.hinh_cto || "";
@@ -1356,6 +1368,9 @@ async function cancelCustomerData(maKhang) {
   .catch(() => {
     applyCancelLocalChanges();
     showToast("⚠️ Đã ghi nhận hủy vào file text thiết bị!");
+  })
+  .finally(() => {
+    if (btnCancel) btnCancel.disabled = false;
   });
 }
 
