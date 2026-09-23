@@ -1255,7 +1255,7 @@ async function cancelCustomerData(maKhang) {
 
   const confirmCancel = await showCustomConfirm(
     "XÁC NHẬN HỦY DỮ LIỆU", 
-    "Bạn có muốn hủy chỉ số và xóa ảnh của khách hàng này?", 
+    "Bạn có muốn hủy dữ liệu chỉ số của khách hàng này không?", 
     true
   );
   if (!confirmCancel) return;
@@ -1343,7 +1343,7 @@ async function cancelCustomerData(maKhang) {
     renderCurrentCustomerCard();
   };
 
-  showToast(`⏳ Đang hủy chỉ số và xóa ảnh...`);
+  showToast(`⏳ Đang hủy dữ liệu chỉ số...`);
 
   // 3. GỬI REQUEST LÊN GOOGLE APPS SCRIPT
   fetch(API_URL, {
