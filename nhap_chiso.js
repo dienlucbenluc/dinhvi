@@ -112,7 +112,7 @@ function fileToBase64(file) {
   });
 }
 
-// Chuyển Base64 trở lại File object khi có mạng để upload Cloudinary
+// Chuyển Base64 trở lại File object khi có mạng
 function base64ToFile(base64Str, fileName) {
   const arr = base64Str.split(',');
   const mime = arr[0].match(/:(.*?);/)[1];
@@ -138,7 +138,7 @@ async function saveOfflineImage(maKhang, file) {
   }
 }
 
-// Đẩy ảnh offline lên Cloudinary khi online
+// Gán trạng thái OFFLINE_IMAGE_PENDING cho cột hinh_cto khi có mạng
 async function processOfflineImagesToCloudinary() {
   const imgKey = getOfflineImagesKey();
   const imgs = JSON.parse(localStorage.getItem(imgKey) || "{}");
@@ -147,23 +147,19 @@ async function processOfflineImagesToCloudinary() {
 
   for (const makh of keys) {
     try {
-      const base64Str = imgs[makh];
-      const file = base64ToFile(base64Str, `${makh}_offline.jpg`);
-      const url = await uploadToCloudinary(file, makh);
-
-      // Cập nhật URL mới vào dữ liệu ghi chép Excel cục bộ
+      // Cập nhật giá trị OFFLINE_IMAGE_PENDING vào dữ liệu ghi chép Excel cục bộ
       const csKey = getExcelKeyChiSo();
       const logs = JSON.parse(localStorage.getItem(csKey) || "[]");
       logs.forEach(item => {
-        if (item.ma_khang === makh && (!item.hinh_cto || item.hinh_cto.startsWith("data:"))) {
-          item.hinh_cto = url;
+        if (item.ma_khang === makh && (!item.hinh_cto || item.hinh_cto.startsWith("data:") || item.hinh_cto === "")) {
+          item.hinh_cto = "OFFLINE_IMAGE_PENDING";
         }
       });
       localStorage.setItem(csKey, JSON.stringify(logs));
 
       delete imgs[makh];
     } catch (e) {
-      console.error("Lỗi đẩy ảnh offline makh: " + makh, e);
+      console.error("Lỗi xử lý ảnh offline makh: " + makh, e);
     }
   }
   localStorage.setItem(imgKey, JSON.stringify(imgs));
