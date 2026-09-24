@@ -107,7 +107,7 @@ async function checkAndLoadInitialData() {
     return;
   }
 
-  showToast("⏳ Đang lấy dữ liệu chỉ số v2...");
+  showToast("⏳ Đang lấy dữ liệu chỉ số v3...");
   try {
     const res = await fetch(API_URL, {
       method: "POST",
@@ -1026,39 +1026,39 @@ async function handleComboboxChange(maKhang, bcs, rowIndex, csCu, hsn, sluongTha
   const slThao = Number(sluongThao) || 0;
   const slKt = Number(sluongKt) || 0;
 
-  if (valType === "U") {
-    // U: Không xài => tự gán chiso_moi = chiso_cu và gọi calc
-    if (inputEl) inputEl.value = csCuVal;
-    await calculateRow(maKhang, bcs, rowIndex, csCuVal, hsnVal, slThao);
-  } else if (valType === "V") {
-    // V: Tạm tính => tự gán tong_sluong = sluong_kt, tính toán nội suy ra chiso_moi
-    let tongSluongTarget = slKt;
-    let sanLuongTarget = tongSluongTarget - slThao;
-    let calculatedCsMoi = Math.round(csCuVal + (sanLuongTarget / hsnVal));
-    
-    if (inputEl) inputEl.value = calculatedCsMoi;
-    await calculateRow(maKhang, bcs, rowIndex, csCuVal, hsnVal, slThao);
-  } else if (valType === "Q") {
-    // Q: Qua vòng => Cho phép nhập chiso_moi < chiso_cu và tính toán qua vòng chỉ số 5 số (100000)
-    if (inputEl && inputEl.value !== "") {
-      await calculateRow(maKhang, bcs, rowIndex, csCuVal, hsnVal, slThao);
+  // Logic chung cho các mã V, U, Q, H, M dựa trên so sánh sluong_thao và sluong_kt
+  if (["V", "U", "Q", "H", "M"].includes(valType)) {
+    let calculatedCsMoi = csCuVal;
+
+    if (valType === "Q") {
+      // Trường hợp Qua vòng: Nếu chưa nhập chỉ số mới nhỏ hơn chỉ số cũ thì nhắc nhở
+      if (inputEl && inputEl.value !== "") {
+        await calculateRow(maKhang, bcs, rowIndex, csCuVal, hsnVal, slThao);
+      } else {
+        showToast("ℹ️ Vui lòng nhập chỉ số mới nhỏ hơn chỉ số cũ cho trường hợp Qua vòng.");
+        if (inputEl) inputEl.focus();
+        return;
+      }
     } else {
-      showToast("ℹ️ Vui lòng nhập chỉ số mới nhỏ hơn chỉ số cũ cho trường hợp Qua vòng.");
-      if (inputEl) inputEl.focus();
+      // Tính toán chỉ số mới cho V, U, H, M
+      if (slThao > slKt) {
+        // Nếu sluong_thao > sluong_kt => tong_sluong = sluong_thao (san_luong = 0)
+        calculatedCsMoi = csCuVal;
+      } else {
+        // Nếu sluong_thao <= sluong_kt => tong_sluong = sluong_kt, suy ra san_luong = sluong_kt - sluong_thao
+        let sanLuongTarget = slKt - slThao;
+        calculatedCsMoi = Math.round(csCuVal + (sanLuongTarget / hsnVal));
+      }
+
+      if (inputEl) inputEl.value = calculatedCsMoi;
+      await calculateRow(maKhang, bcs, rowIndex, csCuVal, hsnVal, slThao);
     }
-  } else if (valType === "H") {
-    // H: Hư hỏng => Tự gán chiso_moi = chiso_cu, thực hiện tính toán giống U và Cập nhật ghi_chu
-    if (inputEl) inputEl.value = csCuVal;
-    await calculateRow(maKhang, bcs, rowIndex, csCuVal, hsnVal, slThao);
-    if (ghiChuEl) {
+
+    // Cập nhật ghi chú tự động cho các trường hợp đặc biệt
+    if (valType === "H" && ghiChuEl) {
       ghiChuEl.value = "Công tơ hư hỏng";
       groupedData[maKhang].ghi_chu = "Công tơ hư hỏng";
-    }
-  } else if (valType === "M") {
-    // M: Mất công tơ => Tự gán chiso_moi = chiso_cu, thực hiện tính toán giống U và Cập nhật ghi_chu
-    if (inputEl) inputEl.value = csCuVal;
-    await calculateRow(maKhang, bcs, rowIndex, csCuVal, hsnVal, slThao);
-    if (ghiChuEl) {
+    } else if (valType === "M" && ghiChuEl) {
       ghiChuEl.value = "Mất công tơ";
       groupedData[maKhang].ghi_chu = "Mất công tơ";
     }
