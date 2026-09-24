@@ -118,32 +118,46 @@
     .btn-modal-cancel { background: #e0e0e0; color: #333; }
     .btn-modal-confirm { background: #28a745; color: white; }
 
-    #toast {
+ /* Giao diện Toast thông báo chuẩn bo góc, chiều cao tự động theo nội dung */
+#toast {
   position: fixed;
-  bottom: 10px;
+  bottom: 20px;
   left: 50%;
   transform: translateX(-50%);
-  padding: 12px 16px;
+  padding: 10px 20px;
   background: #006400; /* Xanh lá mặc định */
   color: #fff;
   font-size: 13px;
+  line-height: 1.4;
   z-index: 10000;
-  transition: opacity 0.3s ease-in-out;
-  pointer-events: none;
+  
+  /* Cấu hình kích thước chuẩn gọn */
+  width: auto;
+  max-width: 85%;
+  height: auto; /* Đảm bảo không bị kéo giãn chiều cao */
+  box-sizing: border-box;
+  border-radius: 20px;
   text-align: center;
-  width: 90%;
-  max-width: 400px;
+  
+  /* Cắt tỉa nếu chữ quá dài trên 1 dòng */
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  box-sizing: border-box;
-  border-radius: 20px;
-  display: none;
+
+  /* Hiệu ứng mượt mà không dùng display: none */
+  visibility: hidden;
   opacity: 0;
+  transition: opacity 0.3s ease, visibility 0.3s ease;
+  pointer-events: none;
 }
 
 #toast.error {
-  background: #b71c1c; /* Đỏ cho thông báo lỗi/cảnh báo */
+  background: #b71c1c; /* Màu đỏ khi lỗi */
+}
+
+#toast.show {
+  visibility: visible;
+  opacity: 1;
 }
   </style>
 </head>
