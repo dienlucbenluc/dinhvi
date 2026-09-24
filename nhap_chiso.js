@@ -72,41 +72,22 @@ function initLocalExcelStore() {
 }
 
 // YÊU CẦU 1 & 3: Lấy dữ liệu từ server hoặc mở trực tiếp từ Excel thiết bị
+// YÊU CẦU: Lấy dữ liệu từ Server nhưng so sánh điều kiện thông tin & bảo toàn chỉ số đã nhập trên thiết bị
 async function handleFetchDataBtn() {
   const csKey = getExcelKeyChiSo();
   const localExcelList = JSON.parse(localStorage.getItem(csKey) || "[]");
 
-  // Kiểm tra xem dữ liệu trong Excel cục bộ đã tồn tại khớp với người dùng chưa
-  let isExistingData = false;
-
-  if (localExcelList.length > 0) {
-    const sampleItem = localExcelList[0];
-    const currentUserNdung = String(currentUser?.ten_ndung || "").trim().toLowerCase();
-    const itemNdung = String(sampleItem?.ten_ndung || sampleItem?.nguoi_nhap || "").trim().toLowerCase();
-
-    // Kiểm tra ten_ndung trùng khớp
-    const matchesUser = currentUserNdung === itemNdung || !sampleItem.ten_ndung; 
-
-    if (matchesUser) {
-      isExistingData = true;
-    }
-  }
-
-  // TRƯỜNG HỢP 1: ĐÃ TỒN TẠI dữ liệu khớp trên thiết bị -> Mở danh sách ngay lập tức
-  if (isExistingData) {
-    showToast("📂 Đang mở danh sách khách hàng từ Excel thiết bị...");
-    loadDataFromLocalExcel();
-    return;
-  }
-
-  // TRƯỜNG HỢP 2: CHƯA CÓ dữ liệu (do vừa xóa dữ liệu Web hoặc lần đầu vào)
-  // Tự động tải dữ liệu từ Google Sheet về thiết bị mà không cần hiện confirm
   if (!navigator.onLine) {
-    showToast("❌ Không có dữ liệu offline và chưa kết nối mạng để tải dữ liệu!");
+    if (localExcelList.length > 0) {
+      showToast("📶 Ngoại tuyến: Đang mở dữ liệu từ Excel thiết bị...");
+      loadDataFromLocalExcel();
+    } else {
+      showToast("❌ Không có dữ liệu trên thiết bị và chưa kết nối mạng!");
+    }
     return;
   }
 
-  showToast("⏳ Đang tự động lấy dữ liệu từ Google Sheet...");
+  showToast("⏳ Đang kiểm tra dữ liệu từ Server...");
   
   try {
     const res = await fetch(API_URL, {
@@ -117,21 +98,56 @@ async function handleFetchDataBtn() {
     
     const data = await res.json();
 
-    if (data.status === "success" && Array.isArray(data.list)) {
-      // Map lưu thông tin đã nhập theo id_chiso trên máy (nếu có)
-      const localMap = {};
+    if (data.status === "success" && Array.isArray(data.list) && data.list.length > 0) {
+      const serverList = data.list;
+
+      // 1. Tạo Map lưu lại toàn bộ các dòng chỉ số ĐÃ NHẬP trên thiết bị (keyed theo id_chiso)
+      const localEnteredMap = {};
       localExcelList.forEach(item => {
-        if (item.id_chiso) {
-          localMap[String(item.id_chiso)] = item;
+        if (item.id_chiso && item.chiso_moi !== "" && item.chiso_moi !== null && item.chiso_moi !== undefined) {
+          localEnteredMap[String(item.id_chiso)] = item;
         }
       });
 
-      // Trộn dữ liệu: Giữ lại chỉ số mới đã nhập nếu khớp id_chiso
-      const mergedList = data.list.map(serverItem => {
-        const idStr = String(serverItem.id_chiso);
-        const localItem = localMap[idStr];
+      // 2. Kiểm tra điều kiện trùng khớp về thông tin dữ liệu (ten_ndung, ky, thang, nam, số dòng id_chiso)
+      let isMatched = false;
 
-        if (localItem && localItem.chiso_moi !== "" && localItem.chiso_moi !== null && localItem.chiso_moi !== undefined) {
+      if (localExcelList.length > 0) {
+        const sampleLocal = localExcelList[0];
+        const sampleServer = serverList[0];
+
+        const matchUser = String(sampleLocal.ten_ndung || sampleLocal.nguoi_nhap || "").trim().toLowerCase() === String(currentUser.ten_ndung || "").trim().toLowerCase();
+        const matchKy = String(sampleLocal.ky || "") === String(sampleServer.ky || "");
+        const matchThang = String(sampleLocal.thang || "") === String(sampleServer.thang || "");
+        const matchNam = String(sampleLocal.nam || "") === String(sampleServer.nam || "");
+
+        // So sánh tập hợp ID chỉ số của Server và Local có khớp hoàn toàn không
+        const localIdSet = new Set(localExcelList.map(i => String(i.id_chiso)));
+        const serverIdSet = new Set(serverList.map(i => String(i.id_chiso)));
+        
+        const matchIdCount = localIdSet.size === serverIdSet.size && 
+                             [...localIdSet].every(id => serverIdSet.has(id));
+
+        if (matchUser && matchKy && matchThang && matchNam && matchIdCount) {
+          isMatched = true;
+        }
+      }
+
+      // TRƯỜNG HỢP A: File Excel thiết bị hoàn toàn khớp với danh sách trên Server -> Mở trực tiếp từ thiết bị
+      if (isMatched) {
+        showToast("📂 Dữ liệu khớp với Server. Đang mở dữ liệu Excel từ thiết bị...");
+        loadDataFromLocalExcel();
+        return;
+      }
+
+      // TRƯỜNG HỢP B: Dữ liệu chưa có (do vừa xóa bộ nhớ web) hoặc có sự cập nhật từ Server
+      // Thực hiện MERGE: Giữ lại toàn bộ các dòng chỉ số người dùng đã nhập
+      const mergedList = serverList.map(serverItem => {
+        const idStr = String(serverItem.id_chiso);
+        const localItem = localEnteredMap[idStr];
+
+        // Nếu dòng này từng được nhập chỉ số trên máy -> Ưu tiên lấy dữ liệu đã nhập
+        if (localItem) {
           return {
             ...serverItem,
             chiso_moi: localItem.chiso_moi,
@@ -150,19 +166,19 @@ async function handleFetchDataBtn() {
         return serverItem;
       });
 
-      // Lưu lại vào bộ nhớ thiết bị & Cache
+      // Ghi lại dữ liệu hòa nhập vào bộ nhớ thiết bị & Cache
       localStorage.setItem(csKey, JSON.stringify(mergedList));
       localStorage.setItem(getClientCacheKey(), JSON.stringify({ time: Date.now(), list: mergedList }));
       
       // Hiển thị dữ liệu ra màn hình
       loadDataFromLocalExcel();
-      showToast("✅ Đã cập nhật dữ liệu từ Google Sheet vào thiết bị!");
+      showToast("✅ Đã cập nhật và bảo toàn chỉ số đã nhập trên thiết bị!");
     } else {
-      showToast("❌ Lỗi lấy dữ liệu: " + (data.message || "Không xác định"));
+      showToast("❌ Lỗi lấy dữ liệu từ Server: " + (data.message || "Danh sách rỗng"));
     }
   } catch (err) {
     console.error(err);
-    showToast("❌ Lỗi kết nối máy chủ Google Sheet!");
+    showToast("❌ Lỗi kết nối máy chủ!");
   }
 }
 
