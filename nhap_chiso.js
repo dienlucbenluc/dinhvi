@@ -107,8 +107,7 @@ async function checkAndLoadInitialData() {
     return;
   }
 
-  //showToast("⏳ Đang đối chiếu File Excel thiết bị với Google Sheet...");
-  showToast("⏳ Đang lấy dữ liệu chỉ số 456...");
+  showToast("⏳ Đang lấy dữ liệu chỉ số...");
   try {
     const res = await fetch(API_URL, {
       method: "POST",
@@ -124,15 +123,12 @@ async function checkAndLoadInitialData() {
 
       // ĐỐI CHIẾU TRÙNG KHỚP: ten_ndung+thang+nam+count(id_chiso)
       if (localExcelList.length > 0 && localFileKey === serverFileKey) {
-        //showToast(`📂 Tìm thấy File [${localFileKey}] trùng khớp. Nạp dữ liệu từ thiết bị!`);
         loadDataFromLocalExcel();
       } else {
-        // KHÔNG TRÙNG KHỚP HOẶC KHÔNG CÓ FILE: Lấy dữ liệu mới từ Server và lưu tạo mới File Excel
         localStorage.setItem(csKey, JSON.stringify(serverList));
         localStorage.setItem(getClientCacheKey(), JSON.stringify({ time: Date.now(), list: serverList }));
         
         loadDataFromLocalExcel();
-        //showToast(`✅ Tạo mới file Excel [${serverFileKey}] từ Google Sheet thành công!`);
         showToast(`✅ Lấy dữ liệu chỉ số thành công!`);
       }
     } else {
@@ -197,7 +193,6 @@ function downloadAllExcelFiles() {
   const wsDinhVi = XLSX.utils.json_to_sheet(dinhviData.length > 0 ? dinhviData : [{}]);
   XLSX.utils.book_append_sheet(wb, wsDinhVi, "dinh_vi");
 
-  // Tạo tên file quy chuẩn: ten_ndung+thang+nam+count(id_chiso).xlsx
   const fileKey = buildExcelFileKey(chisoData);
   const fileName = `${fileKey}.xlsx`;
   
@@ -459,14 +454,11 @@ async function checkAndAutoSync() {
   const csKey = getExcelKeyChiSo();
   const localExcelList = JSON.parse(localStorage.getItem(csKey) || "[]");
   
-  // Đếm tổng số dòng đã có chỉ số mới
   const validRowsCount = localExcelList.filter(item => 
     item.chiso_moi !== "" && item.chiso_moi !== null && item.chiso_moi !== undefined
   ).length;
 
-  // Kiểm tra điều kiện: Tối thiểu 20 dòng và chia hết cho 20 (20, 40, 60, 80, 100...)
   if (validRowsCount >= 20 && validRowsCount % 20 === 0 && navigator.onLine) {
-    //showToast(`⚡ Đã đạt mốc ${validRowsCount} dòng chỉ số. Đang tự động gửi dữ liệu về server...`);
     await syncLocalExcelToSheet(false);
   }
 }
@@ -786,10 +778,11 @@ function renderCurrentCustomerCard(slideDirection = null) {
         <table class="chiso-table">
           <thead>
             <tr>
-              <th style="width: 15%;">BCS</th>
-              <th style="width: 25%;">CS cũ</th>
-              <th style="width: 35%;">CS mới</th>
-              <th style="width: 25%;">Tổng kW</th>
+              <th style="width: 12%;">BCS</th>
+              <th style="width: 22%;">CS cũ</th>
+              <th style="width: 31%;">CS mới</th>
+              <th style="width: 20%;">Tổng kW</th>
+              <th style="width: 15%;">Loại</th>
             </tr>
           </thead>
           <tbody>
@@ -812,6 +805,16 @@ function renderCurrentCustomerCard(slideDirection = null) {
           <input type="hidden" id="sl_val_${item.rowIndex}" value="${item.san_luong !== "" && item.san_luong !== undefined ? item.san_luong : '-'}">
         </td>
         <td id="tong_sl_${item.rowIndex}" class="val-calc-large text-right">${item.tong_sluong !== "" && item.tong_sluong !== undefined ? item.tong_sluong : '-'}</td>
+        <td class="text-center">
+          <select class="select-loai" id="select_loai_${item.rowIndex}" onchange="handleComboboxChange('${cust.ma_khang}', '${item.bcs}', ${item.rowIndex}, ${item.chiso_cu || 0}, ${item.hsn}, ${item.sluong_thao || 0}, ${item.sluong_kt || 0})">
+            <option value="">--</option>
+            <option value="U">U : Không xài</option>
+            <option value="V">V : Tạm tính</option>
+            <option value="Q">Q : Qua vòng</option>
+            <option value="H">H : Hư hỏng</option>
+            <option value="M">M : Mất công tơ</option>
+          </select>
+        </td>
       </tr>
     `;
   });
@@ -953,7 +956,7 @@ function setupSwipeEvents() {
   let startX = 0, startY = 0, isMouseDown = false;
 
   container.addEventListener('touchstart', (e) => {
-    if (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA") return;
+    if (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA" || e.target.tagName === "SELECT") return;
     startX = e.touches[0].clientX;
     startY = e.touches[0].clientY;
   }, { passive: true });
@@ -965,7 +968,7 @@ function setupSwipeEvents() {
   }, { passive: true });
 
   container.addEventListener('mousedown', (e) => {
-    if (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA" || e.target.closest("button")) return;
+    if (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA" || e.target.tagName === "SELECT" || e.target.closest("button")) return;
     isMouseDown = true; startX = e.clientX; startY = e.clientY;
     container.style.cursor = "grabbing";
   });
@@ -979,7 +982,7 @@ function setupSwipeEvents() {
   });
 
   window.addEventListener('keydown', (e) => {
-    if (["INPUT", "TEXTAREA"].includes(document.activeElement.tagName)) return;
+    if (["INPUT", "TEXTAREA", "SELECT"].includes(document.activeElement.tagName)) return;
     if (e.key === "ArrowLeft") prevCustomer();
     else if (e.key === "ArrowRight") nextCustomer();
   });
@@ -993,11 +996,64 @@ function handleSwipeGesture(startX, startY, endX, endY) {
   }
 }
 
+// ----------------------------------------------------
+// XỬ LÝ SỰ KIỆN KHI CHỌN LOẠI CÔNG TƠ TỪ COMBOBOX
+// ----------------------------------------------------
+async function handleComboboxChange(maKhang, bcs, rowIndex, csCu, hsn, sluongThao, sluongKt) {
+  const selectEl = document.getElementById(`select_loai_${rowIndex}`);
+  const valType = selectEl ? selectEl.value : "";
+  const inputEl = document.getElementById(`cs_moi_${rowIndex}`);
+  const ghiChuEl = document.getElementById(`ghi_chu_${maKhang}`);
+
+  if (!valType) return;
+
+  const csCuVal = Number(csCu) || 0;
+  const hsnVal = Number(hsn) || 1;
+  const slThao = Number(sluongThao) || 0;
+  const slKt = Number(sluongKt) || 0;
+
+  if (valType === "U") {
+    // U: Không xài => tự gán chiso_moi = chiso_cu và gọi calc
+    if (inputEl) inputEl.value = csCuVal;
+    await calculateRow(maKhang, bcs, rowIndex, csCuVal, hsnVal, slThao);
+  } else if (valType === "V") {
+    // V: Tạm tính => tự gán tong_sluong = sluong_kt, tính toán nội suy ra chiso_moi
+    let tongSluongTarget = slKt;
+    let sanLuongTarget = tongSluongTarget - slThao;
+    let calculatedCsMoi = Math.round(csCuVal + (sanLuongTarget / hsnVal));
+    
+    if (inputEl) inputEl.value = calculatedCsMoi;
+    await calculateRow(maKhang, bcs, rowIndex, csCuVal, hsnVal, slThao);
+  } else if (valType === "Q") {
+    // Q: Qua vòng => Cho phép nhập chiso_moi < chiso_cu và tính toán qua vòng chỉ số 5 số (100000)
+    if (inputEl && inputEl.value !== "") {
+      await calculateRow(maKhang, bcs, rowIndex, csCuVal, hsnVal, slThao);
+    } else {
+      showToast("ℹ️ Vui lòng nhập chỉ số mới nhỏ hơn chỉ số cũ cho trường hợp Qua vòng.");
+      if (inputEl) inputEl.focus();
+    }
+  } else if (valType === "H") {
+    // H: Hư hỏng => Cập nhật ghi_chu = Công tơ hư hỏng
+    if (ghiChuEl) {
+      ghiChuEl.value = "Công tơ hư hỏng";
+      groupedData[maKhang].ghi_chu = "Công tơ hư hỏng";
+    }
+  } else if (valType === "M") {
+    // M: Mất công tơ => Cập nhật ghi_chu = Mất công tơ
+    if (ghiChuEl) {
+      ghiChuEl.value = "Mất công tơ";
+      groupedData[maKhang].ghi_chu = "Mất công tơ";
+    }
+  }
+}
+
 async function calculateRow(maKhang, bcs, rowIndex, csCu, hsn, sluongThao) {
   const inputEl = document.getElementById(`cs_moi_${rowIndex}`);
   const val = inputEl ? inputEl.value.trim() : "";
   const slHiddenEl = document.getElementById(`sl_val_${rowIndex}`);
   const tongSlCell = document.getElementById(`tong_sl_${rowIndex}`);
+  const selectEl = document.getElementById(`select_loai_${rowIndex}`);
+  const selectedType = selectEl ? selectEl.value : "";
 
   if (val === "" || isNaN(Number(val))) {
     if (slHiddenEl) slHiddenEl.value = "-";
@@ -1011,17 +1067,25 @@ async function calculateRow(maKhang, bcs, rowIndex, csCu, hsn, sluongThao) {
   const hsnVal = Number(hsn) || 1;
   const slThao = Number(sluongThao) || 0;
 
+  let sanLuong = 0;
+
   if (csMoi < csCuVal) {
-    await showCustomConfirm("⚠️ CẢNH BÁO CHỈ SỐ LỖI", `Chỉ số mới (${csMoi}) nhỏ hơn chỉ số cũ (${csCuVal})!\nVui lòng kiểm tra và nhập lại.`, true);
-    inputEl.value = "";
-    if (slHiddenEl) slHiddenEl.value = "-";
-    if (tongSlCell) tongSlCell.innerText = "-";
-    checkCancelButtonStatus(maKhang);
-    setTimeout(() => inputEl.focus(), 100);
-    return;
+    if (selectedType === "Q") {
+      // Xử lý tính toán qua vòng đối với đồng hồ chỉ số 5 số (Max = 100000)
+      sanLuong = Math.round((csMoi + 100000 - csCuVal) * hsnVal);
+    } else {
+      await showCustomConfirm("⚠️ CẢNH BÁO CHỈ SỐ LỖI", `Chỉ số mới (${csMoi}) nhỏ hơn chỉ số cũ (${csCuVal})!\nVui lòng kiểm tra và nhập lại.`, true);
+      inputEl.value = "";
+      if (slHiddenEl) slHiddenEl.value = "-";
+      if (tongSlCell) tongSlCell.innerText = "-";
+      checkCancelButtonStatus(maKhang);
+      setTimeout(() => inputEl.focus(), 100);
+      return;
+    }
+  } else {
+    sanLuong = Math.round((csMoi - csCuVal) * hsnVal);
   }
 
-  const sanLuong = Math.round((csMoi - csCuVal) * hsnVal);
   const tongSluong = sanLuong + slThao;
 
   if (slHiddenEl) slHiddenEl.value = sanLuong;
@@ -1107,6 +1171,12 @@ function filterData() {
       String(cust.ghi_chu || "").toLowerCase().includes(q)
     );
   });
-  if (targetIndex !== -1) { currentCardIndex = targetIndex; renderCurrentCustomerCard(); } 
-  else showToast("❌ Không tìm thấy khách hàng theo yêu cầu.");
+
+  if (targetIndex !== -1) {
+    currentCardIndex = targetIndex;
+    renderCurrentCustomerCard();
+    showToast(`🔍 Tìm thấy KH tại vị trí ${targetIndex + 1}`);
+  } else {
+    showToast("❌ Không tìm thấy thông tin phù hợp!");
+  }
 }
