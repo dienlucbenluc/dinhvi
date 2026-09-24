@@ -13,6 +13,7 @@ const currentCapturedFiles = {};
 
 const BCS_ORDER = ["BT", "CD", "TD", "SG", "VC", "BN", "CN", "TN", "SN", "VN"];
 
+// Hàm sinh key lưu trữ theo từng người dùng
 function getExcelKeyChiSo() {
   const user = String(currentUser?.ten_ndung || "").trim().toLowerCase();
   return `chiso_excel_data_${user}`;
@@ -32,6 +33,9 @@ function getClientCacheKey() {
   return "cmis_chiso_cache_" + String(currentUser?.ten_ndung || "").trim().toLowerCase();
 }
 
+// ----------------------------------------------------
+// TẠO CHUỖI ĐỊNH DANH KIỂM TRA FILE EXCEL (KHÔNG CHỨA ĐUÔI .XLSX)
+// ----------------------------------------------------
 function buildExcelFileKey(dataList) {
   if (!Array.isArray(dataList) || dataList.length === 0) return "";
   
@@ -51,7 +55,9 @@ document.addEventListener("DOMContentLoaded", async () => {
   currentUser = JSON.parse(sessionStr);
 
   initLocalExcelStore();
+
   await checkAndLoadInitialData();
+
   setupSwipeEvents();
 
   window.addEventListener("online", async () => {
@@ -60,14 +66,23 @@ document.addEventListener("DOMContentLoaded", async () => {
   });
 });
 
+// ----------------------------------------------------
+// KHỞI TẠO VÀ XỬ LÝ DỮ LIỆU BẢNG EXCEL TRÊN THIẾT BỊ
+// ----------------------------------------------------
 function initLocalExcelStore() {
   const csKey = getExcelKeyChiSo();
   const dvKey = getExcelKeyDinhVi();
   const imgKey = getOfflineImagesKey();
 
-  if (!localStorage.getItem(csKey)) localStorage.setItem(csKey, JSON.stringify([]));
-  if (!localStorage.getItem(dvKey)) localStorage.setItem(dvKey, JSON.stringify([]));
-  if (!localStorage.getItem(imgKey)) localStorage.setItem(imgKey, JSON.stringify({}));
+  if (!localStorage.getItem(csKey)) {
+    localStorage.setItem(csKey, JSON.stringify([]));
+  }
+  if (!localStorage.getItem(dvKey)) {
+    localStorage.setItem(dvKey, JSON.stringify([]));
+  }
+  if (!localStorage.getItem(imgKey)) {
+    localStorage.setItem(imgKey, JSON.stringify({}));
+  }
 }
 
 async function checkAndLoadInitialData() {
@@ -82,10 +97,10 @@ async function checkAndLoadInitialData() {
 
   if (!navigator.onLine) {
     if (localExcelList.length > 0) {
-      showToast("📶 Bạn đang ghi chỉ số ngoại tuyến!");
+      showToast("📶 Bạn đang ghi chỉ số với trạng thái ngoại tuyến!");
       loadDataFromLocalExcel();
     } else {
-      showToast("❌ Chưa có dữ liệu trên thiết bị!");
+      showToast("❌ Chưa có dữ liệu trên thiết bị và chưa kết nối mạng!");
       document.getElementById("listContainer").innerHTML = "<p style='text-align:center; padding-top:20px; font-weight:bold; color:red;'>Chưa có dữ liệu trên thiết bị. Vui lòng bật mạng để lấy mới.</p>";
     }
     return;
@@ -110,13 +125,14 @@ async function checkAndLoadInitialData() {
       } else {
         localStorage.setItem(csKey, JSON.stringify(serverList));
         localStorage.setItem(getClientCacheKey(), JSON.stringify({ time: Date.now(), list: serverList }));
+        
         loadDataFromLocalExcel();
         showToast(`✅ Lấy dữ liệu chỉ số thành công!`);
       }
     } else {
       if (localExcelList.length > 0) {
         loadDataFromLocalExcel();
-        showToast("⚠️ Sử dụng dữ liệu hiện tại trên thiết bị.");
+        showToast("⚠️ Máy chủ chưa có dữ liệu mới. Sử dụng dữ liệu hiện tại trên thiết bị.");
       } else {
         const errorMsg = "❌ " + (data.message || "Chưa có dữ liệu giao cho bạn.");
         showToast(errorMsg);
@@ -127,10 +143,11 @@ async function checkAndLoadInitialData() {
     console.error(err);
     if (localExcelList.length > 0) {
       loadDataFromLocalExcel();
-      showToast("⚠️ Mở dữ liệu gần nhất từ thiết bị.");
+      showToast("⚠️ Lỗi kết nối Server. Mở dữ liệu gần nhất từ thiết bị.");
     } else {
-      showToast("❌ Lỗi kết nối máy chủ!");
-      document.getElementById("listContainer").innerHTML = `<p style='text-align:center; padding: 20px 10px; font-weight:bold; color:red;'>Lỗi kết nối máy chủ!</p>`;
+      const errorMsg = "❌ Lỗi kết nối máy chủ!";
+      showToast(errorMsg);
+      document.getElementById("listContainer").innerHTML = `<p style='text-align:center; padding: 20px 10px; font-weight:bold; color:red;'>${errorMsg}</p>`;
     }
   }
 }
@@ -178,7 +195,7 @@ function downloadAllExcelFiles() {
   const fileName = `${fileKey}.xlsx`;
   
   XLSX.writeFile(wb, fileName);
-  showToast(`📊 Đã tải file: ${fileName}`);
+  showToast(`📊 Đã tải dữ liệu: ${fileName}`);
 }
 
 async function saveCustomerData(maKhang) {
@@ -191,7 +208,7 @@ async function saveCustomerData(maKhang) {
     offlineImgBase64 = offlineImgs[maKhang] || null;
   } catch(e) {}
 
-  const hasNewPhoto = Boolean(currentCapturedFiles[maKhang] || offlineImgBase64 || cust.hinh_cto);
+  const hasNewPhoto = Boolean(currentCapturedFiles[maKhang] || offlineImgBase64);
 
   let needPhoto = false;
   let warnMessage = "";
@@ -207,11 +224,18 @@ async function saveCustomerData(maKhang) {
       const sluongThao = Number(item.sluong_thao) || 0;
       const sluongKt = Number(item.sluong_kt) || 0;
 
-      let sanLuong = (csMoi < csCu) ? Math.round((csMoi + 100000 - csCu) * hsn) : Math.round((csMoi - csCu) * hsn);
+      let sanLuong = 0;
+      if (csMoi < csCu) {
+        sanLuong = Math.round((csMoi + 100000 - csCu) * hsn);
+      } else {
+        sanLuong = Math.round((csMoi - csCu) * hsn);
+      }
+      
       const tongSluong = sanLuong + sluongThao;
 
       if (sluongKt > 0) {
         const percentChange = ((tongSluong - sluongKt) / sluongKt) * 100;
+
         if (Math.abs(percentChange) >= 50) {
           needPhoto = true;
           const sign = percentChange > 0 ? "+" : "";
@@ -227,11 +251,13 @@ async function saveCustomerData(maKhang) {
   if (needPhoto && !hasNewPhoto) {
     const confirm = await showCustomConfirm(
       "⚠️ BẮT BUỘC CHỤP ẢNH", 
-      `Biến động sản lượng lớn (+/- 50%):\n${warnMessage}\nVui lòng chụp ảnh công tơ trước khi lưu.`, 
+      `Sản lượng biến động lớn hơn +/- 50%:\n${warnMessage}\nChụp ảnh công tơ trước khi lưu.`, 
       true
     );
 
-    if (confirm) promptImageSource(maKhang);
+    if (confirm) {
+      promptImageSource(maKhang);
+    }
     return;
   }
 
@@ -248,6 +274,7 @@ async function saveCustomerData(maKhang) {
   cust.items.forEach(item => {
     const inputEl = document.getElementById(`cs_moi_${item.rowIndex}`);
     const val = inputEl ? inputEl.value.trim() : "";
+
     const excelItemIndex = localExcelList.findIndex(e => String(e.id_chiso) === String(item.id_chiso));
 
     if (val !== "" && !isNaN(Number(val))) {
@@ -257,7 +284,13 @@ async function saveCustomerData(maKhang) {
       const sluongThao = Number(item.sluong_thao) || 0;
       const sluongKt = Number(item.sluong_kt) || 0;
 
-      let sanLuong = (csMoi < csCu) ? Math.round((csMoi + 100000 - csCu) * hsn) : Math.round((csMoi - csCu) * hsn);
+      let sanLuong = 0;
+      if (csMoi < csCu) {
+        sanLuong = Math.round((csMoi + 100000 - csCu) * hsn);
+      } else {
+        sanLuong = Math.round((csMoi - csCu) * hsn);
+      }
+
       const tongSluong = sanLuong + sluongThao;
       const chenhLech = tongSluong - sluongKt;
       const tyleClech = sluongKt !== 0 ? ((tongSluong / sluongKt) * 100).toFixed(2) + "%" : "0%";
@@ -288,14 +321,15 @@ async function saveCustomerData(maKhang) {
   });
 
   localStorage.setItem(csKey, JSON.stringify(localExcelList));
-  showToast("💾 Đã lưu dữ liệu vào bộ nhớ!");
+  showToast("💾 Đã lưu dữ liệu vào Excel thiết bị!");
   updateSummaryBar();
   renderCurrentCustomerCard();
+
   checkAndAutoSync();
 }
 
 async function cancelCustomerData(maKhang) {
-  const confirm = await showCustomConfirm("HỦY DỮ LIỆU", "Bạn muốn hủy dữ liệu nhập của khách hàng này?", true);
+  const confirm = await showCustomConfirm("HỦY DỮ LIỆU", "Bạn có muốn hủy chỉ số của khách hàng này không?", true);
   if (!confirm) return;
 
   const cust = groupedData[maKhang];
@@ -335,7 +369,7 @@ async function cancelCustomerData(maKhang) {
   });
 
   localStorage.setItem(csKey, JSON.stringify(localExcelList));
-  showToast("✂ Đã xóa dữ liệu chỉ số!");
+  showToast("✂ Đã hủy dữ liệu chỉ số của khách hàng!");
   updateSummaryBar();
   renderCurrentCustomerCard();
 }
@@ -355,7 +389,9 @@ function base64ToFile(base64Str, fileName) {
   const bstr = atob(arr[1]);
   let n = bstr.length;
   const u8arr = new Uint8Array(n);
-  while (n--) u8arr[n] = bstr.charCodeAt(n);
+  while (n--) {
+    u8arr[n] = bstr.charCodeAt(n);
+  }
   return new File([u8arr], fileName, { type: mime });
 }
 
@@ -388,7 +424,9 @@ async function processOfflineImagesToCloudinary() {
       const csKey = getExcelKeyChiSo();
       const logs = JSON.parse(localStorage.getItem(csKey) || "[]");
       logs.forEach(item => {
-        if (item.ma_khang === makh) item.hinh_cto = cloudUrl;
+        if (item.ma_khang === makh) {
+          item.hinh_cto = cloudUrl;
+        }
       });
       localStorage.setItem(csKey, JSON.stringify(logs));
 
@@ -400,17 +438,17 @@ async function processOfflineImagesToCloudinary() {
       delete imgs[makh];
       localStorage.setItem(imgKey, JSON.stringify(imgs));
     } catch (e) {
-      console.error("Lỗi đẩy ảnh Cloudinary makh: " + makh, e);
+      console.error("Lỗi tải ảnh Cloudinary makh: " + makh, e);
     }
   }
 }
 
 async function handleSendDataBtn() {
   if (!navigator.onLine) {
-    showToast("❌ Không có kết nối mạng để đồng bộ");
+    showToast("❌ Không có kết nối mạng để đồng bộ lên server");
     return;
   }
-  const confirm = await showCustomConfirm("GỬI DỮ LIỆU", "Bạn có muốn đồng bộ toàn bộ dữ liệu lên máy chủ?");
+  const confirm = await showCustomConfirm("GỬI DỮ LIỆU", "Bạn muốn gửi dữ liệu chỉ số lên server không?");
   if (!confirm) return;
 
   await syncLocalExcelToSheet(true);
@@ -420,7 +458,9 @@ async function checkAndAutoSync() {
   const csKey = getExcelKeyChiSo();
   const localExcelList = JSON.parse(localStorage.getItem(csKey) || "[]");
   
-  const validRowsCount = localExcelList.filter(item => item.chiso_moi !== "" && item.chiso_moi !== null && item.chiso_moi !== undefined).length;
+  const validRowsCount = localExcelList.filter(item => 
+    item.chiso_moi !== "" && item.chiso_moi !== null && item.chiso_moi !== undefined
+  ).length;
 
   if (validRowsCount >= 20 && validRowsCount % 20 === 0 && navigator.onLine) {
     await syncLocalExcelToSheet(false);
@@ -430,7 +470,7 @@ async function checkAndAutoSync() {
 async function syncLocalExcelToSheet(isManual = false) {
   if (!navigator.onLine) return false;
 
-  showToast("⏳ Đang tải ảnh lên Cloudinary...");
+  showToast("⏳ Đang đẩy ảnh lên Cloudinary...");
   await processOfflineImagesToCloudinary();
 
   const csKey = getExcelKeyChiSo();
@@ -442,11 +482,11 @@ async function syncLocalExcelToSheet(isManual = false) {
   const chisoToSend = chisoLogs.filter(i => i.chiso_moi !== "" && i.chiso_moi !== null && i.chiso_moi !== undefined);
 
   if (chisoToSend.length === 0 && dinhviLogs.length === 0) {
-    if (isManual) showToast("ℹ️ Không có dữ liệu mới để đồng bộ!");
+    if (isManual) showToast("ℹ️ Không có dữ liệu chỉ số mới cần đồng bộ!");
     return false;
   }
 
-  showToast("⏳ Đang đồng bộ máy chủ...");
+  showToast("⏳ Đang đồng bộ dữ liệu lên server...");
 
   try {
     const res = await fetch(API_URL, {
@@ -464,26 +504,31 @@ async function syncLocalExcelToSheet(isManual = false) {
       const syncedIds = new Set(chisoToSend.map(i => String(i.id_chiso)));
       
       chisoLogs.forEach(item => {
-        if (syncedIds.has(String(item.id_chiso))) item.trang_thai = "1";
+        if (syncedIds.has(String(item.id_chiso))) {
+          item.trang_thai = "1";
+        }
       });
       localStorage.setItem(csKey, JSON.stringify(chisoLogs));
 
       Object.keys(groupedData).forEach(makh => {
         groupedData[makh].items.forEach(item => {
-          if (syncedIds.has(String(item.id_chiso))) item.trang_thai = "1";
+          if (syncedIds.has(String(item.id_chiso))) {
+            item.trang_thai = "1";
+          }
         });
       });
 
       localStorage.setItem(dvKey, JSON.stringify([]));
-      showToast("🚀 Đồng bộ thành công!");
+      showToast("🚀 Đồng bộ dữ liệu lên server thành công!");
+
       renderCurrentCustomerCard();
       return true;
     } else {
-      showToast("❌ Đồng bộ lỗi: " + result.message);
+      showToast("❌ Lỗi đồng bộ server: " + result.message);
       return false;
     }
   } catch (e) {
-    showToast("❌ Lỗi kết nối đồng bộ!");
+    showToast("❌ Lỗi kết nối đồng bộ server!");
     return false;
   }
 }
@@ -507,8 +552,9 @@ function compressImage(file, fileName = "photo.jpg", maxWidth = 1000, quality = 
         const ctx = canvas.getContext("2d");
         ctx.drawImage(img, 0, 0, width, height);
         canvas.toBlob((blob) => {
-          if (blob) resolve(new File([blob], fileName, { type: "image/jpeg", lastModified: Date.now() }));
-          else reject(new Error("Lỗi nén ảnh"));
+          if (blob) {
+            resolve(new File([blob], fileName, { type: "image/jpeg", lastModified: Date.now() }));
+          } else reject(new Error("Lỗi nén ảnh"));
         }, "image/jpeg", quality);
       };
       img.onerror = (err) => reject(err);
@@ -532,15 +578,20 @@ async function uploadToCloudinary(file, maKhang = "") {
   });
   const data = await res.json();
   if (data.secure_url) return data.secure_url;
-  throw new Error(data.error?.message || "Lỗi tải ảnh!");
+  throw new Error(data.error?.message || "Lỗi tải ảnh lên server!");
 }
 
 let toastTimer = null;
 function showToast(msg, isError = false) {
   let t = document.getElementById("toast");
-  if (!t) return;
+  if (!t) {
+    t = document.createElement("div");
+    t.id = "toast";
+    document.body.appendChild(t);
+  }
 
   const isErr = isError || /❌|⚠️|lỗi|thất bại/i.test(msg || '');
+
   t.className = isErr ? "error" : "";
   t.innerHTML = msg || "";
 
@@ -642,7 +693,7 @@ function promptImageSource(maKhang) {
 
   titleEl.innerText = "CHỌN NGUỒN ẢNH";
   titleEl.style.color = "#007bff";
-  msgEl.innerText = "Bạn muốn chụp ảnh trực tiếp hay chọn từ bộ sưu tập?";
+  msgEl.innerText = "Bạn muốn chụp ảnh hay chọn từ bộ sưu tập?";
   
   btnConfirm.innerText = "📸 Máy ảnh";
   btnConfirm.style.background = "#007bff";
@@ -670,6 +721,7 @@ async function handleImageSelected(event, maKhang) {
   if (!file) return;
 
   currentCapturedFiles[maKhang] = file;
+
   await saveOfflineImage(maKhang, file);
 
   const reader = new FileReader();
@@ -680,6 +732,7 @@ async function handleImageSelected(event, maKhang) {
     }
   };
   reader.readAsDataURL(file);
+
   event.target.value = "";
 }
 
@@ -700,12 +753,13 @@ function renderCurrentCustomerCard(slideDirection = null) {
   const cotTramText = [cust.so_cot, cust.ten_tram].filter(Boolean).join(" - ");
 
   const hasLocation = Boolean(firstItem.lat && firstItem.lng);
-  let mapLinkHtml = `<a onclick="getLocationAndSave('${cust.ma_khang}')" style="color:red; font-size: 13px; font-weight:bold; cursor:pointer;">📍 Lấy mới định vị GPS</a>`;
+  let mapLinkHtml = `<a onclick="getLocationAndSave('${cust.ma_khang}')" style="color:red; font-size: 14px; font-weight:bold; text-decoration:none; cursor:pointer;">📍 Lấy mới định vị</a>`;
   if (hasLocation) {
     mapLinkHtml = `<span id="map_link_${cust.ma_khang}"><a href="http://maps.google.com/?q=${firstItem.lat},${firstItem.lng}" target="_blank" style="color:#007bff; font-weight:bold; text-decoration:none;">🌏 Xem Google Maps</a></span>`;
   }
 
   const alreadyHasCS = cust.items.some(i => i.chiso_moi !== "" && i.chiso_moi !== undefined && i.chiso_moi !== null);
+
   const isAllSynced = cust.items.length > 0 && cust.items.every(i => String(i.trang_thai) === "1");
 
   let initialClass = "";
@@ -734,31 +788,31 @@ function renderCurrentCustomerCard(slideDirection = null) {
     <div class="customer-card ${initialClass}" id="activeCustomerCard">
       <div class="cust-header">
         <div style="display:flex; justify-content:space-between; align-items:center;">
-          <span style="font-size:12px; color:#0056b3; font-weight:bold; background:#eef5fc; padding:2px 6px; border-radius:4px;">
+          <span style="font-size:13px; color:#0056b3; font-weight:bold; background:#fff; padding:2px 0px; border-radius:4px;">
             STT: ${currentCardIndex + 1} / ${customerKeys.length}
           </span>
-          ${isAllSynced ? `<span style="font-size:11px; color:green; font-weight:bold; background:#e6f4ea; padding:2px 6px; border-radius:4px;">✅ Đã đồng bộ</span>` : `<span style="font-size:11px; color:#666;">⬅️ Vuốt sang ➡️</span>`}
+          ${isAllSynced ? `<span style="font-size:12px; color:green; font-weight:bold; background:#e6f4ea; padding:2px 6px; border-radius:4px;">✅ Đã đồng bộ lên server, không thể sửa</span>` : `<span style="font-size:12px; color:#666;">⬅️ Vuốt để đổi KH ➡️</span>`}
         </div>
-        <div class="cust-title" style="margin-top:4px;">Mã KH: ${cust.ma_khang} - <b>Số CT:</b> ${cust.so_cto}</div>
+        <div class="cust-title">Mã KH: ${cust.ma_khang} - <b>Số CTơ:</b> ${cust.so_cto}</div>
         <div class="cust-tenKH">${cust.ten_khang || ''}</div>
         <div class="cust-address" title="${cust.dia_chi || ''}"><b>Đ/C:</b> ${cust.dia_chi || ''}</div>
         <div class="cust-row-group">
-         Sổ: ${cust.ma_sogcs} - DS: ${cust.danh_so || ''} - ĐT: ${cust.so_dthoai || ''}
+         Sổ: ${cust.ma_sogcs}-DS: ${cust.danh_so || ''}-ĐT: ${cust.so_dthoai || ''}
         </div>
-        <div class="cust-address">Cột-Trạm: ${cotTramText || ''}</div>
+        <div class="cust-address"> Cột - Trạm: ${cotTramText || ''}</div>
 
         <div class="cust-row-group">
           <input type="text" class="input-ghichu" 
                  id="ghi_chu_${cust.ma_khang}" 
                  value="${cust.ghi_chu || ''}" 
-                 placeholder="Nhập ghi chú..." 
+                 placeholder="Nhập ghi chú nếu có..." 
                  ${isAllSynced ? "disabled" : ""}
                  onchange="groupedData['${cust.ma_khang}'].ghi_chu = this.value;">
         </div>
         <div class="box-maps">${mapLinkHtml}</div>
         <div class="cust-dynamic-info-v2" id="detail_info_${cust.ma_khang}">
-          <span>kW tháo <span id="bcs_thao_label_${cust.ma_khang}">(${firstItem.bcs})</span>: <b id="kw_thao_val_${cust.ma_khang}">${firstItem.sluong_thao || 0}</b></span>
-          <span>kW kỳ trước <span id="bcs_label_${cust.ma_khang}">(${firstItem.bcs})</span>: <b id="kw_kt_val_${cust.ma_khang}">${firstItem.sluong_kt || 0}</b></span>
+          <span>kW tháo <span id="bcs_thao_label_${cust.ma_khang}">(${firstItem.bcs || ''})</span>: <b id="kw_thao_val_${cust.ma_khang}">${firstItem.sluong_thao || 0}</b></span>
+          <span>kW kỳ trước <span id="bcs_label_${cust.ma_khang}">(${firstItem.bcs || ''})</span>: <b id="kw_kt_val_${cust.ma_khang}">${firstItem.sluong_kt || 0}</b></span>
         </div>
       </div>
 
@@ -782,7 +836,7 @@ function renderCurrentCustomerCard(slideDirection = null) {
 
     html += `
       <tr id="row_${item.rowIndex}">
-        <td class="text-center"><span class="bcs-badge">${item.bcs}</span></td>
+        <td class="text-center" style="padding: 6px 2px;"><span class="bcs-badge">${item.bcs}</span></td>
         <td class="val-calc-large text-right">${item.chiso_cu}</td>
         <td>
           <input type="number" 
@@ -791,12 +845,12 @@ function renderCurrentCustomerCard(slideDirection = null) {
                  value="${csMoiVal}"
                  ${itemSynced ? "disabled" : ""}
                  onfocus="updateKwKtDisplay('${cust.ma_khang}', '${item.bcs}', ${item.sluong_kt || 0}, ${item.sluong_thao || 0})"
-                 onchange="calculateRow('${cust.ma_khang}', '${item.bcs}', ${item.rowIndex}, ${item.chiso_cu || 0}, ${item.hsn}, ${item.sluong_thao || 0}, ${item.sluong_kt || 0})">
+                 onchange="calculateRow('${cust.ma_khang}', '${item.bcs}', ${item.rowIndex}, ${item.chiso_cu || 0}, ${item.hsn || 1}, ${item.sluong_thao || 0}, ${item.sluong_kt || 0})">
           <input type="hidden" id="sl_val_${item.rowIndex}" value="${item.san_luong !== "" && item.san_luong !== undefined ? item.san_luong : '-'}">
         </td>
         <td id="tong_sl_${item.rowIndex}" class="val-calc-large text-right">${item.tong_sluong !== "" && item.tong_sluong !== undefined ? item.tong_sluong : '-'}</td>
         <td class="text-center">
-          <select class="select-loai" id="select_loai_${item.rowIndex}" ${itemSynced ? "disabled" : ""} onchange="handleComboboxChange('${cust.ma_khang}', '${item.bcs}', ${item.rowIndex}, ${item.chiso_cu || 0}, ${item.hsn}, ${item.sluong_thao || 0}, ${item.sluong_kt || 0})">
+          <select class="select-loai" id="select_loai_${item.rowIndex}" ${itemSynced ? "disabled" : ""} onchange="handleComboboxChange('${cust.ma_khang}', '${item.bcs}', ${item.rowIndex}, ${item.chiso_cu || 0}, ${item.hsn || 1}, ${item.sluong_thao || 0}, ${item.sluong_kt || 0})">
             <option value="">--</option>
             <option value="U">U : Không xài</option>
             <option value="V">V : Tạm tính</option>
@@ -810,7 +864,7 @@ function renderCurrentCustomerCard(slideDirection = null) {
   });
 
   const cancelDisabledAttr = isAllSynced || (!alreadyHasCS && !cust.hinh_cto && !currentCapturedFiles[makh] && !offlineImgBase64) ? "disabled" : "";
-  const saveDisabledAttr = isAllSynced ? "disabled" : "";
+  const saveDisabledAttr = isAllSynced || !hasLocation ? "disabled" : "";
 
   html += `
           </tbody>
@@ -821,12 +875,12 @@ function renderCurrentCustomerCard(slideDirection = null) {
       <input type="file" id="input_gallery_${cust.ma_khang}" accept="image/*" style="display:none;" onchange="handleImageSelected(event, '${cust.ma_khang}')">
 
       <div class="card-btn-group">
-        <div id="img_preview_container_${cust.ma_khang}" style="flex: 1; height: 110px; border: 1px dashed #ccc; border-radius: 4px; display: flex; align-items: center; justify-content: center; overflow: hidden; background: #fafafa;">
+        <div id="img_preview_container_${cust.ma_khang}" style="flex: 1; height: 110px; border: 1px dashed #ccc; border-radius: 6px; display: flex; align-items: center; justify-content: center; overflow: hidden; background: #fafafa;">
           ${imgPreviewHtml}
         </div>
         <div style="flex: 1; display: flex; flex-direction: column; gap: 6px;">
           <button class="btn-card btn-card-save" id="btn_save_${cust.ma_khang}" ${saveDisabledAttr} onclick="saveCustomerData('${cust.ma_khang}')">💾 Lưu dữ liệu</button>
-          <button class="btn-card" style="background: #17a2b8;" id="btn_capture_${cust.ma_khang}" ${isAllSynced ? "disabled" : ""} onclick="promptImageSource('${cust.ma_khang}')">📷 Chụp ảnh</button>
+          <button class="btn-card" style="background: #17a2b8;" id="btn_capture_${cust.ma_khang}" ${isAllSynced ? "disabled" : ""} onclick="promptImageSource('${cust.ma_khang}')">📷 Chụp ảnh&nbsp;&nbsp;</button>
           <button class="btn-card btn-card-cancel" id="btn_cancel_${cust.ma_khang}" ${cancelDisabledAttr} onclick="cancelCustomerData('${cust.ma_khang}')">✂ Hủy dữ liệu</button>
         </div>
       </div>
@@ -839,7 +893,7 @@ function renderCurrentCustomerCard(slideDirection = null) {
     const activeCard = document.getElementById("activeCustomerCard");
     setTimeout(() => {
       activeCard.classList.remove("slide-left-in", "slide-right-in");
-      setTimeout(() => { isAnimating = false; }, 200);
+      setTimeout(() => { isAnimating = false; }, 250);
     }, 20);
   } else {
     isAnimating = false;
@@ -890,9 +944,9 @@ function getLocationAndSave(maKhang) {
         });
         renderCurrentCustomerCard();
       }
-      showToast("📍 Đã lưu tọa độ GPS thành công!");
+      showToast("📍 Đã lưu tọa độ vị trí vào thiết bị!");
     },
-    (error) => { showToast("❌ Lỗi GPS. Vui lòng bật vị trí!"); },
+    (error) => { showToast("❌ Lỗi định vị GPS. Vui lòng bật vị trí!"); },
     { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
   );
 }
@@ -986,6 +1040,9 @@ function handleSwipeGesture(startX, startY, endX, endY) {
   }
 }
 
+// ----------------------------------------------------
+// XỬ LÝ SỰ KIỆN KHI CHỌN LOẠI CÔNG TƠ TỪ COMBOBOX
+// ----------------------------------------------------
 async function handleComboboxChange(maKhang, bcs, rowIndex, csCu, hsn, sluongThao, sluongKt) {
   const selectEl = document.getElementById(`select_loai_${rowIndex}`);
   const valType = selectEl ? selectEl.value : "";
@@ -1000,8 +1057,11 @@ async function handleComboboxChange(maKhang, bcs, rowIndex, csCu, hsn, sluongTha
   const slKt = Number(sluongKt) || 0;
 
   if (valType === "V") {
+    // 1. Mã V: Tạm tính
     let calculatedCsMoi = csCuVal;
-    if (slThao <= slKt) {
+    if (slThao > slKt) {
+      calculatedCsMoi = csCuVal;
+    } else {
       let sanLuongTarget = slKt - slThao;
       calculatedCsMoi = Math.round(csCuVal + (sanLuongTarget / hsnVal));
     }
@@ -1009,6 +1069,7 @@ async function handleComboboxChange(maKhang, bcs, rowIndex, csCu, hsn, sluongTha
     await calculateRow(maKhang, bcs, rowIndex, csCuVal, hsnVal, slThao, slKt);
 
   } else if (valType === "U" || valType === "H" || valType === "M") {
+    // 2 & 4. Mã U, H, M: chiso_moi = chiso_cu
     if (inputEl) inputEl.value = csCuVal;
     await calculateRow(maKhang, bcs, rowIndex, csCuVal, hsnVal, slThao, slKt);
 
@@ -1021,10 +1082,11 @@ async function handleComboboxChange(maKhang, bcs, rowIndex, csCu, hsn, sluongTha
     }
 
   } else if (valType === "Q") {
+    // 3. Mã Q: Qua vòng
     if (inputEl && inputEl.value !== "") {
       await calculateRow(maKhang, bcs, rowIndex, csCuVal, hsnVal, slThao, slKt);
     } else {
-      showToast("ℹ️ Nhập chỉ số mới cho trường hợp Qua vòng.");
+      showToast("ℹ️ Vui lòng nhập chỉ số mới cho trường hợp Qua vòng.");
       if (inputEl) inputEl.focus();
     }
   }
@@ -1063,8 +1125,13 @@ async function calculateRow(maKhang, bcs, rowIndex, csCu, hsn, sluongThao, sluon
       sanLuong = tongSluong - slThao;
     }
   } else if (selectedType === "U" || selectedType === "H" || selectedType === "M") {
-    sanLuong = 0;
-    tongSluong = slThao > 0 ? slThao : 0;
+    if (slThao > 0) {
+      tongSluong = slThao;
+      sanLuong = 0;
+    } else {
+      sanLuong = 0;
+      tongSluong = 0;
+    }
   } else if (selectedType === "Q") {
     sanLuong = Math.round((csMoi + 100000 - csCuVal) * hsnVal);
     tongSluong = sanLuong + slThao;
@@ -1085,16 +1152,6 @@ async function calculateRow(maKhang, bcs, rowIndex, csCu, hsn, sluongThao, sluon
 
   if (slHiddenEl) slHiddenEl.value = sanLuong;
   if (tongSlCell) tongSlCell.innerText = tongSluong;
-
-  // Cập nhật ngay vào RAM groupedData
-  if (groupedData[maKhang]) {
-    const item = groupedData[maKhang].items.find(i => String(i.rowIndex) === String(rowIndex));
-    if (item) {
-      item.chiso_moi = csMoi;
-      item.san_luong = sanLuong;
-      item.tong_sluong = tongSluong;
-    }
-  }
 
   checkCancelButtonStatus(maKhang);
 }
