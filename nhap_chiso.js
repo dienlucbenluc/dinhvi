@@ -92,7 +92,12 @@ function initLocalExcelStore() {
 // Kiểm tra đối chiếu file Excel gần nhất trên thiết bị với Google Sheet
 async function checkAndLoadInitialData() {
   const csKey = getExcelKeyChiSo();
-  const localExcelList = JSON.parse(localStorage.getItem(csKey) || "[]");
+  let localExcelList = [];
+  try {
+    localExcelList = JSON.parse(localStorage.getItem(csKey) || "[]");
+  } catch (e) {
+    localExcelList = [];
+  }
   const localFileKey = buildExcelFileKey(localExcelList);
 
   // Ngoại tuyến: Ưu tiên load file gần nhất trên thiết bị
@@ -102,7 +107,7 @@ async function checkAndLoadInitialData() {
       loadDataFromLocalExcel();
     } else {
       showToast("❌ Chưa có dữ liệu trên thiết bị và chưa kết nối mạng!");
-      document.getElementById("listContainer").innerHTML = "<p style='text-align:center; padding-top:20px; font-weight:bold; color:red;'>Chưa có dữ trên thiết bị. Vui lòng bật mạng để lấy mới.</p>";
+      document.getElementById("listContainer").innerHTML = "<p style='text-align:center; padding-top:20px; font-weight:bold; color:red;'>Chưa có dữ liệu trên thiết bị. Vui lòng bật mạng để lấy mới.</p>";
     }
     return;
   }
@@ -121,7 +126,6 @@ async function checkAndLoadInitialData() {
       const serverList = data.list;
       const serverFileKey = buildExcelFileKey(serverList);
 
-      // ĐỐI CHIẾU TRÙNG KHỚP: ten_ndung+thang+nam+count(id_chiso)
       if (localExcelList.length > 0 && localFileKey === serverFileKey) {
         loadDataFromLocalExcel();
       } else {
@@ -132,35 +136,26 @@ async function checkAndLoadInitialData() {
         showToast(`✅ Lấy dữ liệu chỉ số thành công!`);
       }
     } else {
-  if (localExcelList.length > 0) {
-    loadDataFromLocalExcel();
-    showToast("⚠️ Máy chủ chưa có dữ liệu mới. Sử dụng dữ liệu hiện tại trên thiết bị.");
-  } else {
-    const errorMsg = "❌ " + (data.message || "Lỗi kết nối máy chủ hoặc chưa giao dữ liệu.\nBấm lấy sổ GCS lại vài lần nếu chưa có thì liên hệ người điều hành giao sổ GCS cho bạn!");
-    showToast(errorMsg);
-    
-    // Cập nhật nội dung thông báo trực tiếp lên listContainer để dừng hiệu ứng chờ/quay
-    const listContainer = document.getElementById("listContainer");
-    if (listContainer) {
-      listContainer.innerHTML = `<p style='text-align:center; padding: 20px 10px; font-weight:bold; color:red; line-height: 1.5;'>${errorMsg}</p>`;
+      if (localExcelList.length > 0) {
+        loadDataFromLocalExcel();
+        showToast("⚠️ Máy chủ chưa có dữ liệu mới. Sử dụng dữ liệu hiện tại trên thiết bị.");
+      } else {
+        const errorMsg = "❌ " + (data.message || "Chưa có dữ liệu giao cho bạn.");
+        showToast(errorMsg);
+        document.getElementById("listContainer").innerHTML = `<p style='text-align:center; padding: 20px 10px; font-weight:bold; color:red;'>${errorMsg}</p>`;
+      }
     }
-  }
-}
   } catch (err) {
-  console.error(err);
-  if (localExcelList.length > 0) {
-    loadDataFromLocalExcel();
-    showToast("⚠️ Lỗi kết nối Server. Mở dữ liệu gần nhất từ thiết bị.");
-  } else {
-    const errorMsg = "❌ Lỗi kết nối máy chủ!";
-    showToast(errorMsg);
-    
-    const listContainer = document.getElementById("listContainer");
-    if (listContainer) {
-      listContainer.innerHTML = `<p style='text-align:center; padding: 20px 10px; font-weight:bold; color:red; line-height: 1.5;'>${errorMsg}</p>`;
+    console.error(err);
+    if (localExcelList.length > 0) {
+      loadDataFromLocalExcel();
+      showToast("⚠️ Lỗi kết nối Server. Mở dữ liệu gần nhất từ thiết bị.");
+    } else {
+      const errorMsg = "❌ Lỗi kết nối máy chủ!";
+      showToast(errorMsg);
+      document.getElementById("listContainer").innerHTML = `<p style='text-align:center; padding: 20px 10px; font-weight:bold; color:red;'>${errorMsg}</p>`;
     }
   }
-}
 }
 
 function handleFetchDataBtn() {
@@ -653,7 +648,11 @@ function showCustomConfirm(title, message, isDanger = false) {
 
 function groupAndRender(flatList) {
   groupedData = {};
-  flatList.forEach(item => {
+  
+  // Gán rowIndex chính xác cho từng dòng dữ liệu từ flatList
+  flatList.forEach((item, index) => {
+    item.rowIndex = item.rowIndex !== undefined ? item.rowIndex : index;
+
     const makh = item.ma_khang;
     if (!groupedData[makh]) {
       groupedData[makh] = {
