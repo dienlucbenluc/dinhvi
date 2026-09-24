@@ -90,11 +90,49 @@ async function handleFetchDataBtn() {
   .then(res => {
     if (res.status === "success" && Array.isArray(res.list)) {
       const csKey = getExcelKeyChiSo();
-      localStorage.setItem(csKey, JSON.stringify(res.list));
-      localStorage.setItem(getClientCacheKey(), JSON.stringify({ time: Date.now(), list: res.list }));
+      
+      // 1. Lấy dữ liệu hiện có dưới Excel thiết bị
+      const localExcelList = JSON.parse(localStorage.getItem(csKey) || "[]");
+      
+      // Map lưu thông tin đã nhập theo id_chiso
+      const localMap = {};
+      localExcelList.forEach(item => {
+        if (item.id_chiso) {
+          localMap[String(item.id_chiso)] = item;
+        }
+      });
+
+      // 2. Trộn dữ liệu: Giữ nguyên thông tin nếu id_chiso nào trên thiết bị đã có chiso_moi
+      const mergedList = res.list.map(serverItem => {
+        const idStr = String(serverItem.id_chiso);
+        const localItem = localMap[idStr];
+
+        if (localItem && localItem.chiso_moi !== "" && localItem.chiso_moi !== null && localItem.chiso_moi !== undefined) {
+          // Giữ nguyên toàn bộ dữ liệu đã nhập trên thiết bị cho dòng này
+          return {
+            ...serverItem, // Lấy thông tin nền từ server nếu cần
+            chiso_moi: localItem.chiso_moi,
+            san_luong: localItem.san_luong,
+            tong_sluong: localItem.tong_sluong,
+            chenh_lech: localItem.chenh_lech,
+            tyle_clech: localItem.tyle_clech,
+            ghi_chu: localItem.ghi_chu || serverItem.ghi_chu,
+            ngay_nhap: localItem.ngay_nhap,
+            nguoi_nhap: localItem.nguoi_nhap,
+            hinh_cto: localItem.hinh_cto || serverItem.hinh_cto,
+            lat: localItem.lat || serverItem.lat,
+            lng: localItem.lng || serverItem.lng
+          };
+        }
+        return serverItem;
+      });
+
+      // 3. Lưu lại vào bộ nhớ thiết bị & Cache
+      localStorage.setItem(csKey, JSON.stringify(mergedList));
+      localStorage.setItem(getClientCacheKey(), JSON.stringify({ time: Date.now(), list: mergedList }));
       
       loadDataFromLocalExcel();
-      showToast("✅ Đã lấy và lưu dữ liệu vào bảng Excel của thiết bị!");
+      showToast("✅ Đã cập nhật dữ liệu server (đã giữ nguyên các chỉ số mới đã nhập)!");
     } else {
       showToast("❌ Lỗi lấy dữ liệu: " + (res.message || "Không xác định"));
     }
