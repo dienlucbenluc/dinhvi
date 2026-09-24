@@ -459,12 +459,14 @@ async function checkAndAutoSync() {
   const csKey = getExcelKeyChiSo();
   const localExcelList = JSON.parse(localStorage.getItem(csKey) || "[]");
   
-  const validRows = localExcelList.filter(item => 
+  // Đếm tổng số dòng đã có chỉ số mới
+  const validRowsCount = localExcelList.filter(item => 
     item.chiso_moi !== "" && item.chiso_moi !== null && item.chiso_moi !== undefined
-  );
+  ).length;
 
-  if (validRows.length >= 50 && navigator.onLine) {
-    showToast("⚡ Đã đủ >= 50 dòng chỉ số. Đang tự động đồng bộ lên Google Sheet...");
+  // Kiểm tra điều kiện: Tối thiểu 20 dòng và chia hết cho 20 (20, 40, 60, 80, 100...)
+  if (validRowsCount >= 20 && validRowsCount % 20 === 0 && navigator.onLine) {
+    //showToast(`⚡ Đã đạt mốc ${validRowsCount} dòng chỉ số. Đang tự động gửi dữ liệu về server...`);
     await syncLocalExcelToSheet(false);
   }
 }
