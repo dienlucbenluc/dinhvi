@@ -107,7 +107,7 @@ async function checkAndLoadInitialData() {
     return;
   }
 
-  showToast("⏳ Đang lấy dữ liệu chỉ số v4...");
+  showToast("⏳ Đang lấy dữ liệu chỉ số v5...");
   try {
     const res = await fetch(API_URL, {
       method: "POST",
@@ -257,7 +257,7 @@ async function saveCustomerData(maKhang) {
   if (needPhoto && !hasNewPhoto) {
     const confirm = await showCustomConfirm(
       "⚠️ BẮT BUỘC CHỤP ẢNH", 
-      `Sản lượng biến động vượt ngưỡng +/- 50%:\n${warnMessage}\nBắt buộc phải chụp ảnh công tơ trước khi lưu!\nBấm 'Chấp nhận' để mở NGUỒN ẢNH.`, 
+      `Sản lượng biến động lớn hơn +/- 50%:\n${warnMessage}\nChụp ảnh công tơ trước khi lưu.`, 
       true
     );
 
@@ -336,7 +336,7 @@ async function saveCustomerData(maKhang) {
 }
 
 async function cancelCustomerData(maKhang) {
-  const confirm = await showCustomConfirm("HỦY DỮ LIỆU", "Bạn có chắc chắn muốn hủy chỉ số của khách hàng này trên Excel thiết bị?", true);
+  const confirm = await showCustomConfirm("HỦY DỮ LIỆU", "Bạn có muốn hủy chỉ số của khách hàng này không?", true);
   if (!confirm) return;
 
   const cust = groupedData[maKhang];
@@ -376,7 +376,7 @@ async function cancelCustomerData(maKhang) {
   });
 
   localStorage.setItem(csKey, JSON.stringify(localExcelList));
-  showToast("✂ Đã hủy dữ liệu chỉ số trên Excel thiết bị!");
+  showToast("✂ Đã hủy dữ liệu chỉ số của khách hàng!");
   updateSummaryBar();
   renderCurrentCustomerCard();
 }
@@ -458,7 +458,7 @@ async function handleSendDataBtn() {
     showToast("❌ Không có kết nối mạng để đồng bộ lên Google Sheet!");
     return;
   }
-  const confirm = await showCustomConfirm("GỬI DỮ LIỆU", "Bạn muốn gửi toàn bộ dữ liệu chỉ số từ Excel thiết bị lên Google Sheet?");
+  const confirm = await showCustomConfirm("GỬI DỮ LIỆU", "Bạn muốn gửi dữ liệu chỉ số lên server không?");
   if (!confirm) return;
 
   await syncLocalExcelToSheet(true);
@@ -496,7 +496,7 @@ async function syncLocalExcelToSheet(isManual = false) {
     return false;
   }
 
-  showToast("⏳ Đang đồng bộ từ Excel thiết bị lên Google Sheet...");
+  showToast("⏳ Đang đồng bộ dữ liệu lên server...");
 
   try {
     const res = await fetch(API_URL, {
@@ -512,14 +512,14 @@ async function syncLocalExcelToSheet(isManual = false) {
 
     if (result.status === "success") {
       localStorage.setItem(dvKey, JSON.stringify([]));
-      showToast("🚀 Đồng bộ dữ liệu lên Google Sheet thành công!");
+      showToast("🚀 Đồng bộ dữ liệu lên server thành công!");
       return true;
     } else {
-      showToast("❌ Lỗi đồng bộ Google Sheet: " + result.message);
+      showToast("❌ Lỗi đồng bộ server: " + result.message);
       return false;
     }
   } catch (e) {
-    showToast("❌ Lỗi kết nối đồng bộ Google Sheet!");
+    showToast("❌ Lỗi kết nối đồng bộ server!");
     return false;
   }
 }
@@ -569,7 +569,7 @@ async function uploadToCloudinary(file, maKhang = "") {
   });
   const data = await res.json();
   if (data.secure_url) return data.secure_url;
-  throw new Error(data.error?.message || "Lỗi tải ảnh Cloudinary!");
+  throw new Error(data.error?.message || "Lỗi tải ảnh lên server!");
 }
 
 let toastTimer = null;
@@ -668,7 +668,7 @@ function promptImageSource(maKhang) {
 
   titleEl.innerText = "CHỌN NGUỒN ẢNH";
   titleEl.style.color = "#007bff";
-  msgEl.innerText = "Bạn muốn chụp ảnh trực tiếp hay chọn ảnh sẵn từ bộ sưu tập?";
+  msgEl.innerText = "Bạn muốn chụp ảnh hay chọn từ bộ sưu tập?";
   
   btnConfirm.innerText = "📸 Máy ảnh";
   btnConfirm.style.background = "#007bff";
@@ -1010,10 +1010,6 @@ function handleSwipeGesture(startX, startY, endX, endY) {
   }
 }
 
-// ----------------------------------------------------
-// XỬ LÝ SỰ KIỆN KHI CHỌN LOẠI CÔNG TƠ TỪ COMBOBOX
-// ----------------------------------------------------
-// ----------------------------------------------------
 // XỬ LÝ SỰ KIỆN KHI CHỌN LOẠI CÔNG TƠ TỪ COMBOBOX
 // ----------------------------------------------------
 async function handleComboboxChange(maKhang, bcs, rowIndex, csCu, hsn, sluongThao, sluongKt) {
