@@ -136,7 +136,7 @@ async function checkAndLoadInitialData() {
         loadDataFromLocalExcel();
         showToast("⚠️ Máy chủ chưa có dữ liệu mới. Sử dụng dữ liệu hiện tại trên thiết bị.");
       } else {
-        showToast("❌ Không tìm thấy dữ liệu trên server: " + (data.message || "Danh sách rỗng"));
+        showToast("❌ Không tìm thấy dữ liệu trên server: " + (data.message || "Chưa giao dữ liệu"));
       }
     }
   } catch (err) {
