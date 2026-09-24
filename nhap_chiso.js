@@ -71,14 +71,15 @@ function initLocalExcelStore() {
   }
 }
 
-// Lấy dữ liệu từ server hoặc so sánh với dữ liệu Excel thiết bị
+// Lấy dữ liệu từ server hoặc ưu tiên sử dụng dữ liệu Excel trên thiết bị
 async function handleFetchDataBtn() {
   const csKey = getExcelKeyChiSo();
   const localExcelList = JSON.parse(localStorage.getItem(csKey) || "[]");
 
+  // 1. Trường hợp không có mạng: dùng dữ liệu thiết bị nếu có
   if (!navigator.onLine) {
     if (localExcelList.length > 0) {
-      showToast("📶 Ngoại tuyến: Đang mở dữ liệu từ Excel thiết bị...");
+      showToast("📶 Ngoại tuyến: Mở dữ liệu từ Excel trên thiết bị...");
       loadDataFromLocalExcel();
     } else {
       showToast("❌ Không có dữ liệu trên thiết bị và chưa kết nối mạng!");
@@ -100,74 +101,53 @@ async function handleFetchDataBtn() {
     if (data.status === "success" && Array.isArray(data.list) && data.list.length > 0) {
       const serverList = data.list;
 
-      // 1. Tạo Map lưu lại toàn bộ các dòng chỉ số ĐÃ NHẬP trên thiết bị (keyed theo id_chiso)
-      const localEnteredMap = {};
-      localExcelList.forEach(item => {
-        if (item.id_chiso && item.chiso_moi !== "" && item.chiso_moi !== null && item.chiso_moi !== undefined) {
-          localEnteredMap[String(item.id_chiso)] = item;
-        }
-      });
+      // Tính tổng số dòng id_chiso hợp lệ từ local và server
+      const localValidRows = localExcelList.filter(item => item.id_chiso !== undefined && item.id_chiso !== null && item.id_chiso !== "");
+      const serverValidRows = serverList.filter(item => item.id_chiso !== undefined && item.id_chiso !== null && item.id_chiso !== "");
 
-      // 2. Kiểm tra điều kiện trùng khớp: [ten_ndung + thang + nam + số dòng id_chiso]
       let isMatched = false;
 
-      if (localExcelList.length > 0) {
+      // 2. Kiểm tra điều kiện chuỗi [ten_ndung + thang + nam + count(id_chiso)]
+      if (localExcelList.length > 0 && localValidRows.length > 0) {
         const sampleLocal = localExcelList[0];
         const sampleServer = serverList[0];
 
-        const matchUser = String(sampleLocal.ten_ndung || sampleLocal.nguoi_nhap || "").trim().toLowerCase() === String(currentUser.ten_ndung || "").trim().toLowerCase();
-        const matchThang = String(sampleLocal.thang || "") === String(sampleServer.thang || "");
-        const matchNam = String(sampleLocal.nam || "") === String(sampleServer.nam || "");
+        const localUser = String(sampleLocal.ten_ndung || sampleLocal.nguoi_nhap || currentUser.ten_ndung || "").trim().toLowerCase();
+        const currentUserStr = String(currentUser.ten_ndung || "").trim().toLowerCase();
 
-        // So sánh danh sách id_chiso từ server và local
-        const localIdSet = new Set(localExcelList.map(i => String(i.id_chiso)).filter(Boolean));
-        const serverIdSet = new Set(serverList.map(i => String(i.id_chiso)).filter(Boolean));
+        const localThang = String(sampleLocal.thang || "").padStart(2, '0');
+        const serverThang = String(sampleServer.thang || "").padStart(2, '0');
+
+        const localNam = String(sampleLocal.nam || "");
+        const serverNam = String(sampleServer.nam || "");
+
+        const localCount = localValidRows.length;
+        const serverCount = serverValidRows.length;
+
+        // Chuỗi kiểm tra từ Excel Thiết Bị
+        const localCheckStr = `${localUser}_thang${localThang}_${localNam}_${localCount}dong`;
         
-        const matchIdCount = localIdSet.size === serverIdSet.size && 
-                             [...localIdSet].every(id => serverIdSet.has(id));
+        // Chuỗi kiểm tra đại diện trên Google Sheet (Server)
+        const serverCheckStr = `${currentUserStr}_thang${serverThang}_${serverNam}_${serverCount}dong`;
 
-        if (matchUser && matchThang && matchNam && matchIdCount) {
+        if (localCheckStr === serverCheckStr) {
           isMatched = true;
         }
       }
 
-      // TRƯỜNG HỢP A: File Excel/Dữ liệu thiết bị hoàn toàn trùng khớp bộ định danh -> Lấy từ thiết bị mà không lấy lại từ Server
+      // TRƯỜNG HỢP 1: Đã tồn tại dữ liệu trùng khớp chuỗi kiểm tra -> Lấy từ Excel thiết bị, KHÔNG ghi đè hay tạo gì thêm
       if (isMatched) {
-        showToast("📂 Dữ liệu trùng khớp tên file/định danh. Mở danh sách khách hàng từ Excel thiết bị!");
+        showToast("📂 Đã tồn tại dữ liệu Excel trùng khớp trên thiết bị. Mở dữ liệu thiết bị!");
         loadDataFromLocalExcel();
         return;
       }
 
-      // TRƯỜNG HỢP B: Chưa có dữ liệu hoặc có cập nhật danh sách mới -> MERGE và bảo toàn chỉ số đã nhập
-      const mergedList = serverList.map(serverItem => {
-        const idStr = String(serverItem.id_chiso);
-        const localItem = localEnteredMap[idStr];
-
-        if (localItem) {
-          return {
-            ...serverItem,
-            chiso_moi: localItem.chiso_moi,
-            san_luong: localItem.san_luong,
-            tong_sluong: localItem.tong_sluong,
-            chenh_lech: localItem.chenh_lech,
-            tyle_clech: localItem.tyle_clech,
-            ghi_chu: localItem.ghi_chu || serverItem.ghi_chu,
-            ngay_nhap: localItem.ngay_nhap,
-            nguoi_nhap: localItem.nguoi_nhap,
-            hinh_cto: localItem.hinh_cto || serverItem.hinh_cto,
-            lat: localItem.lat || serverItem.lat,
-            lng: localItem.lng || serverItem.lng
-          };
-        }
-        return serverItem;
-      });
-
-      // Lưu lại vào bộ nhớ thiết bị & Cache
-      localStorage.setItem(csKey, JSON.stringify(mergedList));
-      localStorage.setItem(getClientCacheKey(), JSON.stringify({ time: Date.now(), list: mergedList }));
+      // TRƯỜNG HỢP 2: Chưa có hoặc chuỗi kiểm tra khác nhau (Server có đợt dữ liệu mới) -> Tải mới về thiết bị
+      localStorage.setItem(csKey, JSON.stringify(serverList));
+      localStorage.setItem(getClientCacheKey(), JSON.stringify({ time: Date.now(), list: serverList }));
       
       loadDataFromLocalExcel();
-      showToast("✅ Đã tải thành công danh sách khách hàng từ Server!");
+      showToast("✅ Tải thành công danh sách mới từ Server về Excel thiết bị!");
     } else {
       showToast("❌ Lỗi lấy dữ liệu từ Server: " + (data.message || "Danh sách rỗng"));
     }
