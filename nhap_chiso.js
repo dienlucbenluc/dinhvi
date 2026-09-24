@@ -107,7 +107,7 @@ async function checkAndLoadInitialData() {
     return;
   }
 
-  showToast("⏳ Đang lấy dữ liệu chỉ số v8...");
+  showToast("⏳ Đang lấy dữ liệu chỉ số v1...");
   try {
     const res = await fetch(API_URL, {
       method: "POST",
@@ -136,7 +136,7 @@ async function checkAndLoadInitialData() {
     loadDataFromLocalExcel();
     showToast("⚠️ Máy chủ chưa có dữ liệu mới. Sử dụng dữ liệu hiện tại trên thiết bị.");
   } else {
-    const errorMsg = "❌ Không tìm thấy dữ liệu trên server: " + (data.message || "Chưa giao dữ liệu");
+    const errorMsg = "❌ " + (data.message || "Lỗi kết nối máy chủ hoặc chưa giao dữ liệu.\nBấm lấy sổ GCS lại vài lần nếu chưa có thì liên hệ người điều hành giao sổ GCS cho bạn!");
     showToast(errorMsg);
     
     // Cập nhật nội dung thông báo trực tiếp lên listContainer để dừng hiệu ứng chờ/quay
