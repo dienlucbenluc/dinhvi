@@ -40,7 +40,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   initLocalExcelStore();
 
-  // Yêu cầu 3 & 5: Load dữ liệu từ Excel cục bộ bộ nhớ thiết bị hiển thị lên giao diện
+  // Load dữ liệu từ Excel cục bộ bộ nhớ thiết bị hiển thị lên giao diện
   loadDataFromLocalExcel();
 
   setupSwipeEvents();
@@ -71,8 +71,7 @@ function initLocalExcelStore() {
   }
 }
 
-// YÊU CẦU 1 & 3: Lấy dữ liệu từ server hoặc mở trực tiếp từ Excel thiết bị
-// YÊU CẦU: Lấy dữ liệu từ Server nhưng so sánh điều kiện thông tin & bảo toàn chỉ số đã nhập trên thiết bị
+// Lấy dữ liệu từ server hoặc so sánh với dữ liệu Excel thiết bị
 async function handleFetchDataBtn() {
   const csKey = getExcelKeyChiSo();
   const localExcelList = JSON.parse(localStorage.getItem(csKey) || "[]");
@@ -109,7 +108,7 @@ async function handleFetchDataBtn() {
         }
       });
 
-      // 2. Kiểm tra điều kiện trùng khớp về thông tin dữ liệu (ten_ndung, ky, thang, nam, số dòng id_chiso)
+      // 2. Kiểm tra điều kiện trùng khớp: [ten_ndung + thang + nam + số dòng id_chiso]
       let isMatched = false;
 
       if (localExcelList.length > 0) {
@@ -117,36 +116,33 @@ async function handleFetchDataBtn() {
         const sampleServer = serverList[0];
 
         const matchUser = String(sampleLocal.ten_ndung || sampleLocal.nguoi_nhap || "").trim().toLowerCase() === String(currentUser.ten_ndung || "").trim().toLowerCase();
-        const matchKy = String(sampleLocal.ky || "") === String(sampleServer.ky || "");
         const matchThang = String(sampleLocal.thang || "") === String(sampleServer.thang || "");
         const matchNam = String(sampleLocal.nam || "") === String(sampleServer.nam || "");
 
-        // So sánh tập hợp ID chỉ số của Server và Local có khớp hoàn toàn không
-        const localIdSet = new Set(localExcelList.map(i => String(i.id_chiso)));
-        const serverIdSet = new Set(serverList.map(i => String(i.id_chiso)));
+        // So sánh danh sách id_chiso từ server và local
+        const localIdSet = new Set(localExcelList.map(i => String(i.id_chiso)).filter(Boolean));
+        const serverIdSet = new Set(serverList.map(i => String(i.id_chiso)).filter(Boolean));
         
         const matchIdCount = localIdSet.size === serverIdSet.size && 
                              [...localIdSet].every(id => serverIdSet.has(id));
 
-        if (matchUser && matchKy && matchThang && matchNam && matchIdCount) {
+        if (matchUser && matchThang && matchNam && matchIdCount) {
           isMatched = true;
         }
       }
 
-      // TRƯỜNG HỢP A: File Excel thiết bị hoàn toàn khớp với danh sách trên Server -> Mở trực tiếp từ thiết bị
+      // TRƯỜNG HỢP A: File Excel/Dữ liệu thiết bị hoàn toàn trùng khớp bộ định danh -> Lấy từ thiết bị mà không lấy lại từ Server
       if (isMatched) {
-        showToast("📂 Dữ liệu khớp với Server. Đang mở dữ liệu Excel từ thiết bị...");
+        showToast("📂 Dữ liệu trùng khớp tên file/định danh. Mở danh sách khách hàng từ Excel thiết bị!");
         loadDataFromLocalExcel();
         return;
       }
 
-      // TRƯỜNG HỢP B: Dữ liệu chưa có (do vừa xóa bộ nhớ web) hoặc có sự cập nhật từ Server
-      // Thực hiện MERGE: Giữ lại toàn bộ các dòng chỉ số người dùng đã nhập
+      // TRƯỜNG HỢP B: Chưa có dữ liệu hoặc có cập nhật danh sách mới -> MERGE và bảo toàn chỉ số đã nhập
       const mergedList = serverList.map(serverItem => {
         const idStr = String(serverItem.id_chiso);
         const localItem = localEnteredMap[idStr];
 
-        // Nếu dòng này từng được nhập chỉ số trên máy -> Ưu tiên lấy dữ liệu đã nhập
         if (localItem) {
           return {
             ...serverItem,
@@ -166,13 +162,12 @@ async function handleFetchDataBtn() {
         return serverItem;
       });
 
-      // Ghi lại dữ liệu hòa nhập vào bộ nhớ thiết bị & Cache
+      // Lưu lại vào bộ nhớ thiết bị & Cache
       localStorage.setItem(csKey, JSON.stringify(mergedList));
       localStorage.setItem(getClientCacheKey(), JSON.stringify({ time: Date.now(), list: mergedList }));
       
-      // Hiển thị dữ liệu ra màn hình
       loadDataFromLocalExcel();
-      showToast("✅ Đã cập nhật và bảo toàn chỉ số đã nhập trên thiết bị!");
+      showToast("✅ Đã tải thành công danh sách khách hàng từ Server!");
     } else {
       showToast("❌ Lỗi lấy dữ liệu từ Server: " + (data.message || "Danh sách rỗng"));
     }
@@ -190,7 +185,6 @@ function loadDataFromLocalExcel() {
   if (localData.length > 0) {
     groupAndRender(localData);
   } else {
-    // Nếu chưa có dữ liệu trong Excel thiết bị, tự động lấy dữ liệu lần đầu
     if (navigator.onLine) {
       handleFetchDataBtn();
     } else {
@@ -200,18 +194,54 @@ function loadDataFromLocalExcel() {
 }
 
 // ----------------------------------------------------
-// YÊU CẦU 5: XỬ LÝ DỮ LIỆU TRÊN EXCEL THIẾT BỊ
+// TẢI FILE EXCEL RA THIẾT BỊ BẰNG TÊN FILE QUY ĐỊNH
 // ----------------------------------------------------
-// Tính toán chỉ số, sản lượng, chênh lệch... lưu trực tiếp vào bảng Excel thiết bị
+function downloadAllExcelFiles() {
+  const csKey = getExcelKeyChiSo();
+  const dvKey = getExcelKeyDinhVi();
+
+  const chisoData = JSON.parse(localStorage.getItem(csKey) || "[]");
+  const dinhviData = JSON.parse(localStorage.getItem(dvKey) || "[]");
+
+  if (typeof XLSX === "undefined") {
+    showToast("❌ Thư viện Excel chưa sẵn sàng!");
+    return;
+  }
+
+  if (chisoData.length === 0) {
+    showToast("⚠️ Chưa có dữ liệu chỉ số để tải về!");
+    return;
+  }
+
+  const wb = XLSX.utils.book_new();
+  const wsChiSo = XLSX.utils.json_to_sheet(chisoData);
+  XLSX.utils.book_append_sheet(wb, wsChiSo, "chi_so");
+
+  const wsDinhVi = XLSX.utils.json_to_sheet(dinhviData.length > 0 ? dinhviData : [{}]);
+  XLSX.utils.book_append_sheet(wb, wsDinhVi, "dinh_vi");
+
+  // Tạo cấu trúc tên file: [ten_ndung+thang+nam+số dòng id_chiso]
+  const sample = chisoData[0] || {};
+  const tenNdung = String(currentUser?.ten_ndung || sample.ten_ndung || "user").trim().toLowerCase().replace(/\s+/g, "_");
+  const thang = String(sample.thang || (new Date().getMonth() + 1)).padStart(2, '0');
+  const nam = String(sample.nam || new Date().getFullYear());
+  
+  // Đếm tổng số dòng id_chiso hợp lệ
+  const totalIdRows = chisoData.filter(item => item.id_chiso !== undefined && item.id_chiso !== null && item.id_chiso !== "").length;
+
+  const fileName = `${tenNdung}_thang${thang}_${nam}_${totalIdRows}dong.xlsx`;
+  
+  XLSX.writeFile(wb, fileName);
+  showToast(`📊 Đã tải file Excel: ${fileName}`);
+}
+
+// ----------------------------------------------------
+// XỬ LÝ LƯU & HỦY DỮ LIỆU
+// ----------------------------------------------------
 async function saveCustomerData(maKhang) {
   const cust = groupedData[maKhang];
   if (!cust) return;
 
-  // -------------------------------------------------------------------
-  // KIỂM TRA ĐIỀU KIỆN TỶ LỆ CỦA CÁC BCS KHÁCH HÀNG:
-  // Nếu có bất kỳ BCS nào biến động >= +/- 50% so với kW kỳ trước (sluong_kt) 
-  // mà chưa có hình ảnh mới thì bắt buộc chụp ảnh trước khi lưu.
-  // -------------------------------------------------------------------
   let offlineImgBase64 = null;
   try {
     const offlineImgs = JSON.parse(localStorage.getItem(getOfflineImagesKey()) || "{}");
@@ -238,7 +268,6 @@ async function saveCustomerData(maKhang) {
       const tongSluong = sanLuong + sluongThao;
 
       if (sluongKt > 0) {
-        // Tỷ lệ % chênh lệch so với kỳ trước
         const percentChange = ((tongSluong - sluongKt) / sluongKt) * 100;
 
         if (Math.abs(percentChange) >= 50) {
@@ -247,14 +276,12 @@ async function saveCustomerData(maKhang) {
           warnMessage += `• BCS [${item.bcs}]: Sản lượng ${tongSluong} kW (Kỳ trước ${sluongKt} kW, biến động ${sign}${percentChange.toFixed(1)}%)\n`;
         }
       } else if (tongSluong > 0) {
-        // Kỳ trước = 0 kW mà kỳ này phát sinh sản lượng
         needPhoto = true;
         warnMessage += `• BCS [${item.bcs}]: Sản lượng ${tongSluong} kW (Kỳ trước 0 kW)\n`;
       }
     }
   });
 
-  // Nếu vượt ngưỡng 50% và chưa chụp ảnh mới
   if (needPhoto && !hasNewPhoto) {
     const confirm = await showCustomConfirm(
       "⚠️ BẮT BUỘC CHỤP ẢNH", 
@@ -263,19 +290,14 @@ async function saveCustomerData(maKhang) {
     );
 
     if (confirm) {
-      // Mở hộp thoại chọn nguồn ảnh (Máy ảnh / Bộ sưu tập)
       promptImageSource(maKhang);
     }
-    return; // Dừng không cho lưu dữ liệu
+    return;
   }
 
-  // -------------------------------------------------------------------
-  // TIẾP TỤC LƯU DỮ LIỆU
-  // -------------------------------------------------------------------
   const ghiChuEl = document.getElementById(`ghi_chu_${maKhang}`);
   if (ghiChuEl) cust.ghi_chu = ghiChuEl.value.trim();
 
-  // Lưu ảnh vào bộ sưu tập/bộ nhớ thiết bị trước
   if (currentCapturedFiles[maKhang]) {
     await saveOfflineImage(maKhang, currentCapturedFiles[maKhang]);
   }
@@ -302,7 +324,6 @@ async function saveCustomerData(maKhang) {
       const tyleClech = sluongKt !== 0 ? ((tongSluong / sluongKt) * 100).toFixed(2) + "%" : "0%";
       const nowStr = new Date().toLocaleString("vi-VN");
 
-      // Cập nhật RAM
       item.chiso_moi = csMoi;
       item.san_luong = sanLuong;
       item.tong_sluong = tongSluong;
@@ -312,7 +333,6 @@ async function saveCustomerData(maKhang) {
       item.ngay_nhap = nowStr;
       item.nguoi_nhap = currentUser.ten_nvien || currentUser.ten_ndung;
 
-      // Cập nhật vào Bảng Excel Thiết Bị
       if (excelItemIndex !== -1) {
         localExcelList[excelItemIndex].chiso_moi = csMoi;
         localExcelList[excelItemIndex].san_luong = sanLuong;
@@ -328,17 +348,14 @@ async function saveCustomerData(maKhang) {
     }
   });
 
-  // Ghi bảng Excel hoàn chỉnh vào bộ nhớ thiết bị
   localStorage.setItem(csKey, JSON.stringify(localExcelList));
   showToast("💾 Đã lưu dữ liệu vào Excel thiết bị!");
   updateSummaryBar();
   renderCurrentCustomerCard();
 
-  // Tự đồng bộ lên Google Sheet nếu số dòng chiso_moi NOT NULL >= 50
   checkAndAutoSync();
 }
 
-// Hủy dữ liệu chỉ số trực tiếp trên Bảng Excel thiết bị
 async function cancelCustomerData(maKhang) {
   const confirm = await showCustomConfirm("HỦY DỮ LIỆU", "Bạn có chắc chắn muốn hủy chỉ số của khách hàng này trên Excel thiết bị?", true);
   if (!confirm) return;
@@ -386,7 +403,7 @@ async function cancelCustomerData(maKhang) {
 }
 
 // ----------------------------------------------------
-// YÊU CẦU 6: QUẢN LÝ HÌNH ẢNH TRÊN BỘ NHỚ THIẾT BỊ & CLOUDINARY
+// QUẢN LÝ HÌNH ẢNH & ĐỒNG BỘ
 // ----------------------------------------------------
 function fileToBase64(file) {
   return new Promise((resolve, reject) => {
@@ -409,7 +426,6 @@ function base64ToFile(base64Str, fileName) {
   return new File([u8arr], fileName, { type: mime });
 }
 
-// Lưu hình ảnh vào Bộ sưu tập/Bộ nhớ thiết bị
 async function saveOfflineImage(maKhang, file) {
   try {
     const base64 = await fileToBase64(file);
@@ -422,7 +438,6 @@ async function saveOfflineImage(maKhang, file) {
   }
 }
 
-// Đẩy ảnh từ bộ sưu tập thiết bị lên Cloudinary -> Lấy link chèn vào Excel thiết bị
 async function processOfflineImagesToCloudinary() {
   const imgKey = getOfflineImagesKey();
   let imgs = JSON.parse(localStorage.getItem(imgKey) || "{}");
@@ -435,11 +450,8 @@ async function processOfflineImagesToCloudinary() {
       if (!base64Str) continue;
 
       const file = base64ToFile(base64Str, `${makh}_device.jpg`);
-      
-      // Tải lên Cloudinary
       const cloudUrl = await uploadToCloudinary(file, makh);
 
-      // Cập nhật link Cloudinary vừa lấy đưa vào bảng Excel thiết bị
       const csKey = getExcelKeyChiSo();
       const logs = JSON.parse(localStorage.getItem(csKey) || "[]");
       logs.forEach(item => {
@@ -449,7 +461,6 @@ async function processOfflineImagesToCloudinary() {
       });
       localStorage.setItem(csKey, JSON.stringify(logs));
 
-      // Cập nhật RAM
       if (groupedData[makh]) {
         groupedData[makh].hinh_cto = cloudUrl;
         groupedData[makh].items.forEach(item => { item.hinh_cto = cloudUrl; });
@@ -463,9 +474,6 @@ async function processOfflineImagesToCloudinary() {
   }
 }
 
-// ----------------------------------------------------
-// YÊU CẦU 2, 4 & 7: ĐỒNG BỘ DỮ LIỆU TỪ EXCEL THIẾT BỊ LÊN GOOGLE SHEET
-// ----------------------------------------------------
 async function handleSendDataBtn() {
   if (!navigator.onLine) {
     showToast("❌ Không có kết nối mạng để đồng bộ lên Google Sheet!");
@@ -477,7 +485,6 @@ async function handleSendDataBtn() {
   await syncLocalExcelToSheet(true);
 }
 
-// Yêu cầu 7: Tự đồng bộ lên Google Sheet nếu số dòng chiso_moi not null >= 50 dòng
 async function checkAndAutoSync() {
   const csKey = getExcelKeyChiSo();
   const localExcelList = JSON.parse(localStorage.getItem(csKey) || "[]");
@@ -504,7 +511,6 @@ async function syncLocalExcelToSheet(isManual = false) {
   const chisoLogs = JSON.parse(localStorage.getItem(csKey) || "[]");
   const dinhviLogs = JSON.parse(localStorage.getItem(dvKey) || "[]");
 
-  // Lọc chỉ gửi các dòng đã có chỉ số mới hoặc có dữ liệu ghi nhận
   const chisoToSend = chisoLogs.filter(i => i.chiso_moi !== "" && i.chiso_moi !== null && i.chiso_moi !== undefined);
 
   if (chisoToSend.length === 0 && dinhviLogs.length === 0) {
@@ -540,34 +546,6 @@ async function syncLocalExcelToSheet(isManual = false) {
   }
 }
 
-// ----------------------------------------------------
-// TẢI FILE EXCEL RA THIẾT BỊ
-// ----------------------------------------------------
-function downloadAllExcelFiles() {
-  const csKey = getExcelKeyChiSo();
-  const dvKey = getExcelKeyDinhVi();
-
-  const chisoData = JSON.parse(localStorage.getItem(csKey) || "[]");
-  const dinhviData = JSON.parse(localStorage.getItem(dvKey) || "[]");
-
-  if (typeof XLSX === "undefined") {
-    showToast("❌ Thư viện Excel chưa sẵn sàng!");
-    return;
-  }
-
-  const wb = XLSX.utils.book_new();
-  const wsChiSo = XLSX.utils.json_to_sheet(chisoData.length > 0 ? chisoData : [{}]);
-  XLSX.utils.book_append_sheet(wb, wsChiSo, "chi_so");
-
-  const wsDinhVi = XLSX.utils.json_to_sheet(dinhviData.length > 0 ? dinhviData : [{}]);
-  XLSX.utils.book_append_sheet(wb, wsDinhVi, "dinh_vi");
-
-  const fileName = `ChiSo_${currentUser?.ten_ndung || 'User'}_${Date.now()}.xlsx`;
-  XLSX.writeFile(wb, fileName);
-  showToast("📊 Đã tải file Excel từ bộ nhớ máy thành công!");
-}
-
-// Nén và Tải ảnh lên Cloudinary
 function compressImage(file, fileName = "photo.jpg", maxWidth = 1000, quality = 0.7) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -741,7 +719,6 @@ async function handleImageSelected(event, maKhang) {
 
   currentCapturedFiles[maKhang] = file;
 
-  // Lưu ngay ảnh vào Bộ sưu tập/Bộ nhớ cục bộ của thiết bị
   await saveOfflineImage(maKhang, file);
 
   const reader = new FileReader();
