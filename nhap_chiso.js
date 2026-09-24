@@ -617,25 +617,18 @@ function showToast(msg, isError = false) {
     document.body.appendChild(t);
   }
 
-  // Tự động chuyển màu nền đỏ nếu nội dung chứa các biểu tượng/từ khóa lỗi
+  // Tự động nhận diện lỗi qua icon/từ khóa
   const isErr = isError || /❌|⚠️|lỗi|thất bại/i.test(msg || '');
 
   t.className = isErr ? "error" : "";
-  t.style.background = isErr ? "#b71c1c" : "#006400";
   t.innerHTML = msg || "";
-  
-  t.style.display = "block";
-  // Sử dụng setTimeout để kích hoạt hiệu ứng mượt opacity
-  setTimeout(() => {
-    t.style.opacity = "1";
-  }, 10);
+
+  // Bật class show để kích hoạt transition opacity & visibility
+  t.classList.add("show");
 
   if (toastTimer) clearTimeout(toastTimer);
   toastTimer = setTimeout(() => {
-    t.style.opacity = "0";
-    setTimeout(() => {
-      t.style.display = "none";
-    }, 300);
+    t.classList.remove("show");
   }, 3000);
 }
 
