@@ -790,7 +790,7 @@ function renderCurrentCustomerCard(slideDirection = null) {
           <span style="font-size:13px; color:#0056b3; font-weight:bold; background:#fff; padding:2px 0px; border-radius:4px;">
             STT: ${currentCardIndex + 1} / ${customerKeys.length}
           </span>
-          ${isAllSynced ? `<span style="font-size:12px; color:green; font-weight:bold; background:#e6f4ea; padding:2px 6px; border-radius:4px;">✅ Đã đồng bộ Sheet</span>` : `<span style="font-size:12px; color:#666;">⬅️ Vuốt để đổi KH ➡️</span>`}
+          ${isAllSynced ? `<span style="font-size:12px; color:green; font-weight:bold; background:#e6f4ea; padding:2px 6px; border-radius:4px;">✅ Đã đồng bộ không thể sửa</span>` : `<span style="font-size:12px; color:#666;">⬅️ Vuốt để đổi KH ➡️</span>`}
         </div>
         <div class="cust-title">Mã KH: ${cust.ma_khang} - <b>Số CTơ:</b> ${cust.so_cto}</div>
         <div class="cust-tenKH">${cust.ten_khang || ''}</div>
