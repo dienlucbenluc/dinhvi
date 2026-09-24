@@ -107,8 +107,8 @@ async function checkAndLoadInitialData() {
     return;
   }
 
-  showToast("⏳ Đang đối chiếu File Excel thiết bị với Google Sheet...");
-
+  //showToast("⏳ Đang đối chiếu File Excel thiết bị với Google Sheet...");
+  showToast("⏳ Đang lấy dữ liệu chỉ số...");
   try {
     const res = await fetch(API_URL, {
       method: "POST",
@@ -124,7 +124,7 @@ async function checkAndLoadInitialData() {
 
       // ĐỐI CHIẾU TRÙNG KHỚP: ten_ndung+thang+nam+count(id_chiso)
       if (localExcelList.length > 0 && localFileKey === serverFileKey) {
-        showToast(`📂 Tìm thấy File [${localFileKey}] trùng khớp. Nạp dữ liệu từ thiết bị!`);
+        //showToast(`📂 Tìm thấy File [${localFileKey}] trùng khớp. Nạp dữ liệu từ thiết bị!`);
         loadDataFromLocalExcel();
       } else {
         // KHÔNG TRÙNG KHỚP HOẶC KHÔNG CÓ FILE: Lấy dữ liệu mới từ Server và lưu tạo mới File Excel
@@ -132,7 +132,8 @@ async function checkAndLoadInitialData() {
         localStorage.setItem(getClientCacheKey(), JSON.stringify({ time: Date.now(), list: serverList }));
         
         loadDataFromLocalExcel();
-        showToast(`✅ Tạo mới file Excel [${serverFileKey}] từ Google Sheet thành công!`);
+        //showToast(`✅ Tạo mới file Excel [${serverFileKey}] từ Google Sheet thành công!`);
+        showToast(`✅ Lấy dữ liệu chỉ số thành công!`);
       }
     } else {
       if (localExcelList.length > 0) {
