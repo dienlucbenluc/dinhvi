@@ -8,141 +8,155 @@
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <style>
     * { box-sizing: border-box; }
-    html, body { height: 100%; margin: 0 auto; padding: 0; }
+    html { height: 100%; background: #eef2f5; }
     body { 
+      height: 100%; 
+      margin: 0 auto; 
+      padding: 0; 
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
       background: #f0f2f5; 
       color: #333; 
       overflow: hidden; 
       max-width: 480px;
       position: relative;
-      box-shadow: 0 0 20px rgba(0,0,0,0.15);
+      box-shadow: 0 0 20px rgba(0,0,0,0.5);
     }
-    
+    .box-maps { 
+      padding: 6px; 
+      font-size: 14px; 
+      background: #e8e8e8; 
+      border-radius: 4px;
+      border-bottom: 1px solid #eee; 
+      text-align: center; 
+      margin-top: 7px;
+    }
     .sticky-top-container {
       position: absolute;
       top: 0; left: 0; right: 0;
       background: #fff;
       z-index: 1000;
-      padding: 8px 10px 6px 10px;
+      padding: 8px 10px 4px 10px;
       box-shadow: 0 2px 6px rgba(0,0,0,0.1);
     }
-    
-    .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
-    
+    .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; position: relative; }
+    .header-left { display: flex; align-items: center; gap: 8px; }
+    .header-right { display: flex; align-items: center; gap: 4px; position: relative; }
+  
     .btn-action-hdr { 
-      background: #eef5fc; color: #006400; border: 1px solid #c3e6cb; border-radius: 4px; height:32px; padding:0 8px; font-size:13px; font-weight:bold; cursor:pointer; display:flex; align-items:center; gap:3px;
+      background: #fff; color: #006400; border: none; border-radius: 4px; height:32px; padding:0 8px; font-size:14px; font-weight:bold; cursor:pointer; flex-shrink:0; display:flex; align-items:center; gap:3px;
     }
     .btn-action-hdr:active { opacity: 0.8; }
-    .btn-send-hdr { background: #fdf2f2; color: #800000; border-color: #f5c6cb; }
+    .btn-send-hdr { background: #fff; color: #800000; }
     .btn-menu { 
-      background: #fff; border: 1px solid #ccc; color:#000; height:32px; padding:0 8px; font-size:13px; font-weight:bold; flex-shrink:0; border-radius:4px; cursor:pointer;
+      background: #fff; border: 0px solid #ccc; color:#000; height:32px; padding:0 8px; font-size:14px; white-space:nowrap; flex-shrink:0; border-radius:4px;
     }
     .btn-menu:active { background: #e2e6ea; }
-    
-    .search-box { display: flex; gap: 6px; margin-bottom: 6px; }
+    .title { font-size: 15px; font-weight: bold; color: #0056b3; }
+    .user-info { font-weight: 600; font-size: 14px; color: #28a745; }
+    .search-box { display: flex; gap: 6px; margin-bottom: 4px; }
     .search-box input { 
       flex: 1; padding: 6px 10px; border-radius: 5px; border: 1px solid #ccc; font-size: 14px; outline: none; 
     }
     .search-box input:focus { border-color: #0056b3; }
     .btn-search {
-      background: #0056b3; color: #fff; border: none; border-radius: 5px; padding: 0 12px; font-size: 14px; cursor: pointer; display: flex; align-items: center; justify-content: center;
+      background: #fff; color: #000; border: 1px solid #ccc; border-radius: 5px; padding: 0 12px; font-size: 15px; cursor: pointer; display: flex; align-items: center; justify-content: center;
     }
     .btn-search:active { background: #004085; }
-    
+    .spinner {
+      width: 24px; height: 24px; border: 3px solid #f3f3f3; border-top: 3px solid #007bff; border-radius: 50%; display: inline-block; animation: spin 0.8s linear infinite; vertical-align: middle; margin-right: 10px;
+    }
+    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     .summary-bar {
-      display: flex; justify-content: space-between; align-items: center; padding: 6px 8px; background: #eef5fc; border-radius: 5px; font-size: 13px; color: #004085; font-weight: 600; line-height: 1.2;
+      display: flex; justify-content: space-between; align-items: center; margin-top: 2px; padding: 6px 8px; background: #eef5fc; border-radius: 5px; font-size: 13px; color: #004085; font-weight: 600; line-height: 1.2;
     }
     .summary-bar span { white-space: nowrap; }
     .link-filter-action { color: #0056b3; text-decoration: none; cursor: pointer; font-weight: bold; }
     .link-filter-chuaghi { color: #d9534f; text-decoration: none; cursor: pointer; font-weight: bold; }
-    
     #listContainer {
-      position: absolute; top: 120px; bottom: 0; left: 0; right: 0; padding: 8px 10px; overflow-y: auto; touch-action: pan-y;
+      position: absolute; top: 118px; bottom: 0; left: 0; right: 0; padding: 10px; overflow-y: auto; touch-action: pan-y;
     }
-    
     .customer-card { 
-      background: #fff; border-radius: 8px; padding: 10px; border: 1.5px solid #0056b3; box-shadow: 0 4px 10px rgba(0,0,0,0.08); user-select: none; transition: transform 0.2s ease-out, opacity 0.2s ease-out;
+      background: #fff; border-radius: 10px; padding: 8px; padding-bottom: 6px; margin-top: -3px; border: 2px solid #0056b3; box-shadow: 0 4px 12px rgba(0,0,0,0.1); user-select: none; -webkit-user-drag: none; transition: transform 0.25s ease-out, opacity 0.25s ease-out; will-change: transform, opacity;
     }
     .slide-left-out { transform: translateX(-120%); opacity: 0; }
     .slide-right-out { transform: translateX(120%); opacity: 0; }
     .slide-left-in { transform: translateX(100%); opacity: 0; }
     .slide-right-in { transform: translateX(-100%); opacity: 0; }
-    
-    .cust-header { padding-bottom: 4px; }
-    .cust-title { font-weight: bold; color: #0056b3; font-size: 14px; line-height: 1.3; }
-    .cust-tenKH { font-weight: bold; color: #0056b3; font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .cust-address { font-size: 13px; color: #222; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 2px; }
-    .cust-row-group { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 2px; align-items: center; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    
-    .input-ghichu { width: 100%; border: none; border-bottom: 1px solid #007bff; outline: none; padding: 4px 0; margin-top: 4px; font-size: 13px; background-color: #fff; }
+    .cust-header { border-bottom: none; padding-bottom: 4px; margin-bottom: 0px; margin-top: -4px;}
+    .cust-title { font-weight: bold; color: #0056b3; font-size: 14px; margin-bottom: 0px; line-height: 1.3; }
+    .cust-tenKH { font-weight: bold; color: #0056b3; font-size: 15px; margin-top: 0px; margin-bottom: 0px; line-height: 1.3; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .cust-address { font-size: 13px; color: #222; margin-top: 0px; margin-bottom: 0px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .cust-row-group { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 0px; margin-bottom: 0px; align-items: center; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .input-ghichu { width: 100%; border: none; border-bottom: 1px solid #007bff; outline: none; padding: 2px 0px; margin-top: 3px; font-size: 13px; background-color: #fff; }
     .input-ghichu:focus { border-color: #8B0000; }
-    
-    .box-maps { padding: 5px; font-size: 13px; background: #f8f9fa; border-radius: 4px; border: 1px solid #e9ecef; text-align: center; margin-top: 6px; }
-    
-    .cust-dynamic-info-v2 { background: #eef5fc; padding: 6px; border-radius: 4px; font-size: 12px; color: #004085; font-weight: bold; margin-top: 6px; display: flex; justify-content: space-between; align-items: center; }
-    
-    .table-responsive { overflow-x: auto; margin-top: 8px; }
+    .cust-dynamic-info-v2 { background: #f8f9fa; padding-top: 0px; padding-bottom: 6px; border-radius: 5px; font-size: 13px; color: #004085; font-weight: bold; margin-top: 2px; margin-bottom: 2px; display: flex; justify-content: space-between; align-items: center; }
+    .table-responsive { overflow-x: auto; margin-top: -10px; }
     table.chiso-table { width: 100%; border-collapse: collapse; font-size: 13px; }
-    table.chiso-table th { background: #e9ecef; color: #111; padding: 6px 2px; border: 1px solid #ccc; font-size: 12px; font-weight: bold; text-align: center; }
-    table.chiso-table td { font-size: 14px; border: 1px solid #ddd; vertical-align: middle; padding: 2px; }
-    .text-right { text-align: right !important; padding-right: 4px; }
+    table.chiso-table th { background: #e9ecef; color: #111; padding: 3px 2px; border: 1px solid #ccc; font-size: 13px; font-weight: bold; text-align: center; }
+    table.chiso-table td { font-size: 15px; border: 1px solid #ddd; vertical-align: middle; }
+    .text-right { text-align: right !important; padding-right: 7px; }
     .text-center { text-align: center !important; }
-    .val-calc-large { font-size: 15px !important; font-weight: bold !important; color: #111; }
-    .bcs-badge { font-weight: bold; color: #111; font-size: 12px; }
-    
-    input.input-cs-moi { width: 100%; height: 32px; padding: 2px 4px; background-color: #F0FFFF; border: 1px solid #b8daff; border-radius: 3px; text-align: right; font-weight: bold; font-size: 16px; color: #0056b3; outline: none; }
+    .val-calc-large { font-size: 17px !important; font-weight: bold !important; color: #111; padding-right: 7px; }
+    .bcs-badge { font-weight: bold; padding: 2px 4px; color: #111; font-size: 13px; }
+    input.input-cs-moi { width: 100%; height: 32px; padding: 2px 6px; background-color: #F0FFFF; border: none; text-align: right; font-weight: bold; font-size: 17px; color: #0056b3; outline: none; }
     input.input-cs-moi:focus { background-color: #ffffff; border: 2px solid #007bff; }
-    select.select-loai { width: 100%; height: 32px; font-weight: bold; font-size: 13px; color: #0056b3; border: 1px solid #ccc; border-radius: 3px; background: #fff; outline: none; text-align: center; }
-    
-    .card-btn-group { display: flex; gap: 8px; margin-top: 10px; padding-top: 8px; border-top: 1px dashed #28a745; }
-    .btn-card { height: 34px; flex: 1; border: none; border-radius: 4px; font-weight: bold; font-size: 13px; cursor: pointer; color: white; display: flex; align-items: center; justify-content: center; }
+    select.select-loai { width: 100%; height: 32px; font-weight: bold; font-size: 14px; color: #0056b3; border: 1px solid #ccc; border-radius: 4px; background: #fff; outline: none; text-align: center; }
+    .card-btn-group { display: flex; gap: 8px; margin-top: 8px; padding-top: 8px; border-top: 1px dashed #28a745; }
+    .btn-card { height: 26px; flex: 1; padding: 6px 4px; border: none; border-radius: 6px; font-weight: bold; font-size: 14px; cursor: pointer; color: white; display: flex; align-items: center; justify-content: center; }
     .btn-card-save { background: #28a745; }
     .btn-card-save:disabled { background: #a5d6a7; cursor: not-allowed; opacity: 0.6; }
     .btn-card-cancel { background: #dc3545; }
     .btn-card-cancel:disabled { background: #ef9a9a; cursor: not-allowed; opacity: 0.6; }
-
-    /* Modal xịn bo góc */
     .modal-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0, 0, 0, 0.4); display: none; align-items: center; justify-content: center; z-index: 10000; }
-    .modal-box { background: #ffffff; width: 88%; max-width: 360px; border-radius: 10px; padding: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); }
-    .modal-title { font-size: 15px; font-weight: bold; color: #007bff; margin-bottom: 8px; text-align: center; }
-    .modal-message { font-size: 13px; color: #333; line-height: 1.4; white-space: pre-line; }
-    .modal-buttons { display: flex; gap: 8px; margin-top: 14px; }
-    .modal-buttons button { flex: 1; padding: 8px; font-size: 13px; font-weight: bold; border-radius: 4px; border: none; cursor: pointer; }
+    .modal-box { background: #ffffff; width: 88%; max-width: 360px; border-radius: 12px; padding: 18px 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); }
+    .modal-title { font-size: 16px; font-weight: bold; color: #007bff; margin-bottom: 10px; text-align: center; }
+    .modal-message { font-size: 14px; color: #333; line-height: 1.5; white-space: pre-line; }
+    .modal-buttons { display: flex; gap: 10px; margin-top: 15px; }
+    .modal-buttons button { flex: 1; padding: 9px; font-size: 13px; font-weight: bold; border-radius: 6px; border: none; cursor: pointer; }
     .btn-modal-cancel { background: #e0e0e0; color: #333; }
     .btn-modal-confirm { background: #28a745; color: white; }
 
-    /* Toast chuẩn floating */
+    /* Giao diện Toast thông báo chuẩn bo góc, chiều cao tự động theo nội dung */
     #toast {
       position: fixed;
       bottom: 20px;
       left: 50%;
       transform: translateX(-50%);
-      padding: 8px 16px;
-      background: #006400;
+      padding: 10px 20px;
+      background: #006400; /* Xanh lá mặc định */
       color: #fff;
       font-size: 13px;
       line-height: 1.4;
-      z-index: 10001;
+      z-index: 10000;
+      
+      /* Cấu hình kích thước chuẩn gọn */
+      width: auto;
+      max-width: 85%;
+      height: auto;
+      box-sizing: border-box;
       border-radius: 20px;
       text-align: center;
+      
+      /* Cắt tỉa nếu chữ quá dài trên 1 dòng */
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
-      max-width: 85%;
+
+      /* Hiệu ứng mượt mà */
       visibility: hidden;
       opacity: 0;
       transition: opacity 0.3s ease, visibility 0.3s ease;
       pointer-events: none;
-      box-shadow: 0 4px 10px rgba(0,0,0,0.2);
     }
-    #toast.error { background: #b71c1c; }
-    #toast.show { visibility: visible; opacity: 1; }
-    
-    .spinner {
-      width: 20px; height: 20px; border: 3px solid #f3f3f3; border-top: 3px solid #007bff; border-radius: 50%; display: inline-block; animation: spin 0.8s linear infinite; vertical-align: middle; margin-right: 8px;
+
+    #toast.error {
+      background: #b71c1c; /* Màu đỏ khi lỗi */
     }
-    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+    #toast.show {
+      visibility: visible;
+      opacity: 1;
+    }
   </style>
 </head>
 <body>
@@ -150,19 +164,19 @@
   <div class="sticky-top-container">
     <div class="header">
         <button class="btn-menu" onclick="window.location.href='home.html'">🏠 Trang chủ</button>        
-        <button class="btn-action-hdr" onclick="handleFetchDataBtn()">📥 Lấy sổ GCS</button>
-        <button class="btn-action-hdr btn-send-hdr" onclick="handleSendDataBtn()">📤 Trả sổ GCS</button>
+        <button class="btn-action-hdr" onclick="handleFetchDataBtn()" title="">📥 Lấy sổ GCS</button>
+        <button class="btn-action-hdr btn-send-hdr" onclick="handleSendDataBtn()" title="">📤 Trả sổ GCS</button>
     </div>
     
     <div class="search-box">
-      <input type="text" id="searchInput" placeholder="Mã, Tên, Đ/C, Cột, Trạm, Sổ..." onkeydown="if(event.key==='Enter') filterData();">
-      <button class="btn-search" onclick="filterData()">🔍 Tìm</button>
+      <input type="text" id="searchInput" placeholder="Mã, Tên, Đ/C, Cột, Trạm, Sổ, SĐT..." onkeydown="if(event.key==='Enter') filterData();">
+      <button class="btn-search" onclick="filterData()">🔍</button>
     </div>
     
     <div class="summary-bar">
-      <span><button onclick="downloadAllExcelFiles()" title="Tải file Excel cục bộ" style="background: transparent; border: none; cursor: pointer; font-size: 14px; padding: 0;">📊</button></span>
+      <span style="margin-right:-30px;"><button onclick="downloadAllExcelFiles()" title="Tải file Excel cục bộ" style="background: #eef5fc; border: none; border-radius: 4px; cursor: pointer; font-size: 13px;">📊 </button></span>
       <span>Tổng: <b id="sumTongKh">0</b></span>
-      <span style="display: none;" onclick="filterDaCS()">Đã ghi: <b id="sumDaCS" style="color:#28a745;">0</b></span>
+      <span style="cursor:pointer;display: none;" onclick="filterDaCS()">Đã ghi: <b id="sumDaCS" style="color:#28a745;">0</b></span>
       <span style="cursor:pointer;" onclick="filterChuaGhi()">Chưa ghi: <b id="sumChuaGhi" style="color:#d9534f;">0</b></span>
       <span class="link-filter-chuaghi" onclick="filterChuaGhi()">🔍 Chưa ghi</span>
       <span class="link-filter-action" onclick="showAllData()">🔍 Tất cả</span>      
@@ -170,10 +184,10 @@
   </div>
 
   <div id="listContainer">
-    <div style="text-align: center; padding-top: 40px;">
+    <li style="text-align: center; padding: 20px; list-style: none;">
       <span class="spinner"></span>
-      <span style="font-weight: bold; color: #007bff; vertical-align: middle;">Đang lấy danh sách...</span>
-    </div>
+      <span style="font-weight: bold; color: #007bff; margin-top:50px; vertical-align: middle; font-size: 15px;">Đang lấy danh sách...</span>
+    </li>
   </div>
 
   <div id="toast"></div>
