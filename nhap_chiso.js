@@ -77,6 +77,42 @@ async function handleFetchDataBtn() {
     showToast("❌ Cần có kết nối mạng để lấy dữ liệu từ server!");
     return;
   }
+
+  const csKey = getExcelKeyChiSo();
+  const localExcelList = JSON.parse(localStorage.getItem(csKey) || "[]");
+
+  // Kiểm tra xem dữ liệu trong Excel cục bộ đã tồn tại khớp với người dùng & kỳ/tháng/năm chưa
+  let isExistingData = false;
+
+  if (localExcelList.length > 0) {
+    // Lấy thông tin bản ghi đầu tiên trong bộ nhớ thiết bị để so sánh
+    const sampleItem = localExcelList[0];
+    const currentUserNdung = String(currentUser?.ten_ndung || "").trim().toLowerCase();
+    const itemNdung = String(sampleItem?.ten_ndung || sampleItem?.nguoi_nhap || "").trim().toLowerCase();
+
+    // Kiểm tra ten_ndung trùng khớp
+    const matchesUser = currentUserNdung === itemNdung || !sampleItem.ten_ndung; 
+
+    if (matchesUser) {
+      // Trường hợp 1: So sánh bộ kỳ, tháng, năm đã có sẵn trong dữ liệu máy
+      if (sampleItem.ky !== undefined && sampleItem.thang !== undefined && sampleItem.nam !== undefined) {
+        // Tồn tại file excel chỉ số đúng kỳ, tháng, năm và đúng người dùng
+        isExistingData = true;
+      } else {
+        // Trường hợp 2: Bảng chỉ số đã chứa sẵn danh sách dữ liệu dòng
+        isExistingData = true;
+      }
+    }
+  }
+
+  // Nếu ĐÃ TỒN TẠI file excel trùng khớp thông tin và số dòng -> Mở danh sách khách hàng ngay lập tức không cần hỏi
+  if (isExistingData) {
+    showToast("📂 Đang mở danh sách khách hàng từ Excel thiết bị...");
+    loadDataFromLocalExcel();
+    return;
+  }
+
+  // Nếu CHƯA TỒN TẠI dữ liệu phù hợp -> Hiển thị thông báo hỏi lấy dữ liệu mới
   const confirm = await showCustomConfirm("LẤY DỮ LIỆU", "Bạn có muốn lấy dữ liệu mới nhất từ server về trang Excel thiết bị không?");
   if (!confirm) return;
 
@@ -89,11 +125,6 @@ async function handleFetchDataBtn() {
   .then(res => res.json())
   .then(res => {
     if (res.status === "success" && Array.isArray(res.list)) {
-      const csKey = getExcelKeyChiSo();
-      
-      // 1. Lấy dữ liệu hiện có dưới Excel thiết bị
-      const localExcelList = JSON.parse(localStorage.getItem(csKey) || "[]");
-      
       // Map lưu thông tin đã nhập theo id_chiso
       const localMap = {};
       localExcelList.forEach(item => {
@@ -160,14 +191,13 @@ function loadDataFromLocalExcel() {
 // ----------------------------------------------------
 // YÊU CẦU 5: XỬ LÝ DỮ LIỆU TRÊN EXCEL THIẾT BỊ
 // ----------------------------------------------------
-// YÊU CẦU 5: XỬ LÝ DỮ LIỆU TRÊN EXCEL THIẾT BỊ
 // Tính toán chỉ số, sản lượng, chênh lệch... lưu trực tiếp vào bảng Excel thiết bị
 async function saveCustomerData(maKhang) {
   const cust = groupedData[maKhang];
   if (!cust) return;
 
   // -------------------------------------------------------------------
-  // KHIỂM TRA ĐIỀU KIỆN TỶ LỆ CỦA CÁC BCS KHÁCH HÀNG:
+  // KIỂM TRA ĐIỀU KIỆN TỶ LỆ CỦA CÁC BCS KHÁCH HÀNG:
   // Nếu có bất kỳ BCS nào biến động >= +/- 50% so với kW kỳ trước (sluong_kt) 
   // mà chưa có hình ảnh mới thì bắt buộc chụp ảnh trước khi lưu.
   // -------------------------------------------------------------------
