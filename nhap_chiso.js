@@ -108,7 +108,7 @@ async function checkAndLoadInitialData() {
   }
 
   //showToast("⏳ Đang đối chiếu File Excel thiết bị với Google Sheet...");
-  showToast("⏳ Đang lấy dữ liệu chỉ số 123...");
+  showToast("⏳ Đang lấy dữ liệu chỉ số 456...");
   try {
     const res = await fetch(API_URL, {
       method: "POST",
@@ -465,7 +465,7 @@ async function checkAndAutoSync() {
   ).length;
 
   // Kiểm tra điều kiện: Tối thiểu 20 dòng và chia hết cho 20 (20, 40, 60, 80, 100...)
-  if (validRowsCount >= 20 && validRowsCount % 20 === 0 && navigator.onLine) {
+  if (validRowsCount >= 5 && validRowsCount % 5 === 0 && navigator.onLine) {
     //showToast(`⚡ Đã đạt mốc ${validRowsCount} dòng chỉ số. Đang tự động gửi dữ liệu về server...`);
     await syncLocalExcelToSheet(false);
   }
