@@ -609,12 +609,34 @@ async function uploadToCloudinary(file, maKhang = "") {
 }
 
 let toastTimer = null;
-function showToast(msg) {
-  const t = document.getElementById("toast");
-  t.innerText = msg;
+function showToast(msg, isError = false) {
+  let t = document.getElementById("toast");
+  if (!t) {
+    t = document.createElement("div");
+    t.id = "toast";
+    document.body.appendChild(t);
+  }
+
+  // Tự động chuyển màu nền đỏ nếu nội dung chứa các biểu tượng/từ khóa lỗi
+  const isErr = isError || /❌|⚠️|lỗi|thất bại/i.test(msg || '');
+
+  t.className = isErr ? "error" : "";
+  t.style.background = isErr ? "#b71c1c" : "#006400";
+  t.innerHTML = msg || "";
+  
   t.style.display = "block";
+  // Sử dụng setTimeout để kích hoạt hiệu ứng mượt opacity
+  setTimeout(() => {
+    t.style.opacity = "1";
+  }, 10);
+
   if (toastTimer) clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => { t.style.display = "none"; }, 3500);
+  toastTimer = setTimeout(() => {
+    t.style.opacity = "0";
+    setTimeout(() => {
+      t.style.display = "none";
+    }, 300);
+  }, 3000);
 }
 
 function showCustomConfirm(title, message, isDanger = false) {
