@@ -160,15 +160,81 @@ function loadDataFromLocalExcel() {
 // ----------------------------------------------------
 // YÊU CẦU 5: XỬ LÝ DỮ LIỆU TRÊN EXCEL THIẾT BỊ
 // ----------------------------------------------------
+// YÊU CẦU 5: XỬ LÝ DỮ LIỆU TRÊN EXCEL THIẾT BỊ
 // Tính toán chỉ số, sản lượng, chênh lệch... lưu trực tiếp vào bảng Excel thiết bị
 async function saveCustomerData(maKhang) {
   const cust = groupedData[maKhang];
   if (!cust) return;
 
+  // -------------------------------------------------------------------
+  // KHIỂM TRA ĐIỀU KIỆN TỶ LỆ CỦA CÁC BCS KHÁCH HÀNG:
+  // Nếu có bất kỳ BCS nào biến động >= +/- 50% so với kW kỳ trước (sluong_kt) 
+  // mà chưa có hình ảnh mới thì bắt buộc chụp ảnh trước khi lưu.
+  // -------------------------------------------------------------------
+  let offlineImgBase64 = null;
+  try {
+    const offlineImgs = JSON.parse(localStorage.getItem(getOfflineImagesKey()) || "{}");
+    offlineImgBase64 = offlineImgs[maKhang] || null;
+  } catch(e) {}
+
+  const hasNewPhoto = Boolean(currentCapturedFiles[maKhang] || offlineImgBase64);
+
+  let needPhoto = false;
+  let warnMessage = "";
+
+  cust.items.forEach(item => {
+    const inputEl = document.getElementById(`cs_moi_${item.rowIndex}`);
+    const val = inputEl ? inputEl.value.trim() : "";
+
+    if (val !== "" && !isNaN(Number(val))) {
+      const csMoi = Number(val);
+      const csCu = Number(item.chiso_cu) || 0;
+      const hsn = Number(item.hsn) || 1;
+      const sluongThao = Number(item.sluong_thao) || 0;
+      const sluongKt = Number(item.sluong_kt) || 0;
+
+      const sanLuong = Math.round((csMoi - csCu) * hsn);
+      const tongSluong = sanLuong + sluongThao;
+
+      if (sluongKt > 0) {
+        // Tỷ lệ % chênh lệch so với kỳ trước
+        const percentChange = ((tongSluong - sluongKt) / sluongKt) * 100;
+
+        if (Math.abs(percentChange) >= 50) {
+          needPhoto = true;
+          const sign = percentChange > 0 ? "+" : "";
+          warnMessage += `• BCS [${item.bcs}]: Sản lượng ${tongSluong} kW (Kỳ trước ${sluongKt} kW, biến động ${sign}${percentChange.toFixed(1)}%)\n`;
+        }
+      } else if (tongSluong > 0) {
+        // Kỳ trước = 0 kW mà kỳ này phát sinh sản lượng
+        needPhoto = true;
+        warnMessage += `• BCS [${item.bcs}]: Sản lượng ${tongSluong} kW (Kỳ trước 0 kW)\n`;
+      }
+    }
+  });
+
+  // Nếu vượt ngưỡng 50% và chưa chụp ảnh mới
+  if (needPhoto && !hasNewPhoto) {
+    const confirm = await showCustomConfirm(
+      "⚠️ BẮT BUỘC CHỤP ẢNH", 
+      `Sản lượng biến động vượt ngưỡng +/- 50%:\n${warnMessage}\nBắt buộc phải chụp ảnh công tơ trước khi lưu!\nBấm 'Chấp nhận' để mở NGUỒN ẢNH.`, 
+      true
+    );
+
+    if (confirm) {
+      // Mở hộp thoại chọn nguồn ảnh (Máy ảnh / Bộ sưu tập)
+      promptImageSource(maKhang);
+    }
+    return; // Dừng không cho lưu dữ liệu
+  }
+
+  // -------------------------------------------------------------------
+  // TIẾP TỤC LƯU DỮ LIỆU
+  // -------------------------------------------------------------------
   const ghiChuEl = document.getElementById(`ghi_chu_${maKhang}`);
   if (ghiChuEl) cust.ghi_chu = ghiChuEl.value.trim();
 
-  // YÊU CẦU 6: Lưu ảnh vào bộ sưu tập/bộ nhớ thiết bị trước
+  // Lưu ảnh vào bộ sưu tập/bộ nhớ thiết bị trước
   if (currentCapturedFiles[maKhang]) {
     await saveOfflineImage(maKhang, currentCapturedFiles[maKhang]);
   }
@@ -227,7 +293,7 @@ async function saveCustomerData(maKhang) {
   updateSummaryBar();
   renderCurrentCustomerCard();
 
-  // YÊU CẦU 7: Tự đồng bộ lên Google Sheet nếu số dòng chiso_moi NOT NULL >= 50
+  // Tự đồng bộ lên Google Sheet nếu số dòng chiso_moi NOT NULL >= 50
   checkAndAutoSync();
 }
 
