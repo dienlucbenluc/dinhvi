@@ -306,7 +306,7 @@ async function saveCustomerData(maKhang) {
         localExcelList[excelItemIndex].chiso_moi = csMoi;
         localExcelList[excelItemIndex].san_luong = sanLuong;
         localExcelList[excelItemIndex].tong_sluong = tongSluong;
-        localExcelList[excelIndex].chenh_lech = chenhLech;
+        localExcelList[excelItemIndex].chenh_lech = chenhLech;
         localExcelList[excelItemIndex].tyle_clech = tyleClech;
         localExcelList[excelItemIndex].ghi_chu = cust.ghi_chu;
         localExcelList[excelItemIndex].ngay_nhap = nowStr;
