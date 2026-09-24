@@ -229,7 +229,14 @@ async function saveCustomerData(maKhang) {
       const sluongThao = Number(item.sluong_thao) || 0;
       const sluongKt = Number(item.sluong_kt) || 0;
 
-      const sanLuong = Math.round((csMoi - csCu) * hsn);
+      // --- SỬA TẠI ĐÂY: Xử lý tính qua vòng 5 số nếu csMoi < csCu ---
+      let sanLuong = 0;
+      if (csMoi < csCu) {
+        sanLuong = Math.round((csMoi + 100000 - csCu) * hsn);
+      } else {
+        sanLuong = Math.round((csMoi - csCu) * hsn);
+      }
+      
       const tongSluong = sanLuong + sluongThao;
 
       if (sluongKt > 0) {
@@ -283,7 +290,14 @@ async function saveCustomerData(maKhang) {
       const sluongThao = Number(item.sluong_thao) || 0;
       const sluongKt = Number(item.sluong_kt) || 0;
 
-      const sanLuong = Math.round((csMoi - csCu) * hsn);
+      // --- SỬA TẠI ĐÂY: Xử lý tính qua vòng 5 số đồng bộ khi lưu vào LocalStorage ---
+      let sanLuong = 0;
+      if (csMoi < csCu) {
+        sanLuong = Math.round((csMoi + 100000 - csCu) * hsn);
+      } else {
+        sanLuong = Math.round((csMoi - csCu) * hsn);
+      }
+
       const tongSluong = sanLuong + sluongThao;
       const chenhLech = tongSluong - sluongKt;
       const tyleClech = sluongKt !== 0 ? ((tongSluong / sluongKt) * 100).toFixed(2) + "%" : "0%";
