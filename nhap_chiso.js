@@ -98,11 +98,11 @@ async function checkAndLoadInitialData() {
   // Ngoại tuyến: Ưu tiên load file gần nhất trên thiết bị
   if (!navigator.onLine) {
     if (localExcelList.length > 0) {
-      showToast("📶 Ngoại tuyến: Tải danh sách từ File Excel gần nhất trên thiết bị...");
+      showToast("📶 Bạn đang ghi chỉ số với trạng thái ngoại tuyến!");
       loadDataFromLocalExcel();
     } else {
-      showToast("❌ Không có dữ liệu file Excel trên thiết bị và chưa kết nối mạng!");
-      document.getElementById("listContainer").innerHTML = "<p style='text-align:center; padding-top:20px; font-weight:bold; color:red;'>Chưa có dữ liệu Excel trên thiết bị. Vui lòng bật mạng để tải mới.</p>";
+      showToast("❌ Chưa có dữ liệu trên thiết bị và chưa kết nối mạng!");
+      document.getElementById("listContainer").innerHTML = "<p style='text-align:center; padding-top:20px; font-weight:bold; color:red;'>Chưa có dữ trên thiết bị. Vui lòng bật mạng để lấy mới.</p>";
     }
     return;
   }
@@ -134,16 +134,16 @@ async function checkAndLoadInitialData() {
     } else {
       if (localExcelList.length > 0) {
         loadDataFromLocalExcel();
-        showToast("⚠️ Máy chủ chưa có đợt dữ liệu mới. Sử dụng dữ liệu hiện tại trên thiết bị.");
+        showToast("⚠️ Máy chủ chưa có dữ liệu mới. Sử dụng dữ liệu hiện tại trên thiết bị.");
       } else {
-        showToast("❌ Không tìm thấy dữ liệu trên Google Sheet: " + (data.message || "Danh sách rỗng"));
+        showToast("❌ Không tìm thấy dữ liệu trên server: " + (data.message || "Danh sách rỗng"));
       }
     }
   } catch (err) {
     console.error(err);
     if (localExcelList.length > 0) {
       loadDataFromLocalExcel();
-      showToast("⚠️ Lỗi kết nối Server. Mở dữ liệu Excel gần nhất từ thiết bị.");
+      showToast("⚠️ Lỗi kết nối Server. Mở dữ liệu gần nhất từ thiết bị.");
     } else {
       showToast("❌ Lỗi kết nối máy chủ!");
     }
@@ -162,7 +162,7 @@ function loadDataFromLocalExcel() {
   if (localData.length > 0) {
     groupAndRender(localData);
   } else {
-    document.getElementById("listContainer").innerHTML = "<p style='text-align:center; padding-top:20px; font-weight:bold; color:red;'>Chưa có dữ liệu Excel trên thiết bị.</p>";
+    document.getElementById("listContainer").innerHTML = "<p style='text-align:center; padding-top:20px; font-weight:bold; color:red;'>Chưa có dữ liệu trên thiết bị.</p>";
   }
 }
 
@@ -197,7 +197,7 @@ function downloadAllExcelFiles() {
   const fileName = `${fileKey}.xlsx`;
   
   XLSX.writeFile(wb, fileName);
-  showToast(`📊 Đã tải file Excel: ${fileName}`);
+  showToast(`📊 Đã tải dữ liệu: ${fileName}`);
 }
 
 // ----------------------------------------------------
@@ -455,7 +455,7 @@ async function processOfflineImagesToCloudinary() {
 
 async function handleSendDataBtn() {
   if (!navigator.onLine) {
-    showToast("❌ Không có kết nối mạng để đồng bộ lên Google Sheet!");
+    showToast("❌ Không có kết nối mạng để đồng bộ lên server");
     return;
   }
   const confirm = await showCustomConfirm("GỬI DỮ LIỆU", "Bạn muốn gửi dữ liệu chỉ số lên server không?");
@@ -944,7 +944,7 @@ function getLocationAndSave(maKhang) {
         });
         renderCurrentCustomerCard();
       }
-      showToast("📍 Đã lưu tọa độ vị trí vào Excel thiết bị!");
+      showToast("📍 Đã lưu tọa độ vị trí vào thiết bị!");
     },
     (error) => { showToast("❌ Lỗi định vị GPS. Vui lòng bật vị trí!"); },
     { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
