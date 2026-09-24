@@ -107,7 +107,7 @@ async function checkAndLoadInitialData() {
     return;
   }
 
-  showToast("⏳ Đang lấy dữ liệu chỉ số v1...");
+  showToast("⏳ Đang lấy dữ liệu chỉ số v2...");
   try {
     const res = await fetch(API_URL, {
       method: "POST",
@@ -229,7 +229,7 @@ async function saveCustomerData(maKhang) {
       const sluongThao = Number(item.sluong_thao) || 0;
       const sluongKt = Number(item.sluong_kt) || 0;
 
-      // --- SỬA TẠI ĐÂY: Xử lý tính qua vòng 5 số nếu csMoi < csCu ---
+      // Xử lý tính qua vòng 5 số nếu csMoi < csCu
       let sanLuong = 0;
       if (csMoi < csCu) {
         sanLuong = Math.round((csMoi + 100000 - csCu) * hsn);
@@ -290,7 +290,7 @@ async function saveCustomerData(maKhang) {
       const sluongThao = Number(item.sluong_thao) || 0;
       const sluongKt = Number(item.sluong_kt) || 0;
 
-      // --- SỬA TẠI ĐÂY: Xử lý tính qua vòng 5 số đồng bộ khi lưu vào LocalStorage ---
+      // Xử lý tính qua vòng 5 số đồng bộ khi lưu vào LocalStorage
       let sanLuong = 0;
       if (csMoi < csCu) {
         sanLuong = Math.round((csMoi + 100000 - csCu) * hsn);
@@ -1047,13 +1047,17 @@ async function handleComboboxChange(maKhang, bcs, rowIndex, csCu, hsn, sluongTha
       if (inputEl) inputEl.focus();
     }
   } else if (valType === "H") {
-    // H: Hư hỏng => Cập nhật ghi_chu = Công tơ hư hỏng
+    // H: Hư hỏng => Tự gán chiso_moi = chiso_cu, thực hiện tính toán giống U và Cập nhật ghi_chu
+    if (inputEl) inputEl.value = csCuVal;
+    await calculateRow(maKhang, bcs, rowIndex, csCuVal, hsnVal, slThao);
     if (ghiChuEl) {
       ghiChuEl.value = "Công tơ hư hỏng";
       groupedData[maKhang].ghi_chu = "Công tơ hư hỏng";
     }
   } else if (valType === "M") {
-    // M: Mất công tơ => Cập nhật ghi_chu = Mất công tơ
+    // M: Mất công tơ => Tự gán chiso_moi = chiso_cu, thực hiện tính toán giống U và Cập nhật ghi_chu
+    if (inputEl) inputEl.value = csCuVal;
+    await calculateRow(maKhang, bcs, rowIndex, csCuVal, hsnVal, slThao);
     if (ghiChuEl) {
       ghiChuEl.value = "Mất công tơ";
       groupedData[maKhang].ghi_chu = "Mất công tơ";
