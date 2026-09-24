@@ -33,15 +33,33 @@ function getClientCacheKey() {
   return "cmis_chiso_cache_" + String(currentUser?.ten_ndung || "").trim().toLowerCase();
 }
 
-document.addEventListener("DOMContentLoaded", () => {
+// ----------------------------------------------------
+// TẠO CHUỖI ĐỊNH DANH KIỂM TRA FILE EXCEL (KHÔNG CHỨA ĐUÔI .XLSX)
+// ten_ndung + thang + nam + count(id_chiso)
+// ----------------------------------------------------
+function buildExcelFileKey(dataList) {
+  if (!Array.isArray(dataList) || dataList.length === 0) return "";
+  
+  const sample = dataList[0] || {};
+  const user = String(sample.ten_ndung || sample.nguoi_nhap || currentUser?.ten_ndung || "").trim().toLowerCase().replace(/\s+/g, "_");
+  const thang = String(sample.thang || "").padStart(2, '0');
+  const nam = String(sample.nam || "");
+  
+  // Đếm tổng số dòng có id_chiso hợp lệ
+  const validRowsCount = dataList.filter(item => item.id_chiso !== undefined && item.id_chiso !== null && item.id_chiso !== "").length;
+
+  return `${user}_thang${thang}_${nam}_${validRowsCount}dong`;
+}
+
+document.addEventListener("DOMContentLoaded", async () => {
   const sessionStr = localStorage.getItem("cmis_user_session");
   if (!sessionStr) { window.location.href = "login.html"; return; }
   currentUser = JSON.parse(sessionStr);
 
   initLocalExcelStore();
 
-  // Load dữ liệu từ Excel cục bộ bộ nhớ thiết bị hiển thị lên giao diện
-  loadDataFromLocalExcel();
+  // Kiểm tra file trên thiết bị và đối chiếu Google Sheet ngay khi bắt đầu
+  await checkAndLoadInitialData();
 
   setupSwipeEvents();
 
@@ -71,24 +89,26 @@ function initLocalExcelStore() {
   }
 }
 
-// Lấy dữ liệu từ server hoặc ưu tiên sử dụng dữ liệu Excel trên thiết bị
-async function handleFetchDataBtn() {
+// Kiểm tra đối chiếu file Excel gần nhất trên thiết bị với Google Sheet
+async function checkAndLoadInitialData() {
   const csKey = getExcelKeyChiSo();
   const localExcelList = JSON.parse(localStorage.getItem(csKey) || "[]");
+  const localFileKey = buildExcelFileKey(localExcelList);
 
-  // 1. Trường hợp không có mạng: dùng dữ liệu thiết bị nếu có
+  // Ngoại tuyến: Ưu tiên load file gần nhất trên thiết bị
   if (!navigator.onLine) {
     if (localExcelList.length > 0) {
-      showToast("📶 Ngoại tuyến: Mở dữ liệu từ Excel trên thiết bị...");
+      showToast("📶 Ngoại tuyến: Tải danh sách từ File Excel gần nhất trên thiết bị...");
       loadDataFromLocalExcel();
     } else {
-      showToast("❌ Không có dữ liệu trên thiết bị và chưa kết nối mạng!");
+      showToast("❌ Không có dữ liệu file Excel trên thiết bị và chưa kết nối mạng!");
+      document.getElementById("listContainer").innerHTML = "<p style='text-align:center; padding-top:20px; font-weight:bold; color:red;'>Chưa có dữ liệu Excel trên thiết bị. Vui lòng bật mạng để tải mới.</p>";
     }
     return;
   }
 
-  showToast("⏳ Đang kiểm tra dữ liệu từ Server...");
-  
+  showToast("⏳ Đang đối chiếu File Excel thiết bị với Google Sheet...");
+
   try {
     const res = await fetch(API_URL, {
       method: "POST",
@@ -100,61 +120,41 @@ async function handleFetchDataBtn() {
 
     if (data.status === "success" && Array.isArray(data.list) && data.list.length > 0) {
       const serverList = data.list;
+      const serverFileKey = buildExcelFileKey(serverList);
 
-      // Tính tổng số dòng id_chiso hợp lệ từ local và server
-      const localValidRows = localExcelList.filter(item => item.id_chiso !== undefined && item.id_chiso !== null && item.id_chiso !== "");
-      const serverValidRows = serverList.filter(item => item.id_chiso !== undefined && item.id_chiso !== null && item.id_chiso !== "");
-
-      let isMatched = false;
-
-      // 2. Kiểm tra điều kiện chuỗi [ten_ndung + thang + nam + count(id_chiso)]
-      if (localExcelList.length > 0 && localValidRows.length > 0) {
-        const sampleLocal = localExcelList[0];
-        const sampleServer = serverList[0];
-
-        const localUser = String(sampleLocal.ten_ndung || sampleLocal.nguoi_nhap || currentUser.ten_ndung || "").trim().toLowerCase();
-        const currentUserStr = String(currentUser.ten_ndung || "").trim().toLowerCase();
-
-        const localThang = String(sampleLocal.thang || "").padStart(2, '0');
-        const serverThang = String(sampleServer.thang || "").padStart(2, '0');
-
-        const localNam = String(sampleLocal.nam || "");
-        const serverNam = String(sampleServer.nam || "");
-
-        const localCount = localValidRows.length;
-        const serverCount = serverValidRows.length;
-
-        // Chuỗi kiểm tra từ Excel Thiết Bị
-        const localCheckStr = `${localUser}_thang${localThang}_${localNam}_${localCount}dong`;
-        
-        // Chuỗi kiểm tra đại diện trên Google Sheet (Server)
-        const serverCheckStr = `${currentUserStr}_thang${serverThang}_${serverNam}_${serverCount}dong`;
-
-        if (localCheckStr === serverCheckStr) {
-          isMatched = true;
-        }
-      }
-
-      // TRƯỜNG HỢP 1: Đã tồn tại dữ liệu trùng khớp chuỗi kiểm tra -> Lấy từ Excel thiết bị, KHÔNG ghi đè hay tạo gì thêm
-      if (isMatched) {
-        showToast("📂 Đã tồn tại dữ liệu Excel trùng khớp trên thiết bị. Mở dữ liệu thiết bị!");
+      // ĐỐI CHIẾU TRÙNG KHỚP: ten_ndung+thang+nam+count(id_chiso)
+      if (localExcelList.length > 0 && localFileKey === serverFileKey) {
+        showToast(`📂 Tìm thấy File [${localFileKey}] trùng khớp. Nạp dữ liệu từ thiết bị!`);
         loadDataFromLocalExcel();
-        return;
+      } else {
+        // KHÔNG TRÙNG KHỚP HOẶC KHÔNG CÓ FILE: Lấy dữ liệu mới từ Server và lưu tạo mới File Excel
+        localStorage.setItem(csKey, JSON.stringify(serverList));
+        localStorage.setItem(getClientCacheKey(), JSON.stringify({ time: Date.now(), list: serverList }));
+        
+        loadDataFromLocalExcel();
+        showToast(`✅ Tạo mới file Excel [${serverFileKey}] từ Google Sheet thành công!`);
       }
-
-      // TRƯỜNG HỢP 2: Chưa có hoặc chuỗi kiểm tra khác nhau (Server có đợt dữ liệu mới) -> Tải mới về thiết bị
-      localStorage.setItem(csKey, JSON.stringify(serverList));
-      localStorage.setItem(getClientCacheKey(), JSON.stringify({ time: Date.now(), list: serverList }));
-      
-      loadDataFromLocalExcel();
-      showToast("✅ Tải thành công danh sách mới từ Server về Excel thiết bị!");
     } else {
-      showToast("❌ Lỗi lấy dữ liệu từ Server: " + (data.message || "Danh sách rỗng"));
+      if (localExcelList.length > 0) {
+        loadDataFromLocalExcel();
+        showToast("⚠️ Máy chủ chưa có đợt dữ liệu mới. Sử dụng dữ liệu hiện tại trên thiết bị.");
+      } else {
+        showToast("❌ Không tìm thấy dữ liệu trên Google Sheet: " + (data.message || "Danh sách rỗng"));
+      }
     }
   } catch (err) {
     console.error(err);
-    showToast("❌ Lỗi kết nối máy chủ!");
+    if (localExcelList.length > 0) {
+      loadDataFromLocalExcel();
+      showToast("⚠️ Lỗi kết nối Server. Mở dữ liệu Excel gần nhất từ thiết bị.");
+    } else {
+      showToast("❌ Lỗi kết nối máy chủ!");
+    }
   }
+}
+
+function handleFetchDataBtn() {
+  checkAndLoadInitialData();
 }
 
 // Đọc dữ liệu trực tiếp từ Bảng Excel bộ nhớ thiết bị
@@ -165,11 +165,7 @@ function loadDataFromLocalExcel() {
   if (localData.length > 0) {
     groupAndRender(localData);
   } else {
-    if (navigator.onLine) {
-      handleFetchDataBtn();
-    } else {
-      document.getElementById("listContainer").innerHTML = "<p style='text-align:center; padding-top:20px; font-weight:bold; color:red;'>Chưa có dữ liệu Excel trên thiết bị. Vui lòng bật mạng và bấm 'Lấy DL'.</p>";
-    }
+    document.getElementById("listContainer").innerHTML = "<p style='text-align:center; padding-top:20px; font-weight:bold; color:red;'>Chưa có dữ liệu Excel trên thiết bị.</p>";
   }
 }
 
@@ -200,16 +196,9 @@ function downloadAllExcelFiles() {
   const wsDinhVi = XLSX.utils.json_to_sheet(dinhviData.length > 0 ? dinhviData : [{}]);
   XLSX.utils.book_append_sheet(wb, wsDinhVi, "dinh_vi");
 
-  // Tạo cấu trúc tên file: [ten_ndung+thang+nam+số dòng id_chiso]
-  const sample = chisoData[0] || {};
-  const tenNdung = String(currentUser?.ten_ndung || sample.ten_ndung || "user").trim().toLowerCase().replace(/\s+/g, "_");
-  const thang = String(sample.thang || (new Date().getMonth() + 1)).padStart(2, '0');
-  const nam = String(sample.nam || new Date().getFullYear());
-  
-  // Đếm tổng số dòng id_chiso hợp lệ
-  const totalIdRows = chisoData.filter(item => item.id_chiso !== undefined && item.id_chiso !== null && item.id_chiso !== "").length;
-
-  const fileName = `${tenNdung}_thang${thang}_${nam}_${totalIdRows}dong.xlsx`;
+  // Tạo tên file quy chuẩn: ten_ndung+thang+nam+count(id_chiso).xlsx
+  const fileKey = buildExcelFileKey(chisoData);
+  const fileName = `${fileKey}.xlsx`;
   
   XLSX.writeFile(wb, fileName);
   showToast(`📊 Đã tải file Excel: ${fileName}`);
@@ -317,7 +306,7 @@ async function saveCustomerData(maKhang) {
         localExcelList[excelItemIndex].chiso_moi = csMoi;
         localExcelList[excelItemIndex].san_luong = sanLuong;
         localExcelList[excelItemIndex].tong_sluong = tongSluong;
-        localExcelList[excelItemIndex].chenh_lech = chenhLech;
+        localExcelList[excelIndex].chenh_lech = chenhLech;
         localExcelList[excelItemIndex].tyle_clech = tyleClech;
         localExcelList[excelItemIndex].ghi_chu = cust.ghi_chu;
         localExcelList[excelItemIndex].ngay_nhap = nowStr;
