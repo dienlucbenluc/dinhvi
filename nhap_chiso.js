@@ -108,7 +108,7 @@ async function checkAndLoadInitialData() {
   }
 
   //showToast("⏳ Đang đối chiếu File Excel thiết bị với Google Sheet...");
-  showToast("⏳ Đang lấy dữ liệu chỉ số...");
+  showToast("⏳ Đang lấy dữ liệu chỉ số 123...");
   try {
     const res = await fetch(API_URL, {
       method: "POST",
