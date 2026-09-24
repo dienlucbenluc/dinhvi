@@ -42,13 +42,14 @@
     .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; position: relative; }
     .header-left { display: flex; align-items: center; gap: 8px; }
     .header-right { display: flex; align-items: center; gap: 4px; position: relative; }
+  
     .btn-action-hdr { 
-      background: #007bff; color: white; border: none; border-radius: 4px; height:32px; padding:0 8px; font-size:12px; font-weight:bold; cursor:pointer; flex-shrink:0; display:flex; align-items:center; gap:3px;
+      background: #fff; color: white; border: none; border-radius: 4px; height:32px; padding:0 8px; font-size:12px; font-weight:bold; cursor:pointer; flex-shrink:0; display:flex; align-items:center; gap:3px;
     }
     .btn-action-hdr:active { opacity: 0.8; }
-    .btn-send-hdr { background: #28a745; }
+    .btn-send-hdr { background: #fff; }
     .btn-menu { 
-      background: #fff; border: 1px solid #ccc; color:#000; height:32px; padding:0 8px; font-size:12px; white-space:nowrap; flex-shrink:0; border-radius:4px;
+      background: #fff; border: 0px solid #ccc; color:#000; height:32px; padding:0 8px; font-size:12px; white-space:nowrap; flex-shrink:0; border-radius:4px;
     }
     .btn-menu:active { background: #e2e6ea; }
     .title { font-size: 15px; font-weight: bold; color: #0056b3; }
@@ -127,8 +128,8 @@
       </div>
       <div class="header-right">
         <!-- Nút 1: Lấy dữ liệu | Nút 2: Gửi dữ liệu -->
-        <button class="btn-action-hdr" onclick="handleFetchDataBtn()" title="Lấy dữ liệu từ server về Excel thiết bị">📥 Lấy DL</button>
-        <button class="btn-action-hdr btn-send-hdr" onclick="handleSendDataBtn()" title="Gửi dữ liệu từ Excel thiết bị lên Google Sheet">📤 Gửi DL</button>
+        <button class="btn-action-hdr" onclick="handleFetchDataBtn()" title="">📥 Lấy sổ GCS</button>
+        <button class="btn-action-hdr btn-send-hdr" onclick="handleSendDataBtn()" title="">📤 Trả sổ</button>
         <button class="btn-menu" onclick="window.location.href='home.html'">🏠 Trang chủ</button>
       </div>
     </div>
