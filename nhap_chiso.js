@@ -465,7 +465,7 @@ async function checkAndAutoSync() {
   ).length;
 
   // Kiểm tra điều kiện: Tối thiểu 20 dòng và chia hết cho 20 (20, 40, 60, 80, 100...)
-  if (validRowsCount >= 5 && validRowsCount % 5 === 0 && navigator.onLine) {
+  if (validRowsCount >= 20 && validRowsCount % 20 === 0 && navigator.onLine) {
     //showToast(`⚡ Đã đạt mốc ${validRowsCount} dòng chỉ số. Đang tự động gửi dữ liệu về server...`);
     await syncLocalExcelToSheet(false);
   }
