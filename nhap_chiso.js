@@ -107,8 +107,7 @@ async function checkAndLoadInitialData() {
     return;
   }
 
-  //showToast("⏳ Đang đối chiếu File Excel thiết bị với Google Sheet...");
-  showToast("⏳ Đang lấy dữ liệu chỉ số 456...");
+  showToast("⏳ Đang lấy dữ liệu chỉ số 123...");
   try {
     const res = await fetch(API_URL, {
       method: "POST",
@@ -124,7 +123,6 @@ async function checkAndLoadInitialData() {
 
       // ĐỐI CHIẾU TRÙNG KHỚP: ten_ndung+thang+nam+count(id_chiso)
       if (localExcelList.length > 0 && localFileKey === serverFileKey) {
-        //showToast(`📂 Tìm thấy File [${localFileKey}] trùng khớp. Nạp dữ liệu từ thiết bị!`);
         loadDataFromLocalExcel();
       } else {
         // KHÔNG TRÙNG KHỚP HOẶC KHÔNG CÓ FILE: Lấy dữ liệu mới từ Server và lưu tạo mới File Excel
@@ -132,7 +130,6 @@ async function checkAndLoadInitialData() {
         localStorage.setItem(getClientCacheKey(), JSON.stringify({ time: Date.now(), list: serverList }));
         
         loadDataFromLocalExcel();
-        //showToast(`✅ Tạo mới file Excel [${serverFileKey}] từ Google Sheet thành công!`);
         showToast(`✅ Lấy dữ liệu chỉ số thành công!`);
       }
     } else {
@@ -464,9 +461,7 @@ async function checkAndAutoSync() {
     item.chiso_moi !== "" && item.chiso_moi !== null && item.chiso_moi !== undefined
   ).length;
 
-  // Kiểm tra điều kiện: Tối thiểu 20 dòng và chia hết cho 20 (20, 40, 60, 80, 100...)
   if (validRowsCount >= 20 && validRowsCount % 20 === 0 && navigator.onLine) {
-    //showToast(`⚡ Đã đạt mốc ${validRowsCount} dòng chỉ số. Đang tự động gửi dữ liệu về server...`);
     await syncLocalExcelToSheet(false);
   }
 }
@@ -803,11 +798,12 @@ function renderCurrentCustomerCard(slideDirection = null) {
         <td class="text-center" style="padding: 6px 2px;"><span class="bcs-badge">${item.bcs}</span></td>
         <td class="val-calc-large text-right">${item.chiso_cu}</td>
         <td>
-          <input type="number" 
+          <input type="text" 
                  class="input-cs-moi" 
                  id="cs_moi_${item.rowIndex}" 
                  value="${csMoiVal}"
                  onfocus="updateKwKtDisplay('${cust.ma_khang}', '${item.bcs}', ${item.sluong_kt || 0}, ${item.sluong_thao || 0})"
+                 onkeyup="handleInputShortcuts(event, '${cust.ma_khang}', '${item.bcs}', ${item.rowIndex}, ${item.chiso_cu || 0}, ${item.hsn}, ${item.sluong_thao || 0}, ${item.sluong_kt || 0})"
                  onchange="calculateRow('${cust.ma_khang}', '${item.bcs}', ${item.rowIndex}, ${item.chiso_cu || 0}, ${item.hsn}, ${item.sluong_thao || 0})">
           <input type="hidden" id="sl_val_${item.rowIndex}" value="${item.san_luong !== "" && item.san_luong !== undefined ? item.san_luong : '-'}">
         </td>
@@ -914,6 +910,28 @@ function updateKwKtDisplay(maKhang, bcs, sluongKt, sluongThao) {
   const valThaoEl = document.getElementById(`kw_thao_val_${maKhang}`);
   if (labelThaoEl) labelThaoEl.innerText = `(${bcs})`;
   if (valThaoEl) valThaoEl.innerText = sluongThao || 0;
+}
+
+function handleInputShortcuts(event, maKhang, bcs, rowIndex, csCu, hsn, sluongThao, sluongKt) {
+  const key = event.key ? event.key.toLowerCase() : "";
+  const inputEl = document.getElementById(`cs_moi_${rowIndex}`);
+  if (!inputEl) return;
+
+  if (key === 'u') {
+    inputEl.value = csCu;
+    calculateRow(maKhang, bcs, rowIndex, csCu, hsn, sluongThao);
+  } else if (key === 'v') {
+    const csCuVal = Number(csCu) || 0;
+    const hsnVal = Number(hsn) || 1;
+    const slThao = Number(sluongThao) || 0;
+    const slKt = Number(sluongKt) || 0;
+
+    const sanLuongTarget = slKt - slThao;
+    const csMoiCalc = Math.round(csCuVal + (sanLuongTarget / hsnVal));
+
+    inputEl.value = csMoiCalc;
+    calculateRow(maKhang, bcs, rowIndex, csCu, hsn, sluongThao);
+  }
 }
 
 function nextCustomer() {
