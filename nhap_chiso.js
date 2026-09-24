@@ -107,7 +107,7 @@ async function checkAndLoadInitialData() {
     return;
   }
 
-  showToast("⏳ Đang lấy dữ liệu chỉ số v5...");
+  showToast("⏳ Đang lấy dữ liệu chỉ số v6...");
   try {
     const res = await fetch(API_URL, {
       method: "POST",
@@ -489,6 +489,7 @@ async function syncLocalExcelToSheet(isManual = false) {
   const chisoLogs = JSON.parse(localStorage.getItem(csKey) || "[]");
   const dinhviLogs = JSON.parse(localStorage.getItem(dvKey) || "[]");
 
+  // Lấy các bản ghi chỉ số đã nhập để gửi lên Google Sheet
   const chisoToSend = chisoLogs.filter(i => i.chiso_moi !== "" && i.chiso_moi !== null && i.chiso_moi !== undefined);
 
   if (chisoToSend.length === 0 && dinhviLogs.length === 0) {
@@ -511,8 +512,30 @@ async function syncLocalExcelToSheet(isManual = false) {
     const result = await res.json();
 
     if (result.status === "success") {
+      // Đánh dấu trang_thai = "1" cho các id_chiso vừa đồng bộ thành công
+      const syncedIds = new Set(chisoToSend.map(i => String(i.id_chiso)));
+      
+      chisoLogs.forEach(item => {
+        if (syncedIds.has(String(item.id_chiso))) {
+          item.trang_thai = "1";
+        }
+      });
+      localStorage.setItem(csKey, JSON.stringify(chisoLogs));
+
+      // Cập nhật lại bộ nhớ RAM groupedData
+      Object.keys(groupedData).forEach(makh => {
+        groupedData[makh].items.forEach(item => {
+          if (syncedIds.has(String(item.id_chiso))) {
+            item.trang_thai = "1";
+          }
+        });
+      });
+
       localStorage.setItem(dvKey, JSON.stringify([]));
       showToast("🚀 Đồng bộ dữ liệu lên server thành công!");
+
+      // Render lại giao diện để khóa/mờ các ô và nút đã đồng bộ
+      renderCurrentCustomerCard();
       return true;
     } else {
       showToast("❌ Lỗi đồng bộ server: " + result.message);
@@ -735,6 +758,9 @@ function renderCurrentCustomerCard(slideDirection = null) {
 
   const alreadyHasCS = cust.items.some(i => i.chiso_moi !== "" && i.chiso_moi !== undefined && i.chiso_moi !== null);
 
+  // Kiểm tra xem khách hàng này đã đồng bộ thành công lên Google Sheet chưa (trang_thai == "1")
+  const isAllSynced = cust.items.length > 0 && cust.items.every(i => String(i.trang_thai) === "1");
+
   let initialClass = "";
   if (slideDirection === "left") initialClass = "slide-left-in";
   else if (slideDirection === "right") initialClass = "slide-right-in";
@@ -764,7 +790,7 @@ function renderCurrentCustomerCard(slideDirection = null) {
           <span style="font-size:13px; color:#0056b3; font-weight:bold; background:#fff; padding:2px 0px; border-radius:4px;">
             STT: ${currentCardIndex + 1} / ${customerKeys.length}
           </span>
-          <span style="font-size:12px; color:#666;">⬅️ Vuốt để đổi KH ➡️</span>
+          ${isAllSynced ? `<span style="font-size:12px; color:green; font-weight:bold; background:#e6f4ea; padding:2px 6px; border-radius:4px;">✅ Đã đồng bộ Sheet</span>` : `<span style="font-size:12px; color:#666;">⬅️ Vuốt để đổi KH ➡️</span>`}
         </div>
         <div class="cust-title">Mã KH: ${cust.ma_khang} - <b>Số CTơ:</b> ${cust.so_cto}</div>
         <div class="cust-tenKH">${cust.ten_khang || ''}</div>
@@ -779,6 +805,7 @@ function renderCurrentCustomerCard(slideDirection = null) {
                  id="ghi_chu_${cust.ma_khang}" 
                  value="${cust.ghi_chu || ''}" 
                  placeholder="Nhập ghi chú nếu có..." 
+                 ${isAllSynced ? "disabled" : ""}
                  onchange="groupedData['${cust.ma_khang}'].ghi_chu = this.value;">
         </div>
         <div class="box-maps">${mapLinkHtml}</div>
@@ -804,6 +831,7 @@ function renderCurrentCustomerCard(slideDirection = null) {
 
   cust.items.forEach(item => {
     const csMoiVal = (item.chiso_moi !== "" && item.chiso_moi !== undefined && item.chiso_moi !== null) ? item.chiso_moi : "";
+    const itemSynced = String(item.trang_thai) === "1";
 
     html += `
       <tr id="row_${item.rowIndex}">
@@ -814,13 +842,14 @@ function renderCurrentCustomerCard(slideDirection = null) {
                  class="input-cs-moi" 
                  id="cs_moi_${item.rowIndex}" 
                  value="${csMoiVal}"
+                 ${itemSynced ? "disabled" : ""}
                  onfocus="updateKwKtDisplay('${cust.ma_khang}', '${item.bcs}', ${item.sluong_kt || 0}, ${item.sluong_thao || 0})"
                  onchange="calculateRow('${cust.ma_khang}', '${item.bcs}', ${item.rowIndex}, ${item.chiso_cu || 0}, ${item.hsn}, ${item.sluong_thao || 0})">
           <input type="hidden" id="sl_val_${item.rowIndex}" value="${item.san_luong !== "" && item.san_luong !== undefined ? item.san_luong : '-'}">
         </td>
         <td id="tong_sl_${item.rowIndex}" class="val-calc-large text-right">${item.tong_sluong !== "" && item.tong_sluong !== undefined ? item.tong_sluong : '-'}</td>
         <td class="text-center">
-          <select class="select-loai" id="select_loai_${item.rowIndex}" onchange="handleComboboxChange('${cust.ma_khang}', '${item.bcs}', ${item.rowIndex}, ${item.chiso_cu || 0}, ${item.hsn}, ${item.sluong_thao || 0}, ${item.sluong_kt || 0})">
+          <select class="select-loai" id="select_loai_${item.rowIndex}" ${itemSynced ? "disabled" : ""} onchange="handleComboboxChange('${cust.ma_khang}', '${item.bcs}', ${item.rowIndex}, ${item.chiso_cu || 0}, ${item.hsn}, ${item.sluong_thao || 0}, ${item.sluong_kt || 0})">
             <option value="">--</option>
             <option value="U">U : Không xài</option>
             <option value="V">V : Tạm tính</option>
@@ -833,8 +862,9 @@ function renderCurrentCustomerCard(slideDirection = null) {
     `;
   });
 
-  const cancelDisabledAttr = !alreadyHasCS && !cust.hinh_cto && !currentCapturedFiles[makh] && !offlineImgBase64 ? "disabled" : "";
-  const saveDisabledAttr = !hasLocation ? "disabled" : "";
+  const cancelDisabledAttr = isAllSynced || (!alreadyHasCS && !cust.hinh_cto && !currentCapturedFiles[makh] && !offlineImgBase64) ? "disabled" : "";
+  const saveDisabledAttr = isAllSynced || !hasLocation ? "disabled" : "";
+  const captureDisabledAttr = isAllSynced ? "disabled" : "";
 
   html += `
           </tbody>
@@ -850,7 +880,7 @@ function renderCurrentCustomerCard(slideDirection = null) {
         </div>
         <div style="flex: 1; display: flex; flex-direction: column; gap: 6px;">
           <button class="btn-card btn-card-save" id="btn_save_${cust.ma_khang}" ${saveDisabledAttr} onclick="saveCustomerData('${cust.ma_khang}')">💾 Lưu dữ liệu</button>
-          <button class="btn-card" style="background: #17a2b8;" id="btn_capture_${cust.ma_khang}" onclick="promptImageSource('${cust.ma_khang}')">📷 Chụp ảnh&nbsp;&nbsp;</button>
+          <button class="btn-card" style="background: #17a2b8;" id="btn_capture_${cust.ma_khang}" ${captureDisabledAttr} onclick="promptImageSource('${cust.ma_khang}')">📷 Chụp ảnh&nbsp;&nbsp;</button>
           <button class="btn-card btn-card-cancel" id="btn_cancel_${cust.ma_khang}" ${cancelDisabledAttr} onclick="cancelCustomerData('${cust.ma_khang}')">✂ Hủy dữ liệu</button>
         </div>
       </div>
@@ -1134,6 +1164,10 @@ async function calculateRow(maKhang, bcs, rowIndex, csCu, hsn, sluongThao, sluon
 function checkCancelButtonStatus(maKhang) {
   const cust = groupedData[maKhang];
   if (!cust) return;
+
+  const isAllSynced = cust.items.length > 0 && cust.items.every(i => String(i.trang_thai) === "1");
+  if (isAllSynced) return;
+
   let hasNewCS = false;
   cust.items.forEach(item => {
     const inputEl = document.getElementById(`cs_moi_${item.rowIndex}`);
