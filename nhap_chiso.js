@@ -132,22 +132,35 @@ async function checkAndLoadInitialData() {
         showToast(`✅ Lấy dữ liệu chỉ số thành công!`);
       }
     } else {
-      if (localExcelList.length > 0) {
-        loadDataFromLocalExcel();
-        showToast("⚠️ Máy chủ chưa có dữ liệu mới. Sử dụng dữ liệu hiện tại trên thiết bị.");
-      } else {
-        showToast("❌ Không tìm thấy dữ liệu trên server: " + (data.message || "Chưa giao dữ liệu"));
-      }
-    }
-  } catch (err) {
-    console.error(err);
-    if (localExcelList.length > 0) {
-      loadDataFromLocalExcel();
-      showToast("⚠️ Lỗi kết nối Server. Mở dữ liệu gần nhất từ thiết bị.");
-    } else {
-      showToast("❌ Lỗi kết nối máy chủ!");
+  if (localExcelList.length > 0) {
+    loadDataFromLocalExcel();
+    showToast("⚠️ Máy chủ chưa có dữ liệu mới. Sử dụng dữ liệu hiện tại trên thiết bị.");
+  } else {
+    const errorMsg = "❌ Không tìm thấy dữ liệu trên server: " + (data.message || "Chưa giao dữ liệu");
+    showToast(errorMsg);
+    
+    // Cập nhật nội dung thông báo trực tiếp lên listContainer để dừng hiệu ứng chờ/quay
+    const listContainer = document.getElementById("listContainer");
+    if (listContainer) {
+      listContainer.innerHTML = `<p style='text-align:center; padding: 20px 10px; font-weight:bold; color:red; line-height: 1.5;'>${errorMsg}</p>`;
     }
   }
+}
+  } catch (err) {
+  console.error(err);
+  if (localExcelList.length > 0) {
+    loadDataFromLocalExcel();
+    showToast("⚠️ Lỗi kết nối Server. Mở dữ liệu gần nhất từ thiết bị.");
+  } else {
+    const errorMsg = "❌ Lỗi kết nối máy chủ!";
+    showToast(errorMsg);
+    
+    const listContainer = document.getElementById("listContainer");
+    if (listContainer) {
+      listContainer.innerHTML = `<p style='text-align:center; padding: 20px 10px; font-weight:bold; color:red; line-height: 1.5;'>${errorMsg}</p>`;
+    }
+  }
+}
 }
 
 function handleFetchDataBtn() {
