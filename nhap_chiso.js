@@ -107,7 +107,7 @@ async function checkAndLoadInitialData() {
     return;
   }
 
-  showToast("⏳ Đang lấy dữ liệu chỉ số v3...");
+  showToast("⏳ Đang lấy dữ liệu chỉ số v4...");
   try {
     const res = await fetch(API_URL, {
       method: "POST",
@@ -1013,6 +1013,9 @@ function handleSwipeGesture(startX, startY, endX, endY) {
 // ----------------------------------------------------
 // XỬ LÝ SỰ KIỆN KHI CHỌN LOẠI CÔNG TƠ TỪ COMBOBOX
 // ----------------------------------------------------
+// ----------------------------------------------------
+// XỬ LÝ SỰ KIỆN KHI CHỌN LOẠI CÔNG TƠ TỪ COMBOBOX
+// ----------------------------------------------------
 async function handleComboboxChange(maKhang, bcs, rowIndex, csCu, hsn, sluongThao, sluongKt) {
   const selectEl = document.getElementById(`select_loai_${rowIndex}`);
   const valType = selectEl ? selectEl.value : "";
@@ -1026,46 +1029,45 @@ async function handleComboboxChange(maKhang, bcs, rowIndex, csCu, hsn, sluongTha
   const slThao = Number(sluongThao) || 0;
   const slKt = Number(sluongKt) || 0;
 
-  // Logic chung cho các mã V, U, Q, H, M dựa trên so sánh sluong_thao và sluong_kt
-  if (["V", "U", "Q", "H", "M"].includes(valType)) {
+  if (valType === "V") {
+    // 1. Mã V
     let calculatedCsMoi = csCuVal;
-
-    if (valType === "Q") {
-      // Trường hợp Qua vòng: Nếu chưa nhập chỉ số mới nhỏ hơn chỉ số cũ thì nhắc nhở
-      if (inputEl && inputEl.value !== "") {
-        await calculateRow(maKhang, bcs, rowIndex, csCuVal, hsnVal, slThao);
-      } else {
-        showToast("ℹ️ Vui lòng nhập chỉ số mới nhỏ hơn chỉ số cũ cho trường hợp Qua vòng.");
-        if (inputEl) inputEl.focus();
-        return;
-      }
+    if (slThao > slKt) {
+      // tong_sluong = sluong_thao => san_luong = 0
+      calculatedCsMoi = csCuVal;
     } else {
-      // Tính toán chỉ số mới cho V, U, H, M
-      if (slThao > slKt) {
-        // Nếu sluong_thao > sluong_kt => tong_sluong = sluong_thao (san_luong = 0)
-        calculatedCsMoi = csCuVal;
-      } else {
-        // Nếu sluong_thao <= sluong_kt => tong_sluong = sluong_kt, suy ra san_luong = sluong_kt - sluong_thao
-        let sanLuongTarget = slKt - slThao;
-        calculatedCsMoi = Math.round(csCuVal + (sanLuongTarget / hsnVal));
-      }
-
-      if (inputEl) inputEl.value = calculatedCsMoi;
-      await calculateRow(maKhang, bcs, rowIndex, csCuVal, hsnVal, slThao);
+      // sluong_thao <= sluong_kt => tong_sluong = sluong_kt => san_luong = sluong_kt - sluong_thao
+      let sanLuongTarget = slKt - slThao;
+      calculatedCsMoi = Math.round(csCuVal + (sanLuongTarget / hsnVal));
     }
+    if (inputEl) inputEl.value = calculatedCsMoi;
+    await calculateRow(maKhang, bcs, rowIndex, csCuVal, hsnVal, slThao, slKt);
 
-    // Cập nhật ghi chú tự động cho các trường hợp đặc biệt
+  } else if (valType === "U" || valType === "H" || valType === "M") {
+    // 2 & 4. Mã U, H, M: chiso_moi = chiso_cu
+    if (inputEl) inputEl.value = csCuVal;
+    await calculateRow(maKhang, bcs, rowIndex, csCuVal, hsnVal, slThao, slKt);
+
     if (valType === "H" && ghiChuEl) {
       ghiChuEl.value = "Công tơ hư hỏng";
-      groupedData[maKhang].ghi_chu = "Công tơ hư hỏng";
+      if (groupedData[maKhang]) groupedData[maKhang].ghi_chu = "Công tơ hư hỏng";
     } else if (valType === "M" && ghiChuEl) {
       ghiChuEl.value = "Mất công tơ";
-      groupedData[maKhang].ghi_chu = "Mất công tơ";
+      if (groupedData[maKhang]) groupedData[maKhang].ghi_chu = "Mất công tơ";
+    }
+
+  } else if (valType === "Q") {
+    // 3. Mã Q: Qua vòng
+    if (inputEl && inputEl.value !== "") {
+      await calculateRow(maKhang, bcs, rowIndex, csCuVal, hsnVal, slThao, slKt);
+    } else {
+      showToast("ℹ️ Vui lòng nhập chỉ số mới cho trường hợp Qua vòng.");
+      if (inputEl) inputEl.focus();
     }
   }
 }
 
-async function calculateRow(maKhang, bcs, rowIndex, csCu, hsn, sluongThao) {
+async function calculateRow(maKhang, bcs, rowIndex, csCu, hsn, sluongThao, sluongKt) {
   const inputEl = document.getElementById(`cs_moi_${rowIndex}`);
   const val = inputEl ? inputEl.value.trim() : "";
   const slHiddenEl = document.getElementById(`sl_val_${rowIndex}`);
@@ -1084,27 +1086,48 @@ async function calculateRow(maKhang, bcs, rowIndex, csCu, hsn, sluongThao) {
   const csCuVal = Number(csCu) || 0;
   const hsnVal = Number(hsn) || 1;
   const slThao = Number(sluongThao) || 0;
+  const slKt = Number(sluongKt) || 0;
 
   let sanLuong = 0;
+  let tongSluong = 0;
 
-  if (csMoi < csCuVal) {
-    if (selectedType === "Q") {
-      // Xử lý tính toán qua vòng đối với đồng hồ chỉ số 5 số (Max = 100000)
-      sanLuong = Math.round((csMoi + 100000 - csCuVal) * hsnVal);
+  if (selectedType === "V") {
+    // Logic Mã V
+    if (slThao > slKt) {
+      tongSluong = slThao;
+      sanLuong = 0;
     } else {
-      await showCustomConfirm("⚠️ CẢNH BÁO CHỈ SỐ LỖI", `Chỉ số mới (${csMoi}) nhỏ hơn chỉ số cũ (${csCuVal})!\nVui lòng kiểm tra và nhập lại.`, true);
+      tongSluong = slKt;
+      sanLuong = tongSluong - slThao;
+    }
+  } else if (selectedType === "U" || selectedType === "H" || selectedType === "M") {
+    // Logic Mã U, H, M
+    if (slThao > 0) {
+      tongSluong = slThao;
+      sanLuong = 0;
+    } else {
+      sanLuong = 0;
+      tongSluong = 0;
+    }
+  } else if (selectedType === "Q") {
+    // 3. Logic Mã Q: sanLuong = Math.round((csMoi + 100000 - csCu) * hsn) + sluong_thao
+    sanLuong = Math.round((csMoi + 100000 - csCuVal) * hsnVal);
+    tongSluong = sanLuong + slThao;
+  } else {
+    // Logic tính toán thông thường
+    if (csMoi < csCuVal) {
+      await showCustomConfirm("⚠️ CẢNH BÁO CHỈ SỐ LỖI", `Chỉ số mới (${csMoi}) nhỏ hơn chỉ số cũ (${csCuVal})!\nVui lòng chọn loại 'Q' (Qua vòng) hoặc kiểm tra lại.`, true);
       inputEl.value = "";
       if (slHiddenEl) slHiddenEl.value = "-";
       if (tongSlCell) tongSlCell.innerText = "-";
       checkCancelButtonStatus(maKhang);
       setTimeout(() => inputEl.focus(), 100);
       return;
+    } else {
+      sanLuong = Math.round((csMoi - csCuVal) * hsnVal);
+      tongSluong = sanLuong + slThao;
     }
-  } else {
-    sanLuong = Math.round((csMoi - csCuVal) * hsnVal);
   }
-
-  const tongSluong = sanLuong + slThao;
 
   if (slHiddenEl) slHiddenEl.value = sanLuong;
   if (tongSlCell) tongSlCell.innerText = tongSluong;
