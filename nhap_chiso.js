@@ -53,25 +53,24 @@ document.addEventListener("DOMContentLoaded", () => {
 
   setupSwipeEvents();
 
-  // 3. Tự động đẩy ảnh offline + đồng bộ dữ liệu khi khôi phục mạng
-  window.addEventListener("online", async () => {
-    showToast("📶 Đã kết nối mạng. Đang xử lý ảnh offline và đồng bộ dữ liệu...");
-    await processOfflineImagesToCloudinary();
-    syncLocalExcelToSheet().then(() => {
-      if (currentUser && currentUser.ten_ndung) {
-        fetchSilentLatestData(currentUser.ten_ndung, false);
-      }
-    });
-  });
-
-  setInterval(async () => {
-    if (navigator.onLine) {
-      await processOfflineImagesToCloudinary();
-      syncLocalExcelToSheet();
-    }
-  }, 30 * 60 * 1000);
+// 3. Tự động đẩy ảnh offline + đồng bộ dữ liệu khi khôi phục mạng
+window.addEventListener("online", async () => {
+  showToast("📶 Đã kết nối mạng. Đang xử lý ảnh offline và đồng bộ dữ liệu...");
+  // Bắt buộc xử lý upload ảnh xong hoàn toàn mới thực hiện đồng bộ Sheet
+  await processOfflineImagesToCloudinary();
+  await syncLocalExcelToSheet();
+  if (currentUser && currentUser.ten_ndung) {
+    fetchSilentLatestData(currentUser.ten_ndung, false);
+  }
 });
 
+setInterval(async () => {
+  if (navigator.onLine) {
+    await processOfflineImagesToCloudinary();
+    await syncLocalExcelToSheet();
+  }
+}, 30 * 60 * 1000);
+  
 // ----------------------------------------------------
 // QUẢN LÝ DỮ LIỆU EXCEL VÀ HÌNH ẢNH CỤC BỘ (OFFLINE)
 // ----------------------------------------------------
@@ -153,7 +152,7 @@ async function processOfflineImagesToCloudinary() {
       const file = base64ToFile(base64Str, `${makh}_offline.jpg`);
       const url = await uploadToCloudinary(file, makh);
 
-      // 1. Cập nhật URL Cloudinary mới vào dữ liệu ghi chép Excel cục bộ
+      // 1. Cập nhật URL Cloudinary mới vào dữ liệu ghi chép Excel cục bộ (chờ sync)
       const csKey = getExcelKeyChiSo();
       const logs = JSON.parse(localStorage.getItem(csKey) || "[]");
       logs.forEach(item => {
@@ -163,7 +162,7 @@ async function processOfflineImagesToCloudinary() {
       });
       localStorage.setItem(csKey, JSON.stringify(logs));
 
-      // 2. Cập nhật URL Cloudinary vào RAM groupedData
+      // 2. Cập nhật URL Cloudinary vào RAM (groupedData)
       if (groupedData[makh]) {
         groupedData[makh].hinh_cto = url;
         groupedData[makh].items.forEach(item => {
@@ -171,7 +170,24 @@ async function processOfflineImagesToCloudinary() {
         });
       }
 
-      // 3. Cập nhật lại bộ đệm ảnh Offline và lưu ngay lập tức
+      // 3. CẬP NHẬT BỔ SUNG: Cập nhật trực tiếp vào bộ đệm Cache chính của client
+      const cacheKey = getClientCacheKey();
+      const currentCache = localStorage.getItem(cacheKey);
+      if (currentCache) {
+        try {
+          const obj = JSON.parse(currentCache);
+          obj.list.forEach(flatItem => {
+            if (flatItem.ma_khang === makh) {
+              flatItem.hinh_cto = url;
+            }
+          });
+          localStorage.setItem(cacheKey, JSON.stringify(obj));
+        } catch (e) {
+          console.error("Lỗi cập nhật cache ảnh offline:", e);
+        }
+      }
+
+      // 4. Cập nhật lại bộ đệm ảnh Offline và xóa key đã upload thành công
       delete imgs[makh];
       localStorage.setItem(imgKey, JSON.stringify(imgs));
     } catch (e) {
