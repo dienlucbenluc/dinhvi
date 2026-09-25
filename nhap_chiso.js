@@ -527,7 +527,7 @@ async function syncLocalExcelToSheet(isManual = false) {
       
       chisoLogs.forEach(item => {
         if (syncedIds.has(String(item.id_chiso))) {
-          item.trang_thai = "1";
+          item.tthai_dongbo = "1";
         }
       });
       localStorage.setItem(csKey, JSON.stringify(chisoLogs));
@@ -535,7 +535,7 @@ async function syncLocalExcelToSheet(isManual = false) {
       Object.keys(groupedData).forEach(makh => {
         groupedData[makh].items.forEach(item => {
           if (syncedIds.has(String(item.id_chiso))) {
-            item.trang_thai = "1";
+            item.tthai_dongbo = "1";
           }
         });
       });
@@ -782,7 +782,7 @@ function renderCurrentCustomerCard(slideDirection = null) {
 
   const alreadyHasCS = cust.items.some(i => i.chiso_moi !== "" && i.chiso_moi !== undefined && i.chiso_moi !== null);
 
-  const isAllSynced = cust.items.length > 0 && cust.items.every(i => String(i.trang_thai) === "1");
+  const isAllSynced = cust.items.length > 0 && cust.items.every(i => String(i.tthai_dongbo) === "1");
 
   let initialClass = "";
   if (slideDirection === "left") initialClass = "slide-left-in";
@@ -854,7 +854,7 @@ function renderCurrentCustomerCard(slideDirection = null) {
 
   cust.items.forEach(item => {
     const csMoiVal = (item.chiso_moi !== "" && item.chiso_moi !== undefined && item.chiso_moi !== null) ? item.chiso_moi : "";
-    const itemSynced = String(item.trang_thai) === "1";
+    const itemSynced = String(item.tthai_dongbo) === "1";
 
     html += `
       <tr id="row_${item.rowIndex}">
@@ -954,7 +954,7 @@ function getLocationAndSave(maKhang) {
         lat: lat,
         lng: lng,
         time: nowStr,
-        trang_thai: "1",
+        tthai_dongbo: "1",
         nhap_cmis: ""
       });
       localStorage.setItem(dvKey, JSON.stringify(dinhViList));
@@ -1182,7 +1182,7 @@ function checkCancelButtonStatus(maKhang) {
   const cust = groupedData[maKhang];
   if (!cust) return;
 
-  const isAllSynced = cust.items.length > 0 && cust.items.every(i => String(i.trang_thai) === "1");
+  const isAllSynced = cust.items.length > 0 && cust.items.every(i => String(i.tthai_dongbo) === "1");
   if (isAllSynced) return;
 
   let hasNewCS = false;
