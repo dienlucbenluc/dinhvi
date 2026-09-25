@@ -124,7 +124,7 @@ async function checkAndLoadInitialData() {
     return;
   }
 
-  showToast("⏳ Đang lấy dữ liệu chỉ số v2...");
+  showToast("⏳ Đang lấy dữ liệu chỉ số...");
   try {
     const res = await fetch(API_URL, {
       method: "POST",
