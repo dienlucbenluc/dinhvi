@@ -149,7 +149,7 @@ async function checkAndLoadInitialData() {
         localStorage.setItem(getClientCacheKey(), JSON.stringify({ time: Date.now(), list: serverList }));
         
         loadDataFromLocalExcel();
-        showToast(`✅ Lấy dữ liệu chỉ số thành công!`);
+        showToast(`♻️ Lấy dữ liệu chỉ số thành công!`);
       }
     } else {
       if (localExcelList.length > 0) {
@@ -504,7 +504,7 @@ async function syncLocalExcelToSheet(isManual = false) {
   const chisoToSend = chisoLogs.filter(i => i.chiso_moi !== "" && i.chiso_moi !== null && i.chiso_moi !== undefined);
 
   if (chisoToSend.length === 0 && dinhviLogs.length === 0) {
-    if (isManual) showToast("ℹ️ Không có dữ liệu chỉ số mới cần đồng bộ!");
+    if (isManual) showToast("⛔ Không có dữ liệu chỉ số mới cần đồng bộ!");
     return false;
   }
 
@@ -541,7 +541,7 @@ async function syncLocalExcelToSheet(isManual = false) {
       });
 
       localStorage.setItem(dvKey, JSON.stringify([]));
-      showToast("🚀 Đồng bộ dữ liệu lên server thành công!");
+      showToast("♻️ Đồng bộ dữ liệu lên server thành công!");
 
       renderCurrentCustomerCard();
       return true;
@@ -813,7 +813,7 @@ function renderCurrentCustomerCard(slideDirection = null) {
           <span style="font-size:13px; color:#0056b3; font-weight:bold; background:#fff; padding:2px 0px; border-radius:4px;">
             STT: ${currentCardIndex + 1} / ${customerKeys.length}
           </span>
-          ${isAllSynced ? `<span style="font-size:12px; color:green; font-weight:bold; background:#e6f4ea; padding:2px 6px; border-radius:4px;">✅ Đã đồng bộ lên server, không thể sửa</span>` : `<span style="font-size:12px; color:#666;">⬅️ Vuốt để đổi KH ➡️</span>`}
+          ${isAllSynced ? `<span style="font-size:12px; color:green; font-weight:bold; background:#e6f4ea; padding:2px 6px; border-radius:4px;">♻️ Đã đồng bộ lên server, không thể sửa</span>` : `<span style="font-size:12px; color:#666;">⬅️ Vuốt để đổi KH ➡️</span>`}
         </div>
         <div class="cust-title">Mã KH: ${cust.ma_khang} - <b>Số CTơ:</b> ${cust.so_cto}</div>
         <div class="cust-tenKH">${cust.ten_khang || ''}</div>
