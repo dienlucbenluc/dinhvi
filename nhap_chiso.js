@@ -142,7 +142,7 @@ async function checkAndLoadInitialData() {
       const isMatched = (localFileKey === serverFileKey);
       updateFetchButtonState(isMatched);
       
-      if (localExcelList.length > 0 && localFileKey === serverFileKey) {
+      if (localExcelList.length > 0 && isMatched) {
         loadDataFromLocalExcel();
       } else {
         localStorage.setItem(csKey, JSON.stringify(serverList));
