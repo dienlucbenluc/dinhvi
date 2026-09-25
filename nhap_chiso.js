@@ -67,6 +67,24 @@ document.addEventListener("DOMContentLoaded", async () => {
 });
 
 // ----------------------------------------------------
+// KIỂM TRA TRẠNG THÁI NÚT LẤY SỔ GCS
+// ----------------------------------------------------
+function updateFetchButtonState(isEqual) {
+  const fetchBtn = document.getElementById("btnFetchGCS");
+  if (!fetchBtn) return;
+  
+  if (isEqual) {
+    fetchBtn.disabled = true;
+    fetchBtn.style.opacity = "0.5";
+    fetchBtn.style.cursor = "not-allowed";
+  } else {
+    fetchBtn.disabled = false;
+    fetchBtn.style.opacity = "1";
+    fetchBtn.style.cursor = "pointer";
+  }
+}
+
+// ----------------------------------------------------
 // KHỞI TẠO VÀ XỬ LÝ DỮ LIỆU BẢNG EXCEL TRÊN THIẾT BỊ
 // ----------------------------------------------------
 function initLocalExcelStore() {
@@ -120,6 +138,10 @@ async function checkAndLoadInitialData() {
       const serverList = data.list;
       const serverFileKey = buildExcelFileKey(serverList);
 
+      // KIỂM TRA ĐIỀU KIỆN TRÙNG KHỚP [ten_ndung+thang+nam+count(id_chiso)]
+      const isMatched = (localFileKey === serverFileKey);
+      updateFetchButtonState(isMatched);
+      
       if (localExcelList.length > 0 && localFileKey === serverFileKey) {
         loadDataFromLocalExcel();
       } else {
