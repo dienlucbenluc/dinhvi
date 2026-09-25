@@ -124,7 +124,7 @@ async function checkAndLoadInitialData() {
     return;
   }
 
-  showToast("⏳ Đang lấy dữ liệu chỉ số v1...");
+  showToast("⏳ Đang lấy dữ liệu chỉ số v2...");
   try {
     const res = await fetch(API_URL, {
       method: "POST",
@@ -508,9 +508,28 @@ async function syncLocalExcelToSheet(isManual = false) {
     return false;
   }
 
+  // 1. Cập nhật trạng thái tthai_dongbo = "1" trong thiết bị TRƯỚC KHI gửi
+  const syncedIds = new Set(chisoToSend.map(i => String(i.id_chiso)));
+
+  chisoLogs.forEach(item => {
+    if (syncedIds.has(String(item.id_chiso))) {
+      item.tthai_dongbo = "1";
+    }
+  });
+  localStorage.setItem(csKey, JSON.stringify(chisoLogs));
+
+  Object.keys(groupedData).forEach(makh => {
+    groupedData[makh].items.forEach(item => {
+      if (syncedIds.has(String(item.id_chiso))) {
+        item.tthai_dongbo = "1";
+      }
+    });
+  });
+
   showToast("⏳ Đang đồng bộ dữ liệu lên server...");
 
   try {
+    // 2. Đồng bộ dữ liệu lên server (chisoToSend lúc này đã mang tthai_dongbo = "1")
     const res = await fetch(API_URL, {
       method: "POST",
       headers: { "Content-Type": "text/plain;charset=utf-8" },
@@ -523,23 +542,6 @@ async function syncLocalExcelToSheet(isManual = false) {
     const result = await res.json();
 
     if (result.status === "success") {
-      const syncedIds = new Set(chisoToSend.map(i => String(i.id_chiso)));
-      
-      chisoLogs.forEach(item => {
-        if (syncedIds.has(String(item.id_chiso))) {
-          item.tthai_dongbo = "1";
-        }
-      });
-      localStorage.setItem(csKey, JSON.stringify(chisoLogs));
-
-      Object.keys(groupedData).forEach(makh => {
-        groupedData[makh].items.forEach(item => {
-          if (syncedIds.has(String(item.id_chiso))) {
-            item.tthai_dongbo = "1";
-          }
-        });
-      });
-
       localStorage.setItem(dvKey, JSON.stringify([]));
       showToast("♻️ Đồng bộ dữ liệu lên server thành công!");
 
