@@ -277,20 +277,37 @@ function filterUncutCustomers() {
 /**
  * Hàm lọc lấy danh sách khách hàng đã thực hiện cắt điện (TINH_TRANG = 1)
  */
+/**
+ * Hàm lọc danh sách khách hàng đã thực hiện cắt điện / đã thực hiện
+ * Điều kiện: SOTIEN_TTOAN không rỗng (not null/undefined/chưa TT) HOẶC TINH_TRANG = 1
+ */
 function filterDathhCustomers() {
   if (!allCustomers || allCustomers.length === 0) {
     showToast('Chưa có dữ liệu danh sách khách hàng.', true);
     return;
   }
 
-  // Xóa nội dung ô tìm kiếm để tránh xung đột dữ liệu lọc
+  // Xóa nội dung khung tìm kiếm từ khóa để tránh xung đột bộ lọc
   const searchBox = document.getElementById('searchBox');
   if (searchBox) searchBox.value = '';
 
-  // Lọc các khách hàng có TINH_TRANG = 1
   currentFilteredList = allCustomers.filter(c => {
+    // 1. Kiểm tra TINH_TRANG = 1
     const tinhTrang = Number(value(c, 'TINH_TRANG', 'tinh_trang') || 0);
-    return tinhTrang === 1;
+    const isTinhTrangDaTH = (tinhTrang === 1);
+
+    // 2. Kiểm tra SOTIEN_TTOAN NOT NULL
+    const sotienTtoan = value(c, 'SOTIEN_TTOAN', 'sotien_ttoan');
+    const isSotienNotNull = !(
+      sotienTtoan === null ||
+      sotienTtoan === undefined ||
+      String(sotienTtoan).trim() === '' ||
+      String(sotienTtoan).trim().toLowerCase() === 'null' ||
+      String(sotienTtoan).trim() === 'Chưa TT'
+    );
+
+    // Điều kiện HOẶC: Chỉ cần 1 trong 2 điều kiện thỏa mãn
+    return isTinhTrangDaTH || isSotienNotNull;
   });
 
   currentCardIndex = 0;
