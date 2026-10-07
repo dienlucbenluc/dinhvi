@@ -96,6 +96,8 @@ function updateStatsSummary() {
     const uncutCount = getUncutCount();
     const DathhCount = allCustomers.filter(c => {
       const tinhTrang = Number(value(c, 'TINH_TRANG', 'tinh_trang') || 0);
+      const isTinhTrangDaTH = (tinhTrang === 1);
+
       const sotienTtoan = value(c, 'SOTIEN_TTOAN', 'sotien_ttoan');
       const isSotienNotNull = !(
         sotienTtoan === null ||
@@ -104,10 +106,11 @@ function updateStatsSummary() {
         String(sotienTtoan).trim().toLowerCase() === 'null' ||
         String(sotienTtoan).trim() === 'Chưa TT'
       );
-      return tinhTrang === 1 && isSotienNotNull;
+
+      return isTinhTrangDaTH || isSotienNotNull;
     }).length;
 
-    statsEl.innerHTML = `Tổng: ${allCustomers.length} - Đã thực hiện: <span style=color:#006400;>${DathhCount}</span> - Chưa thực hiện: <span style=color:red;>${uncutCount}</span>`;
+    statsEl.innerHTML = `Tổng khách hàng: <span style=color:blue;>${allCustomers.length}</span> - Chưa thực hiện: <span style=color:red;>${uncutCount}</span> - Đã thực hiện: <span style=color:red;>${DathhCount}</span>`;
   }
 }
 
