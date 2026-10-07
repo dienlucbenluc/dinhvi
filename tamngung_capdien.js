@@ -110,7 +110,7 @@ function updateStatsSummary() {
       return isTinhTrangDaTH || isSotienNotNull;
     }).length;
 
-    statsEl.innerHTML = `Tổng khách hàng: <span style=color:blue;>${allCustomers.length}</span> - Chưa thực hiện: <span style=color:red;>${uncutCount}</span> - Đã thực hiện: <span style=color:red;>${DathhCount}</span>`;
+    statsEl.innerHTML = `Tổng: ${allCustomers.length} - Đã thực hiện: <span style=color:#006400;>${DathhCount}</span> - Chưa thực hiện: <span style=color:red;>${uncutCount}</span>`;
   }
 }
 
