@@ -107,7 +107,7 @@ function updateStatsSummary() {
       return tinhTrang === 1 && isSotienNotNull;
     }).length;
 
-    statsEl.innerHTML = `Tổng: <span style=color:blue;>${allCustomers.length}</span> - Đã thực hiện: <span style=color:red;>${DathhCount}</span> - Chưa thực hiện: <span style=color:red;>${uncutCount}</span>`;
+    statsEl.innerHTML = `Tổng: ${allCustomers.length} - Đã thực hiện: <span style=color:#006400;>${DathhCount}</span> - Chưa thực hiện: <span style=color:red;>${uncutCount}</span>`;
   }
 }
 
