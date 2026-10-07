@@ -716,6 +716,9 @@ async function getLocationAndSave(index, safeKey) {
 
   if (btnLoc) {
     btnLoc.style.pointerEvents = 'none';
+    btnLoc.style.opacity = '0.6';
+    btnLoc.style.cursor = 'not-allowed';
+    btnLoc.removeAttribute('onclick');
     btnLoc.textContent = '⏳ Đang lấy vị trí...';
   }
   showToast(`Đang định vị GPS cho ${maKhang}...`);
@@ -768,7 +771,13 @@ async function getLocationAndSave(index, safeKey) {
       });
     },
     err => {
-      if (btnLoc) { btnLoc.style.pointerEvents = 'auto'; btnLoc.textContent = '📍 Bấm lấy tọa độ mới'; }
+      if (btnLoc) { 
+        btnLoc.style.pointerEvents = 'auto'; 
+        btnLoc.style.opacity = '1';
+        btnLoc.style.cursor = 'pointer';
+        btnLoc.setAttribute('onclick', `getLocationAndSave(${index}, '${safeKey}')`);
+        btnLoc.textContent = '📍 Bấm lấy tọa độ mới'; 
+      }
       showToast('Không thể lấy vị trí GPS: ' + err.message, true);
     },
     { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
