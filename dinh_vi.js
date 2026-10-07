@@ -8,6 +8,25 @@ let currentUser = null;
 let isExistingLocation = false;
 let existingLocationInfo = null;
 
+// Hàm hỗ trợ bật/tắt làm mờ nút lấy định vị
+function disableGetLocationButton() {
+  const btn = document.getElementById("btnGetLocation");
+  if (btn) {
+    btn.disabled = true;
+    btn.style.opacity = "0.5";
+    btn.style.pointerEvents = "none";
+  }
+}
+
+function enableGetLocationButton() {
+  const btn = document.getElementById("btnGetLocation");
+  if (btn) {
+    btn.disabled = false;
+    btn.style.opacity = "1";
+    btn.style.pointerEvents = "auto";
+  }
+}
+
 document.addEventListener("DOMContentLoaded", () => {
   const sessionStr = localStorage.getItem("cmis_user_session");
   if (!sessionStr) {
@@ -608,8 +627,12 @@ function getLocation() {
     return;
   }
 
+  // Bắt đầu tiến trình -> Làm mờ nút
+  disableGetLocationButton();
+
   // Khách hàng đã có tọa độ: mở Modal xác nhận
   if (isExistingLocation) {
+    enableGetLocationButton(); // Bật lại nút trước khi mở Modal
     openRegetModal();
     return;
   }
@@ -639,11 +662,13 @@ function getLocation() {
       if (existingCustomer) renderList([existingCustomer]);
 
       showToast(`⚠️ Mã KH ${res.ma_khang} đã có tọa độ, nếu bạn muốn lấy lại tọa độ mới thì bấm lấy lại bên dưới.`);
+      enableGetLocationButton(); // Hoàn tất tiến trình kiểm tra
       return;
     }
 
     if (res.status === "not_found") {
       showToast(`❌ ${res.message}`);
+      enableGetLocationButton(); // Hoàn tất tiến trình kiểm tra
       return;
     }
 
@@ -652,10 +677,13 @@ function getLocation() {
   .catch(err => {
     console.error(err);
     showToast("Lỗi kết nối máy chủ khi kiểm tra!");
+    enableGetLocationButton(); // Bật lại nút nếu gặp lỗi kết nối
   });
 }
 
 function getGPSAndSave(isRelocate) {
+  disableGetLocationButton(); // Làm mờ nút khi bắt đầu lấy GPS
+
   const searchType = document.getElementById("loai_tim").value;
   const searchValueInput = document.getElementById("locName").value.trim();
   const jobTitle = document.getElementById("jobSelect").value;
@@ -665,6 +693,7 @@ function getGPSAndSave(isRelocate) {
 
   if (!navigator.geolocation) {
     showToast("Trình duyệt không hỗ trợ định vị GPS");
+    enableGetLocationButton();
     return;
   }
 
@@ -675,6 +704,7 @@ function getGPSAndSave(isRelocate) {
     error => {
       console.error(error);
       showToast("Vui lòng bật định vị GPS trên thiết bị.");
+      enableGetLocationButton(); // Bật lại nút nếu không lấy được GPS
     },
     { enableHighAccuracy: true, maximumAge: 0, timeout: 10000 }
   );
@@ -737,11 +767,13 @@ function getGPSAndSave(isRelocate) {
       } else {
         showToast(res.message);
       }
+      enableGetLocationButton(); // Hoàn tất xử lý thành công -> Bật lại nút
     })
     .catch(err => {
       showToast("Mạng chậm! Đang đồng bộ lại...");
       console.error(err);
       loadInitData();
+      enableGetLocationButton(); // Bật lại nút nếu lỗi mạng
     });
   }
 }
