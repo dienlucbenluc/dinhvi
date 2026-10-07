@@ -856,19 +856,6 @@ async function photoSelected(index, safeKey, input) {
     
     const compressedDataUrl = await compressImage(file, 1000, 0.7);
 
-    // --- ÂM THẦM TẢI LƯU HÌNH CẢNH VÀO BỘ SƯU TẬP CỦA THIẾT BỊ ---
-    try {
-      const maKhang = value(allCustomers[index], 'MA_KHANG', 'ma_khang') || 'KH';
-      const downloadLink = document.createElement('a');
-      downloadLink.href = compressedDataUrl;
-      downloadLink.download = `${maKhang}_${Date.now()}.jpg`;
-      document.body.appendChild(downloadLink);
-      downloadLink.click();
-      document.body.removeChild(downloadLink);
-    } catch (saveErr) {
-      console.warn('Lỗi lưu ảnh tự động vào thư viện:', saveErr);
-    }
-
     const box = document.getElementById('picture-' + safeKey);
     if (box) box.innerHTML = `<img src="${compressedDataUrl}" alt="Ảnh mới">`;
     
@@ -962,3 +949,137 @@ async function saveCustomer(index, safeKey) {
     }).then(res => res.json()).then(result => {
       if (result && result.success) {
         showToast(`Lưu dữ liệu thành công.`);
+        setTimeout(() => nextCustomer(), 400);
+      } else {
+        showToast('Đã lưu local, server báo lỗi: ' + (result?.message || ''), true);
+      }
+    }).catch(err => {
+      showToast('Đã lưu local, chưa thể cập nhật server: ' + err.message, true);
+    });
+
+  } catch (err) {
+    showToast(err.message || String(err), true);
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = oldText; }
+  }
+}
+
+function closeCancelModal() {
+  const modal = document.getElementById('cancelModal');
+  if (modal) modal.style.display = 'none';
+  pendingCancelArgs = null;
+}
+
+function cancelCustomer(index, safeKey) {
+  const c = allCustomers[index];
+  if (!c) return;
+
+  const maKhang = value(c, 'MA_KHANG', 'ma_khang');
+  
+  const msgEl = document.getElementById('cancelModalMsg');
+  if (msgEl) {
+    msgEl.textContent = `Bạn có chắc chắn muốn xóa trạng thái, hình ảnh và định vị của khách hàng ${maKhang}?`;
+  }
+
+  pendingCancelArgs = { index, safeKey, maKhang };
+
+  const btnConfirm = document.getElementById('btnConfirmCancel');
+  if (btnConfirm) {
+    btnConfirm.onclick = executeCancel;
+  }
+
+  const modal = document.getElementById('cancelModal');
+  if (modal) modal.style.display = 'flex';
+}
+
+async function executeCancel() {
+  if (!pendingCancelArgs) return;
+
+  const { index, safeKey, maKhang } = pendingCancelArgs;
+  closeCancelModal();
+
+  const c = allCustomers[index];
+  const checkbox = document.getElementById('check-' + safeKey);
+  const pictureBox = document.getElementById('picture-' + safeKey);
+  
+  const selectedDate = document.getElementById('filterDate')?.value || localStorage.getItem(CACHE_KEY_DATE) || '';
+  const ngayCat = value(c, 'NGAY_CAT', 'ngay_cat') || selectedDate;
+
+  const oldLat = c.LAT || '';
+  const oldLng = c.LNG || '';
+
+  c.HINH_ANH = '';
+  c.PICTUREBOX = '';
+  c.TINH_TRANG = 0;
+  c.LAT = ''; 
+  c.LNG = ''; 
+  delete c._newPhotoFile;
+  delete c._newPhotoDataUrl;
+  saveCache();
+
+  if (checkbox) checkbox.checked = false;
+  if (pictureBox) pictureBox.innerHTML = 'Chưa có hình ảnh';
+  const cell = document.getElementById(`loc-cell-${safeKey}`);
+  if (cell) {
+    cell.innerHTML = `<span id="btn-location-${safeKey}" onclick="getLocationAndSave(${index}, '${safeKey}')" style="color:red;font-weight:bold;cursor:pointer;">📍 Bấm lấy tọa độ mới</span>`;
+  }
+
+  updateActionButtonsState(safeKey);
+  updateStatsSummary();
+  showToast(`Hủy dữ liệu thành công.`);
+
+  fetch(API_URL, {
+    method: 'POST',
+    body: JSON.stringify({
+      action: 'cancel',
+      payload: {
+        MA_KHANG: maKhang,
+        NGAY: selectedDate,
+        NGAY_CAT: ngayCat,
+        NGAY_SUA: selectedDate,
+        LAT: oldLat,
+        LNG: oldLng
+      }
+    })
+  }).then(res => res.json()).then(result => {
+    if (result && result.success) {
+      showToast(`Hủy dữ liệu thành công.`);
+    } else {
+      showToast('Đã hủy local, lỗi cập nhật server: ' + (result?.message || ''), true);
+    }
+  }).catch(err => {
+    showToast('Lỗi đồng bộ server khi hủy: ' + (err.message || String(err)), true);
+  });
+}
+
+function compressImage(file, maxWidth = 1000, quality = 0.7) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = event => {
+      const img = new Image();
+      img.src = event.target.result;
+      img.onload = () => {
+        let width = img.width;
+        let height = img.height;
+
+        if (width > maxWidth) {
+          height = Math.round((height * maxWidth) / width);
+          width = maxWidth;
+        }
+
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, width, height);
+
+        const compressedDataUrl = canvas.toDataURL('image/jpeg', quality);
+        resolve(compressedDataUrl);
+      };
+      img.onerror = error => reject(error);
+    };
+    reader.onerror = error => reject(error);
+  });
+}
