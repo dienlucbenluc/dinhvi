@@ -94,7 +94,20 @@ function updateStatsSummary() {
   const statsEl = document.getElementById('statsSummary');
   if (statsEl) {
     const uncutCount = getUncutCount();
-    statsEl.innerHTML = `Tổng khách hàng: <span style=color:blue;>${allCustomers.length}</span> - Chưa thực hiện: <span style=color:red;>${uncutCount}</span>`;
+    const DathhCount = allCustomers.filter(c => {
+      const tinhTrang = Number(value(c, 'TINH_TRANG', 'tinh_trang') || 0);
+      const sotienTtoan = value(c, 'SOTIEN_TTOAN', 'sotien_ttoan');
+      const isSotienNotNull = !(
+        sotienTtoan === null ||
+        sotienTtoan === undefined ||
+        String(sotienTtoan).trim() === '' ||
+        String(sotienTtoan).trim().toLowerCase() === 'null' ||
+        String(sotienTtoan).trim() === 'Chưa TT'
+      );
+      return tinhTrang === 1 && isSotienNotNull;
+    }).length;
+
+    statsEl.innerHTML = `Tổng: <span style=color:blue;>${allCustomers.length}</span> - Đã thực hiện: <span style=color:red;>${DathhCount}</span> - Chưa thực hiện: <span style=color:red;>${uncutCount}</span>`;
   }
 }
 
