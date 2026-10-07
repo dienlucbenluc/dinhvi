@@ -847,9 +847,33 @@ function takePhoto(index, safeKey) {
   if (input) input.click();
 }
 
+/**
+ * Hàm âm thầm lưu hình ảnh gốc vào bộ sưu tập/thư mục tải về của thiết bị
+ */
+function saveOriginalImageToGallery(file, maKhang) {
+  try {
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(file);
+    const fileName = `${maKhang || 'KH'}_${Date.now()}.jpg`;
+    link.download = fileName;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    setTimeout(() => URL.revokeObjectURL(link.href), 1000);
+  } catch (err) {
+    console.warn('Lưu ảnh ngầm về bộ sưu tập thất bại:', err);
+  }
+}
+
 async function photoSelected(index, safeKey, input) {
   const file = input.files?.[0];
   if (!file || !file.type.startsWith('image/')) return;
+
+  const c = allCustomers[index];
+  const maKhang = value(c, 'MA_KHANG', 'ma_khang');
+
+  // Âm thầm lưu hình ảnh nguyên bản về thiết bị
+  saveOriginalImageToGallery(file, maKhang);
 
   try {
     showToast('Đang nén tối ưu dung lượng ảnh...');
