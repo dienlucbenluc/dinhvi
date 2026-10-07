@@ -274,6 +274,31 @@ function filterUncutCustomers() {
   showToast(`Khách hàng chưa CĐ: ${currentFilteredList.length} / ${allCustomers.length}`);
 }
 
+/**
+ * Hàm lọc lấy danh sách khách hàng đã thực hiện cắt điện (TINH_TRANG = 1)
+ */
+function filterDathhCustomers() {
+  if (!allCustomers || allCustomers.length === 0) {
+    showToast('Chưa có dữ liệu danh sách khách hàng.', true);
+    return;
+  }
+
+  // Xóa nội dung ô tìm kiếm để tránh xung đột dữ liệu lọc
+  const searchBox = document.getElementById('searchBox');
+  if (searchBox) searchBox.value = '';
+
+  // Lọc các khách hàng có TINH_TRANG = 1
+  currentFilteredList = allCustomers.filter(c => {
+    const tinhTrang = Number(value(c, 'TINH_TRANG', 'tinh_trang') || 0);
+    return tinhTrang === 1;
+  });
+
+  currentCardIndex = 0;
+  renderCurrentCustomerCard();
+  updateStatsSummary();
+  showToast(`Khách hàng đã TH: ${currentFilteredList.length} / ${allCustomers.length}`);
+}
+
 async function fetchServerData(selectedDate, loggedTenNdung) {
   busy = true;
   const btn = document.getElementById('btnSearch');
