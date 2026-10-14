@@ -782,15 +782,19 @@ function checkAndOpenEditModal(id) {
   const loc = allLocations.find(item => String(item.id) === String(id));
   if (!loc) return;
 
-  if (loc.ten_ndung && loc.ten_ndung.toLowerCase() !== currentUser.ten_ndung.toLowerCase()) {
-    showToast("Không thể sửa dữ liệu người khác nhập");
-    return;
-  }
+  const isAdmin = currentUser && (currentUser.level === 1 || Number(currentUser.level) === 1);
 
-  // Kiểm tra thời gian nếu quá 1 giờ thì chặn sửa
-  if (isOverOneHour(loc.time)) {
-    showToast("Thông tin lưu quá 1 giờ, không thể sửa.");
-    return;
+  if (!isAdmin) {
+    if (loc.ten_ndung && loc.ten_ndung.toLowerCase() !== currentUser.ten_ndung.toLowerCase()) {
+      showToast("Không thể sửa dữ liệu người khác nhập");
+      return;
+    }
+
+    // Kiểm tra thời gian nếu quá 1 giờ thì chặn sửa
+    if (isOverOneHour(loc.time)) {
+      showToast("Thông tin lưu quá 1 giờ, không thể sửa.");
+      return;
+    }
   }
 
   openEditModal(id);
@@ -800,15 +804,19 @@ function checkAndOpenDeleteModal(id) {
   const loc = allLocations.find(item => String(item.id) === String(id));
   if (!loc) return;
 
-  if (loc.ten_ndung && loc.ten_ndung.toLowerCase() !== currentUser.ten_ndung.toLowerCase()) {
-    showToast("Không thể xóa dữ liệu người khác nhập");
-    return;
-  }
+  const isAdmin = currentUser && (currentUser.level === 1 || Number(currentUser.level) === 1);
 
-  // Kiểm tra thời gian nếu quá 1 giờ thì chặn xóa
-  if (isOverOneHour(loc.time)) {
-    showToast("Thông tin lưu quá 1 giờ, không thể xóa.");
-    return;
+  if (!isAdmin) {
+    if (loc.ten_ndung && loc.ten_ndung.toLowerCase() !== currentUser.ten_ndung.toLowerCase()) {
+      showToast("Không thể xóa dữ liệu người khác nhập");
+      return;
+    }
+
+    // Kiểm tra thời gian nếu quá 1 giờ thì chặn xóa
+    if (isOverOneHour(loc.time)) {
+      showToast("Thông tin lưu quá 1 giờ, không thể xóa.");
+      return;
+    }
   }
 
   openConfirmModal(id);
