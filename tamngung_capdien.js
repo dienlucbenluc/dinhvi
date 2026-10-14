@@ -72,11 +72,9 @@ function showToast(text, error = false) {
   if (!toast) {
     toast = document.createElement('div');
     toast.id = 'app-toast';
-    // Cố định chiều rộng 90% (tối đa 400px), chữ dài tự ngắt (...) không làm phình khung
     toast.style.cssText = 'position:fixed;bottom:10px;left:50%;transform:translateX(-50%);padding:12px 16px;background:#006400;color:#fff;font-size:13px;z-index:10000;transition:opacity 0.3s;pointer-events:none;text-align:center;width:90%;max-width:400px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;box-sizing:border-box;border-radius:20px;';
     document.body.appendChild(toast);
   } else {
-    // Đảm bảo trạng thái bình thường luôn trả về xanh lá
     toast.style.background = '#006400';
   }
   if (error) {
@@ -138,9 +136,6 @@ function value(obj, ...names) {
   return '';
 }
 
-/**
- * Hàm tiện ích đếm số lượng khách hàng chưa thực hiện cắt điện (TINH_TRANG = 0 & Chưa thanh toán)
- */
 function getUncutCount() {
   if (!allCustomers || allCustomers.length === 0) return 0;
   return allCustomers.filter(c => {
@@ -201,7 +196,6 @@ function fetchJSONP(url) {
 async function loadCustomers(forceFetch = false) {
   if (busy) return;
 
-  // 1. Nếu ô chọn ngày bị trống (dd/mm/yyyy), tự động điền ngày hiện tại (YYYY-MM-DD)
   const dateInput = document.getElementById('filterDate');
   if (dateInput && !dateInput.value) {
     const now = new Date();
@@ -210,7 +204,6 @@ async function loadCustomers(forceFetch = false) {
     dateInput.value = localDate;
   }
 
-  // 2. Chạy lại spinner hiển thị trạng thái đang lấy danh sách
   const root = document.getElementById('customerList');
   if (root) {
     root.innerHTML = `
@@ -254,24 +247,17 @@ async function loadCustomers(forceFetch = false) {
   await fetchServerData(selectedDate, loggedTenNdung);
 }
 
-/**
- * Hàm lọc lấy danh sách chưa cắt điện (TINH_TRANG = 0 và SOTIEN_TTOAN = null / rỗng)
- */
 function filterUncutCustomers() {
   if (!allCustomers || allCustomers.length === 0) {
     showToast('Chưa có dữ liệu danh sách khách hàng.', true);
     return;
   }
 
-  // Xóa nội dung khung tìm kiếm từ khóa để tránh xung đột bộ lọc
   const searchBox = document.getElementById('searchBox');
   if (searchBox) searchBox.value = '';
   
   currentFilteredList = allCustomers.filter(c => {
-    // 1. Kiểm tra TINH_TRANG = 0
     const tinhTrang = Number(value(c, 'TINH_TRANG', 'tinh_trang') || 0);
-
-    // 2. Kiểm tra SOTIEN_TTOAN = null (hoặc null/undefined/rỗng/Chưa TT)
     const sotienTtoan = value(c, 'SOTIEN_TTOAN', 'sotien_ttoan');
     const isSotienNull = (
       sotienTtoan === null ||
@@ -290,29 +276,19 @@ function filterUncutCustomers() {
   showToast(`Khách hàng chưa CĐ: ${currentFilteredList.length} / ${allCustomers.length}`);
 }
 
-/**
- * Hàm lọc lấy danh sách khách hàng đã thực hiện cắt điện (TINH_TRANG = 1)
- */
-/**
- * Hàm lọc danh sách khách hàng đã thực hiện cắt điện / đã thực hiện
- * Điều kiện: SOTIEN_TTOAN không rỗng (not null/undefined/chưa TT) HOẶC TINH_TRANG = 1
- */
 function filterDathhCustomers() {
   if (!allCustomers || allCustomers.length === 0) {
     showToast('Chưa có dữ liệu danh sách khách hàng.', true);
     return;
   }
 
-  // Xóa nội dung khung tìm kiếm từ khóa để tránh xung đột bộ lọc
   const searchBox = document.getElementById('searchBox');
   if (searchBox) searchBox.value = '';
 
   currentFilteredList = allCustomers.filter(c => {
-    // 1. Kiểm tra TINH_TRANG = 1
     const tinhTrang = Number(value(c, 'TINH_TRANG', 'tinh_trang') || 0);
     const isTinhTrangDaTH = (tinhTrang === 1);
 
-    // 2. Kiểm tra SOTIEN_TTOAN NOT NULL
     const sotienTtoan = value(c, 'SOTIEN_TTOAN', 'sotien_ttoan');
     const isSotienNotNull = !(
       sotienTtoan === null ||
@@ -322,7 +298,6 @@ function filterDathhCustomers() {
       String(sotienTtoan).trim() === 'Chưa TT'
     );
 
-    // Điều kiện HOẶC: Chỉ cần 1 trong 2 điều kiện thỏa mãn
     return isTinhTrangDaTH || isSotienNotNull;
   });
 
@@ -466,7 +441,7 @@ function renderCurrentCustomerCard(slideDirection = null) {
   const tenTram = value(c, 'TEN_TRAM', 'ten_tram');
   const ngaySua = value(c, 'NGAY_SUA', 'ngay_sua');
   const CphiDcat = value(c, 'CPHI_DCAT', 'cphi_dcat');
-  const gtrinhLydo = value(c, 'GTRINH_LYDO', 'gtrinh_lydo'); // Giá trị Giải trình lý do
+  const gtrinhLydo = value(c, 'GTRINH_LYDO', 'gtrinh_lydo');
   const SotienTtoan = String(value(c, 'SOTIEN_TTOAN', 'sotien_ttoan') || 'Chưa TT').trim();
   const SotienCpdc = String(value(c, 'SOTIEN_CPDC', 'sotien_cpdc')|| 'Chưa TT').trim();
   const lat = String(value(c, 'LAT', 'lat') || '').trim();
@@ -508,9 +483,10 @@ function renderCurrentCustomerCard(slideDirection = null) {
       }
   }
 
+  // CẬP NHẬT: Gọi dialog nhập note thay vì gọi thẳng hàm lấy tọa độ
   let locationHtml = hasLocation
     ? `<a href="https://www.google.com/maps?q=${lat},${lng}" target="_blank" style="color:#1976d2;font-weight:bold;text-decoration:none;">📍 Xem Google Maps</a>`
-    : `<span id="btn-location-${safeKey}" onclick="getLocationAndSave(${realIndex}, '${safeKey}')" style="color:red;font-weight:bold;cursor:pointer;">📍 Bấm lấy tọa độ mới</span>`;
+    : `<span id="btn-location-${safeKey}" onclick="openNoteDialogForLocation(${realIndex}, '${safeKey}')" style="color:red;font-weight:bold;cursor:pointer;">📍 Bấm lấy tọa độ mới</span>`;
 
   let initialClass = "";
   if (slideDirection === "left") initialClass = "slide-left-in";
@@ -543,7 +519,6 @@ function renderCurrentCustomerCard(slideDirection = null) {
           Đã TT tiền điện: <span style="color: red;">${escapeHtml(SotienTtoan)}</span>      <span style="margin-left: 20px; margin-righ: 5px;">Đã TT CPĐC:</span><span style="color: red;">${escapeHtml(SotienCpdc)}</span>
         </div> 
 
-        <!-- BỔ SUNG: Ô nhập giải trình lý do & Nút Ghi nằm TRÊN box-maps -->
         <div class="lydo-container">
           <input type="text" id="lydo-${safeKey}" class="input-lydo" placeholder="Giải trình lý do chưa cắt điện..." value="${escapeHtml(gtrinhLydo)}">
           <button type="button" id="btn-ghi-lydo-${safeKey}" class="btn-ghi-lydo" onclick="saveLyDoOnly(${realIndex}, '${safeKey}')">Ghi</button>
@@ -583,9 +558,161 @@ function renderCurrentCustomerCard(slideDirection = null) {
   }
 }
 
-/**
- * Hàm ghi riêng ô Lý do Giải trình lên Google Sheet cột GTRINH_LYDO
- */
+// ==========================================
+// CÁC HÀM XỬ LÝ DIALOG NHẬP NOTE VÀ LẤY TỌA ĐỘ
+// ==========================================
+function openNoteDialogForLocation(index, safeKey) {
+  let modal = document.getElementById('noteLocationModal');
+  if (!modal) {
+    const modalHtml = `
+      <div id="noteLocationModal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:9999;justify-content:center;align-items:center;">
+        <div style="background:#fff;padding:20px;border-radius:8px;width:90%;max-width:350px;box-sizing:border-box;">
+          <h3 style="margin-top:0;font-size:16px;color:#333;">Yêu cầu nhập ghi chú (Note)</h3>
+          <input type="text" id="inputLocationNote" placeholder="Nhập note (lưu vào cột K)..." style="width:100%;padding:8px;box-sizing:border-box;margin-bottom:15px;border:1px solid #ccc;border-radius:4px;" oninput="validateNoteInput()">
+          <div style="text-align:right;">
+            <button type="button" onclick="closeNoteDialog()" style="padding:6px 12px;margin-right:5px;background:#ccc;border:none;border-radius:4px;cursor:pointer;">Hủy</button>
+            <button type="button" id="btnExecuteGetLocation" onclick="executeGetLocationWithNote()" style="padding:6px 12px;background:#007bff;color:#fff;border:none;border-radius:4px;cursor:pointer;opacity:0.5;pointer-events:none;">Thực hiện</button>
+          </div>
+        </div>
+      </div>`;
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+    modal = document.getElementById('noteLocationModal');
+  }
+
+  window._pendingLocationContext = { index, safeKey };
+  document.getElementById('inputLocationNote').value = '';
+  validateNoteInput();
+  modal.style.display = 'flex';
+}
+
+function validateNoteInput() {
+  const input = document.getElementById('inputLocationNote');
+  const btn = document.getElementById('btnExecuteGetLocation');
+  if (!input || !btn) return;
+  
+  if (input.value.trim().length > 0) {
+    btn.style.opacity = '1';
+    btn.style.pointerEvents = 'auto';
+  } else {
+    btn.style.opacity = '0.5';
+    btn.style.pointerEvents = 'none';
+  }
+}
+
+function closeNoteDialog() {
+  const modal = document.getElementById('noteLocationModal');
+  if (modal) modal.style.display = 'none';
+  window._pendingLocationContext = null;
+}
+
+async function executeGetLocationWithNote() {
+  const context = window._pendingLocationContext;
+  if (!context) return;
+  
+  const input = document.getElementById('inputLocationNote');
+  const noteValue = input ? input.value.trim() : '';
+  
+  const btnExecute = document.getElementById('btnExecuteGetLocation');
+  if (btnExecute) {
+    btnExecute.style.opacity = '0.5';
+    btnExecute.style.pointerEvents = 'none';
+    btnExecute.textContent = 'Đang xử lý...';
+  }
+
+  const { index, safeKey } = context;
+  const c = allCustomers[index];
+  if (!c) {
+    closeNoteDialog();
+    return;
+  }
+
+  const btnLoc = document.getElementById(`btn-location-${safeKey}`);
+  const maKhang = value(c, 'MA_KHANG', 'ma_khang');
+  const selectedDate = localStorage.getItem(CACHE_KEY_DATE) || '';
+
+  if (!navigator.geolocation) {
+    showToast('Trình duyệt không hỗ trợ GPS.', true);
+    closeNoteDialog();
+    return;
+  }
+
+  if (btnLoc) {
+    btnLoc.style.pointerEvents = 'none';
+    btnLoc.style.opacity = '0.6';
+    btnLoc.style.cursor = 'not-allowed';
+    btnLoc.textContent = '⏳ Đang lấy vị trí...';
+  }
+  showToast(`Đang định vị GPS cho ${maKhang}...`);
+
+  const currentUser = getCurrentUser();
+  const loggedTenNdung = String(getUserField(currentUser, 'ten_ndung', 'TEN_NDUNG', 'username') || '').trim();
+  const loggedTenNvien = String(getUserField(currentUser, 'ten_nvien', 'TEN_NVIEN') || loggedTenNdung).trim();
+
+  navigator.geolocation.getCurrentPosition(
+    async position => {
+      const lat = position.coords.latitude;
+      const lng = position.coords.longitude;
+
+      c.LAT = lat; 
+      c.LNG = lng;
+      c.NOTE = noteValue; 
+      saveCache();
+
+      const cell = document.getElementById(`loc-cell-${safeKey}`);
+      if (cell) cell.innerHTML = `<a href="https://www.google.com/maps?q=${lat},${lng}" target="_blank" style="color:#1976d2;font-weight:bold;text-decoration:none;">📍 Xem Google Maps</a>`;
+      
+      updateActionButtonsState(safeKey);
+      showToast(`Lưu định vị thành công.`);
+
+      const payload = {
+        MA_KHANG: maKhang,
+        NGAY: selectedDate,
+        TEN_KHANG: value(c, 'TEN_KHANG', 'ten_khang'),
+        SO_CTO: value(c, 'SO_CTO', 'so_cto'),
+        MA_TRAM: value(c, 'MA_TRAM', 'ma_tram'),
+        TEN_TRAM: value(c, 'TEN_TRAM', 'ten_tram'),
+        VTRI_DNOI: value(c, 'VTRI_DNOI', 'vtri_dnoi', 'SO_COT', 'so_cot'),
+        TEN_NDUNG: loggedTenNdung,
+        TEN_NVIEN: loggedTenNvien,
+        TEN_CVIEC: 'Tạm ngừng CĐ',
+        LAT: lat,
+        LNG: lng,
+        NOTE: noteValue // Gửi kèm note lên server để lưu cột K
+      };
+
+      try {
+        const res = await fetch(API_URL, {
+          method: 'POST',
+          body: JSON.stringify({ action: 'save', payload: payload })
+        });
+        const result = await res.json();
+        if (result && result.success) {
+          showToast(`Lưu định vị thành công.`);
+        } else {
+          showToast('Đã lưu local, server chưa nhận được: ' + (result?.message || ''), true);
+        }
+      } catch (err) {
+        showToast('Đã lưu local, lỗi đồng bộ server: ' + err.message, true);
+      } finally {
+        closeNoteDialog();
+      }
+    },
+    err => {
+      if (btnLoc) { 
+        btnLoc.style.pointerEvents = 'auto'; 
+        btnLoc.style.opacity = '1';
+        btnLoc.style.cursor = 'pointer';
+        btnLoc.setAttribute('onclick', `openNoteDialogForLocation(${index}, '${safeKey}')`);
+        btnLoc.textContent = '📍 Bấm lấy tọa độ mới'; 
+      }
+      showToast('Không thể lấy vị trí GPS: ' + err.message, true);
+      closeNoteDialog();
+    },
+    { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+  );
+}
+// ==========================================
+
 async function saveLyDoOnly(index, safeKey) {
   const c = allCustomers[index];
   if (!c) return;
@@ -679,7 +806,6 @@ function setupSwipeEvents() {
   let startY = 0;
   let isMouseDown = false;
 
-  // --- 1. XỬ LÝ TRÊN ĐIỆN THOẠI (TOUCH EVENTS) ---
   container.addEventListener('touchstart', (e) => {
     if (["INPUT", "BUTTON", "A", "TEXTAREA"].includes(e.target.tagName)) return;
     startX = e.touches[0].clientX;
@@ -695,7 +821,6 @@ function setupSwipeEvents() {
     startY = 0;
   }, { passive: true });
 
-  // --- 2. XỬ LÝ TRÊN PC (MOUSE EVENTS) ---
   container.addEventListener('mousedown', (e) => {
     if (["INPUT", "BUTTON", "A", "TEXTAREA"].includes(e.target.tagName)) return;
     isMouseDown = true;
@@ -715,17 +840,15 @@ function setupSwipeEvents() {
     isMouseDown = false;
   });
 
-  // --- HÀM XỬ LÝ HƯỚNG VUỐT CHUNG ---
   function handleSwipe(sX, sY, eX, eY) {
     let diffX = sX - eX;
     let diffY = sY - eY;
 
-    // Kiểm tra khoảng cách kéo ngang lớn hơn kéo dọc và vượt ngưỡng 40px
     if (Math.abs(diffX) > Math.abs(diffY) && Math.abs(diffX) > 40) {
       if (diffX > 0) {
-        nextCustomer(); // Kéo sang trái -> Xem khách hàng tiếp theo
+        nextCustomer();
       } else {
-        prevCustomer(); // Kéo sang phải -> Xem khách hàng trước đó
+        prevCustomer();
       }
     }
   }
@@ -759,97 +882,11 @@ function updateActionButtonsState(safeKey) {
   }
 }
 
-async function getLocationAndSave(index, safeKey) {
-  const c = allCustomers[index];
-  if (!c) return;
-
-  const btnLoc = document.getElementById(`btn-location-${safeKey}`);
-  const maKhang = value(c, 'MA_KHANG', 'ma_khang');
-  const selectedDate = localStorage.getItem(CACHE_KEY_DATE) || '';
-
-  if (!navigator.geolocation) {
-    showToast('Trình duyệt không hỗ trợ GPS.', true);
-    return;
-  }
-
-  if (btnLoc) {
-    btnLoc.style.pointerEvents = 'none';
-    btnLoc.style.opacity = '0.6';
-    btnLoc.style.cursor = 'not-allowed';
-    btnLoc.removeAttribute('onclick');
-    btnLoc.textContent = '⏳ Đang lấy vị trí...';
-  }
-  showToast(`Đang định vị GPS cho ${maKhang}...`);
-
-  const currentUser = getCurrentUser();
-  const loggedTenNdung = String(getUserField(currentUser, 'ten_ndung', 'TEN_NDUNG', 'username') || '').trim();
-  const loggedTenNvien = String(getUserField(currentUser, 'ten_nvien', 'TEN_NVIEN') || loggedTenNdung).trim();
-
-  navigator.geolocation.getCurrentPosition(
-    async position => {
-      const lat = position.coords.latitude;
-      const lng = position.coords.longitude;
-
-      c.LAT = lat; 
-      c.LNG = lng;
-      saveCache();
-
-      const cell = document.getElementById(`loc-cell-${safeKey}`);
-      if (cell) cell.innerHTML = `<a href="https://www.google.com/maps?q=${lat},${lng}" target="_blank" style="color:#1976d2;font-weight:bold;text-decoration:none;">📍 Xem Google Maps</a>`;
-      
-      updateActionButtonsState(safeKey);
-      showToast(`Lưu định vị thành công.`);
-
-      const payload = {
-        MA_KHANG: maKhang,
-        NGAY: selectedDate,
-        TEN_KHANG: value(c, 'TEN_KHANG', 'ten_khang'),
-        SO_CTO: value(c, 'SO_CTO', 'so_cto'),
-        MA_TRAM: value(c, 'MA_TRAM', 'ma_tram'),
-        TEN_TRAM: value(c, 'TEN_TRAM', 'ten_tram'),
-        VTRI_DNOI: value(c, 'VTRI_DNOI', 'vtri_dnoi', 'SO_COT', 'so_cot'),
-        TEN_NDUNG: loggedTenNdung,
-        TEN_NVIEN: loggedTenNvien,
-        TEN_CVIEC: 'Tạm ngừng CĐ',
-        LAT: lat,
-        LNG: lng
-      };
-
-      fetch(API_URL, {
-        method: 'POST',
-        body: JSON.stringify({ action: 'save', payload: payload })
-      }).then(res => res.json()).then(result => {
-        if (result && result.success) {
-          showToast(`Lưu định vị thành công.`);
-        } else {
-          showToast('Đã lưu local, server chưa nhận được: ' + (result?.message || ''), true);
-        }
-      }).catch(err => {
-        showToast('Đã lưu local, lỗi đồng bộ server: ' + err.message, true);
-      });
-    },
-    err => {
-      if (btnLoc) { 
-        btnLoc.style.pointerEvents = 'auto'; 
-        btnLoc.style.opacity = '1';
-        btnLoc.style.cursor = 'pointer';
-        btnLoc.setAttribute('onclick', `getLocationAndSave(${index}, '${safeKey}')`);
-        btnLoc.textContent = '📍 Bấm lấy tọa độ mới'; 
-      }
-      showToast('Không thể lấy vị trí GPS: ' + err.message, true);
-    },
-    { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
-  );
-}
-
 function takePhoto(index, safeKey) {
   const input = document.getElementById('file-' + safeKey);
   if (input) input.click();
 }
 
-/**
- * Hàm âm thầm lưu hình ảnh gốc vào bộ sưu tập/thư mục tải về của thiết bị
- */
 function saveOriginalImageToGallery(file, maKhang) {
   try {
     const link = document.createElement('a');
@@ -872,7 +909,6 @@ async function photoSelected(index, safeKey, input) {
   const c = allCustomers[index];
   const maKhang = value(c, 'MA_KHANG', 'ma_khang');
 
-  // Âm thầm lưu hình ảnh nguyên bản về thiết bị
   saveOriginalImageToGallery(file, maKhang);
 
   try {
@@ -1045,7 +1081,7 @@ async function executeCancel() {
   if (pictureBox) pictureBox.innerHTML = 'Chưa có hình ảnh';
   const cell = document.getElementById(`loc-cell-${safeKey}`);
   if (cell) {
-    cell.innerHTML = `<span id="btn-location-${safeKey}" onclick="getLocationAndSave(${index}, '${safeKey}')" style="color:red;font-weight:bold;cursor:pointer;">📍 Bấm lấy tọa độ mới</span>`;
+    cell.innerHTML = `<span id="btn-location-${safeKey}" onclick="openNoteDialogForLocation(${index}, '${safeKey}')" style="color:red;font-weight:bold;cursor:pointer;">📍 Bấm lấy tọa độ mới</span>`;
   }
 
   updateActionButtonsState(safeKey);
