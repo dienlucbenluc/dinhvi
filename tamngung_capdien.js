@@ -570,8 +570,8 @@ const modalHtml = `
           <h3 style="margin-top:0;font-size:16px;text-align:center;color:red;">YÊU CẦU NHẬP GHI CHÚ</h3>
           <input type="text" id="inputLocationNote" placeholder="Nhập chi tiết vị trí công tơ..." style="width:100%;padding:8px;box-sizing:border-box;margin-bottom:15px;border:1px solid #ccc;border-radius:4px;" oninput="validateNoteInput()">
           <div style="display:flex;justify-content:center;gap:10px;">
-            <button type="button" onclick="closeNoteDialog()" style="padding:6px 12px;background:#FFB6C1;border:none;border-radius:4px;cursor:pointer;">Hủy</button>
-            <button type="button" id="btnExecuteGetLocation" onclick="executeGetLocationWithNote()" style="padding:6px 12px;background:#007bff;color:#fff;border:none;border-radius:4px;cursor:pointer;opacity:0.5;pointer-events:none;">Thực hiện</button>
+            <button type="button" onclick="closeNoteDialog()" style="width:60px;padding:6px 12px;background:#FFB6C1;border:none;border-radius:4px;cursor:pointer;">Thoát</button>
+            <button type="button" id="btnExecuteGetLocation" onclick="executeGetLocationWithNote()" style="width:60px;padding:6px 12px;background:#007bff;color:#fff;border:none;border-radius:4px;cursor:pointer;opacity:0.5;pointer-events:none;">Thực hiện</button>
           </div>
         </div>
       </div>`;
