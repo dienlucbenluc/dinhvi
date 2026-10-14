@@ -567,10 +567,10 @@ function openNoteDialogForLocation(index, safeKey) {
     const modalHtml = `
       <div id="noteLocationModal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:9999;justify-content:center;align-items:center;">
         <div style="background:#fff;padding:20px;border-radius:8px;width:90%;max-width:350px;box-sizing:border-box;">
-          <h3 style="margin-top:0;font-size:16px;color:#333;text-align;center;color:red;">YÊU CẦU NHẬP GHI CHÚ</h3>
+          <h3 style="float:center;margin-top:0;font-size:16px;color:#333;text-align;center;color:red;">YÊU CẦU NHẬP GHI CHÚ</h3>
           <input type="text" id="inputLocationNote" placeholder="Nhập chi tiết vị trí công tơ..." style="width:100%;padding:8px;box-sizing:border-box;margin-bottom:15px;border:1px solid #ccc;border-radius:4px;" oninput="validateNoteInput()">
-          <div style="text-align:center;">
-            <button type="button" onclick="closeNoteDialog()" style="padding:6px 12px;margin-right:5px;background:#ccc;border:none;border-radius:4px;cursor:pointer;">Hủy</button>
+          <div style="float:center;text-align:center;">
+            <button type="button" onclick="closeNoteDialog()" style="padding:6px 12px;margin-right:5px;background:#FFB6C1;border:none;border-radius:4px;cursor:pointer;">Hủy</button>
             <button type="button" id="btnExecuteGetLocation" onclick="executeGetLocationWithNote()" style="padding:6px 12px;background:#007bff;color:#fff;border:none;border-radius:4px;cursor:pointer;opacity:0.5;pointer-events:none;">Thực hiện</button>
           </div>
         </div>
