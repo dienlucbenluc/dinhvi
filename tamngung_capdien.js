@@ -485,8 +485,8 @@ function renderCurrentCustomerCard(slideDirection = null) {
 
   // CẬP NHẬT: Gọi dialog nhập note thay vì gọi thẳng hàm lấy tọa độ
   let locationHtml = hasLocation
-    ? `<a href="https://www.google.com/maps?q=${lat},${lng}" target="_blank" style="color:#1976d2;font-weight:bold;text-decoration:none;">📍 Xem Google Maps</a>`
-    : `<span id="btn-location-${safeKey}" onclick="openNoteDialogForLocation(${realIndex}, '${safeKey}')" style="color:red;font-weight:bold;cursor:pointer;">📍 Bấm lấy tọa độ mới</span>`;
+    ? `<a href="https://www.google.com/maps?q=${lat},${lng}" target="_blank" style="height:35px;color:#1976d2;font-weight:bold;text-decoration:none;">📍 Xem Google Maps</a>`
+    : `<span id="btn-location-${safeKey}" onclick="openNoteDialogForLocation(${realIndex}, '${safeKey}')" style="height:35px;color:red;font-weight:bold;cursor:pointer;">📍 Bấm lấy tọa độ mới</span>`;
 
   let initialClass = "";
   if (slideDirection === "left") initialClass = "slide-left-in";
