@@ -411,6 +411,7 @@ async function cancelCustomerData(maKhang) {
     item.ngay_nhap = "";
     item.nguoi_nhap = "";
     item.hinh_cto = "";
+    item.tthai_dongbo = "";
 
     const excelItemIndex = localExcelList.findIndex(e => String(e.id_chiso) === String(item.id_chiso));
     if (excelItemIndex !== -1) {
@@ -422,13 +423,18 @@ async function cancelCustomerData(maKhang) {
       localExcelList[excelItemIndex].ngay_nhap = "";
       localExcelList[excelItemIndex].nguoi_nhap = "";
       localExcelList[excelItemIndex].hinh_cto = "";
+      localExcelList[excelItemIndex].tthai_dongbo = "";
     }
   });
 
   localStorage.setItem(csKey, JSON.stringify(localExcelList));
-  showToast("✂ Đã hủy dữ liệu chỉ số của khách hàng!");
+  showToast("✂ Đã hủy dữ liệu và đang đồng bộ lên server...");
   updateSummaryBar();
   renderCurrentCustomerCard();
+
+  if (navigator.onLine) {
+    await syncLocalExcelToSheet(false);
+  }
 }
 
 function fileToBase64(file) {
@@ -536,15 +542,16 @@ async function syncLocalExcelToSheet(isManual = false) {
   const chisoLogs = JSON.parse(localStorage.getItem(csKey) || "[]");
   const dinhviLogs = JSON.parse(localStorage.getItem(dvKey) || "[]");
 
-  const chisoToSend = chisoLogs.filter(i => i.chiso_moi !== "" && i.chiso_moi !== null && i.chiso_moi !== undefined);
+  // Gửi cả các bản ghi mới hoặc bản ghi vừa bị hủy (tthai_dongbo chưa được đánh dấu là 1 hoặc được làm trống)
+  const chisoToSend = chisoLogs;
 
   if (chisoToSend.length === 0 && dinhviLogs.length === 0) {
-    if (isManual) showToast("⛔ Không có dữ liệu chỉ số mới cần đồng bộ!");
+    if (isManual) showToast("⛔ Không có dữ liệu cần đồng bộ!");
     return false;
   }
 
-  // 1. Cập nhật trạng thái tthai_dongbo = "1" trong thiết bị TRƯỚC KHI gửi
-  const syncedIds = new Set(chisoToSend.map(i => String(i.id_chiso)));
+  // Đánh dấu tthai_dongbo = "1" cho các bản ghi có dữ liệu
+  const syncedIds = new Set(chisoToSend.filter(i => i.chiso_moi !== "" && i.chiso_moi !== null && i.chiso_moi !== undefined).map(i => String(i.id_chiso)));
 
   chisoLogs.forEach(item => {
     if (syncedIds.has(String(item.id_chiso))) {
@@ -564,7 +571,6 @@ async function syncLocalExcelToSheet(isManual = false) {
   showToast("⏳ Đang đồng bộ dữ liệu lên server...");
 
   try {
-    // 2. Đồng bộ dữ liệu lên server (chisoToSend lúc này đã mang tthai_dongbo = "1")
     const res = await fetch(API_URL, {
       method: "POST",
       headers: { "Content-Type": "text/plain;charset=utf-8" },
@@ -922,7 +928,6 @@ function renderCurrentCustomerCard(slideDirection = null) {
     `;
   });
 
-  // MỞ KHÓA HOÀN TOÀN: Nút Hủy luôn luôn sáng (không bị ảnh hưởng bởi isAllSynced hay điều kiện dữ liệu)
   const cancelDisabledAttr = ""; 
   const saveDisabledAttr = isAllSynced || !hasLocation ? "disabled" : "";
 
@@ -1218,7 +1223,7 @@ async function calculateRow(maKhang, bcs, rowIndex, csCu, hsn, sluongThao, sluon
 
 function checkCancelButtonStatus(maKhang) {
   const btnCancel = document.getElementById(`btn_cancel_${maKhang}`);
-  if (btnCancel) btnCancel.disabled = false; // Luôn bật sáng, không disable nữa
+  if (btnCancel) btnCancel.disabled = false;
 }
 
 function filterDaCS() {
