@@ -383,8 +383,45 @@ async function saveCustomerData(maKhang) {
   }
 }
 
+// ----------------------------------------------------
+// HÀM XÓA ẢNH TRÊN CLOUDINARY
+// ----------------------------------------------------
+async function deleteFromCloudinary(imageUrl) {
+  if (!imageUrl || !imageUrl.includes("cloudinary.com")) return;
+  try {
+    // Trích xuất public_id từ URL Cloudinary (VD: chi_so/khachhang_123456)
+    const urlParts = imageUrl.split('/');
+    const uploadIndex = urlParts.indexOf("upload");
+    if (uploadIndex === -1) return;
+    
+    // Bỏ qua phần version v1234567 nếu có
+    let pathParts = urlParts.slice(uploadIndex + 1);
+    if (pathParts[0].startsWith('v') && !isNaN(pathParts[0].substring(1))) {
+      pathParts = pathParts.slice(1);
+    }
+    
+    const publicIdWithExt = pathParts.join('/');
+    const publicId = publicIdWithExt.substring(0, publicIdWithExt.lastIndexOf('.'));
+
+    // Gọi API xóa tới Cloudinary hoặc gửi thông tin qua Google Apps Script xử lý xóa
+    const formData = new FormData();
+    formData.append("public_id", publicId);
+    formData.append("upload_preset", CLOUDINARY_UPLOAD_PRESET);
+
+    await fetch(`https://api.cloudinary.com/v1_1/${encodeURIComponent(CLOUDINARY_CLOUD_NAME)}/image/destroy`, {
+      method: "POST",
+      body: formData
+    });
+  } catch (err) {
+    console.error("Lỗi xóa ảnh Cloudinary:", err);
+  }
+}
+
+// ----------------------------------------------------
+// HÀM HỦY DỮ LIỆU CỦA KHÁCH HÀNG (SỬA LẠI TRIỆT ĐỂ 100%)
+// ----------------------------------------------------
 async function cancelCustomerData(maKhang) {
-  const confirm = await showCustomConfirm("HỦY DỮ LIỆU", "Bạn có muốn hủy chỉ số của khách hàng này không?", true);
+  const confirm = await showCustomConfirm("HỦY DỮ LIỆU", "Bạn có muốn hủy toàn bộ chỉ số và hình ảnh của khách hàng này không?", true);
   if (!confirm) return;
 
   const cust = groupedData[maKhang];
@@ -395,21 +432,31 @@ async function cancelCustomerData(maKhang) {
   const localExcelList = JSON.parse(localStorage.getItem(csKey) || "[]");
   const offlineImgs = JSON.parse(localStorage.getItem(imgKey) || "{}");
 
+  // 1. Lưu lại URL ảnh hiện tại để xóa trên Cloudinary
+  const oldCloudUrl = cust.hinh_cto || "";
+
+  // 2. Xóa dữ liệu tạm ảnh offline trên thiết bị
   delete offlineImgs[maKhang];
   delete currentCapturedFiles[maKhang];
   localStorage.setItem(imgKey, JSON.stringify(offlineImgs));
 
+  // 3. Xóa ghi chú & ảnh ở cấp Khách hàng
+  cust.ghi_chu = "";
   cust.hinh_cto = "";
+
   const cancelledItems = [];
 
+  // 4. Reset triệt để TẤT CẢ các trường thông tin trong mảng giao diện và LocalStorage
   cust.items.forEach(item => {
     item.chiso_moi = "";
     item.san_luong = "";
     item.tong_sluong = "";
     item.chenh_lech = "";
     item.tyle_clech = "";
+    item.ghi_chu = "";
     item.ngay_nhap = "";
     item.nguoi_nhap = "";
+    item.tthai_dongbo = "";
     item.hinh_cto = "";
 
     const excelItemIndex = localExcelList.findIndex(e => String(e.id_chiso) === String(item.id_chiso));
@@ -419,23 +466,34 @@ async function cancelCustomerData(maKhang) {
       localExcelList[excelItemIndex].tong_sluong = "";
       localExcelList[excelItemIndex].chenh_lech = "";
       localExcelList[excelItemIndex].tyle_clech = "";
+      localExcelList[excelItemIndex].ghi_chu = "";
       localExcelList[excelItemIndex].ngay_nhap = "";
       localExcelList[excelItemIndex].nguoi_nhap = "";
+      localExcelList[excelItemIndex].tthai_dongbo = "";
       localExcelList[excelItemIndex].hinh_cto = "";
       
+      // Đưa dòng đã xóa sạch vào mảng gửi lên server để đè trắng
       cancelledItems.push({ ...localExcelList[excelItemIndex] });
     }
   });
 
+  // Lưu lại LocalStorage đã xóa sạch
   localStorage.setItem(csKey, JSON.stringify(localExcelList));
-  showToast("✂ Đã hủy dữ liệu chỉ số của khách hàng!");
+  showToast("✂ Đã hủy toàn bộ dữ liệu & hình ảnh!");
+
   updateSummaryBar();
   renderCurrentCustomerCard();
 
-  // Đồng bộ ngay lên server để xóa dữ liệu và hình ảnh luôn
+  // 5. Xóa ảnh trực tiếp trên Cloudinary (nếu có)
+  if (oldCloudUrl && navigator.onLine) {
+    showToast("⏳ Đang xóa hình ảnh trên Cloudinary...");
+    await deleteFromCloudinary(oldCloudUrl);
+  }
+
+  // 6. Đồng bộ đè trắng toàn bộ dữ liệu lên Server (Google Sheet) ngay lập tức
   if (navigator.onLine && cancelledItems.length > 0) {
     try {
-      showToast("⏳ Đang đồng bộ xóa dữ liệu lên server...");
+      showToast("⏳ Đang đồng bộ hủy dữ liệu lên server...");
       const res = await fetch(API_URL, {
         method: "POST",
         headers: { "Content-Type": "text/plain;charset=utf-8" },
@@ -447,12 +505,12 @@ async function cancelCustomerData(maKhang) {
       });
       const result = await res.json();
       if (result.status === "success") {
-        showToast("♻️ Đã đồng bộ xóa dữ liệu và hình ảnh lên server thành công!");
+        showToast("♻️ Đã hủy và xóa sạch dữ liệu trên Server!");
       } else {
-        showToast("❌ Lỗi đồng bộ xóa lên server: " + result.message);
+        showToast("❌ Lỗi đồng bộ hủy lên server: " + result.message);
       }
     } catch (e) {
-      showToast("❌ Lỗi kết nối khi đồng bộ xóa lên server!");
+      showToast("❌ Lỗi kết nối khi đồng bộ hủy lên server!");
     }
   }
 }
