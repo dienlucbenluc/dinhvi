@@ -359,7 +359,6 @@ async function saveCustomerData(maKhang) {
   }
 }
 
-// ✂️ HỦY DƯ LIỆU VÀ XÓA SẠCH 100% CÁC CỘT + GỬI LỆNH XÓA ẢNH TRÊN CLOUDINARY QUA SERVER
 async function cancelCustomerData(maKhang) {
   const confirm = await showCustomConfirm("HỦY DỮ LIỆU", "Bạn có muốn hủy toàn bộ chỉ số và hình ảnh của khách hàng này không?", true);
   if (!confirm) return;
@@ -383,7 +382,6 @@ async function cancelCustomerData(maKhang) {
 
   const cancelledItems = [];
 
-  // Ép gán triệt để các cột về chuỗi rỗng "" hoặc "0" theo yêu cầu
   cust.items.forEach(item => {
     item.chiso_moi = "";
     item.san_luong = "";
@@ -393,7 +391,7 @@ async function cancelCustomerData(maKhang) {
     item.ghi_chu = "";
     item.ngay_nhap = "";
     item.nguoi_nhap = "";
-    item.tthai_dongbo = "0"; // Gán giá trị 0 hoặc "" để server nhận biết trạng thái hủy
+    item.tthai_dongbo = "0";
     item.hinh_cto = "";
 
     const excelItemIndex = localExcelList.findIndex(e => String(e.id_chiso) === String(item.id_chiso));
@@ -409,10 +407,11 @@ async function cancelCustomerData(maKhang) {
       localExcelList[excelItemIndex].tthai_dongbo = "0";
       localExcelList[excelItemIndex].hinh_cto = "";
       
-      cancelledItems.push({ ...localExcelList[excelItemIndex],
-        type: "CANCEL",         // 👈 Bổ sung dòng này để đồng bộ với server
-        hinh_cto: oldCloudUrl   // 👈 Truyền kèm link ảnh cũ để xóa
-                          });
+      cancelledItems.push({
+        ...localExcelList[excelItemIndex],
+        type: "CANCEL",
+        hinh_cto: oldCloudUrl
+      });
     }
   });
 
@@ -422,7 +421,6 @@ async function cancelCustomerData(maKhang) {
   updateSummaryBar();
   renderCurrentCustomerCard();
 
-  // Đồng bộ ngay lập tức thông tin hủy trắng các cột và kèm theo URL ảnh cũ để Backend xử lý xóa Cloudinary
   if (navigator.onLine && cancelledItems.length > 0) {
     try {
       showToast("⏳ Đang đồng bộ hủy và xóa dữ liệu/hình ảnh lên server...");
@@ -433,7 +431,7 @@ async function cancelCustomerData(maKhang) {
           action: "SYNC_BATCH_DATA",
           chiso_logs: cancelledItems,
           dinhvi_logs: [],
-          delete_image_url: oldCloudUrl // Truyền URL ảnh để server xóa trên Cloudinary
+          delete_image_url: oldCloudUrl
         })
       });
       const result = await res.json();
@@ -553,7 +551,6 @@ async function syncLocalExcelToSheet(isManual = false) {
   const chisoLogs = JSON.parse(localStorage.getItem(csKey) || "[]");
   const dinhviLogs = JSON.parse(localStorage.getItem(dvKey) || "[]");
 
-  // Lọc lấy các dòng có chỉ số mới hoặc các dòng bị hủy có tthai_dongbo = "0"
   const chisoToSend = chisoLogs.filter(i => 
     (i.chiso_moi !== "" && i.chiso_moi !== null && i.chiso_moi !== undefined) || String(i.tthai_dongbo) === "0"
   );
@@ -798,6 +795,64 @@ async function handleImageSelected(event, maKhang) {
   event.target.value = "";
 }
 
+/* ==========================================================================
+   MODAL HỎI GHI CHÚ KHI LẤY ĐỊNH VỊ
+   ========================================================================== */
+function openNoteDialogForLocation(index, safeKey) {
+  let modal = document.getElementById('noteLocationModal');
+  if (!modal) {
+    const modalHtml = `
+      <div id="noteLocationModal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:9999;justify-content:center;align-items:center;">
+        <div style="background:#fff;padding:20px;border-radius:8px;width:90%;max-width:350px;box-sizing:border-box;">
+          <h3 style="margin-top:0;font-size:16px;text-align:center;color:red;">YÊU CẦU NHẬP GHI CHÚ</h3>
+          <input type="text" id="inputLocationNote" placeholder="Nhập chi tiết vị trí công tơ..." style="width:100%;padding:8px;box-sizing:border-box;margin-bottom:15px;border:1px solid #ccc;border-radius:4px;" oninput="validateNoteInput()">
+          <div style="display:flex;justify-content:center;gap:10px;">
+            <button type="button" onclick="closeNoteDialog()" style="width:110px;padding:6px 12px;background:#FFB6C1;border:none;border-radius:4px;cursor:pointer;">❎  Thoát</button>
+            <button type="button" id="btnExecuteGetLocation" onclick="executeGetLocationWithNote()" style="width:110px;padding:6px 12px;background:#007bff;color:#fff;border:none;border-radius:4px;cursor:pointer;opacity:0.5;pointer-events:none;">📍 Thực hiện</button>
+          </div>
+        </div>
+      </div>`;
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+    modal = document.getElementById('noteLocationModal');
+  }
+
+  window._pendingLocationContext = { index, safeKey };
+  document.getElementById('inputLocationNote').value = '';
+  validateNoteInput();
+  modal.style.display = 'flex';
+}
+
+function validateNoteInput() {
+  const input = document.getElementById('inputLocationNote');
+  const btn = document.getElementById('btnExecuteGetLocation');
+  if (!input || !btn) return;
+  
+  if (input.value.trim() !== '') {
+    btn.style.opacity = '1';
+    btn.style.pointerEvents = 'auto';
+  } else {
+    btn.style.opacity = '0.5';
+    btn.style.pointerEvents = 'none';
+  }
+}
+
+function closeNoteDialog() {
+  const modal = document.getElementById('noteLocationModal');
+  if (modal) modal.style.display = 'none';
+  window._pendingLocationContext = null;
+}
+
+function executeGetLocationWithNote() {
+  const input = document.getElementById('inputLocationNote');
+  const note = input ? input.value.trim() : '';
+  const context = window._pendingLocationContext;
+  
+  if (!note || !context) return;
+  
+  closeNoteDialog();
+  getLocationAndSave(context.safeKey, note);
+}
+
 function renderCurrentCustomerCard(slideDirection = null) {
   const container = document.getElementById("listContainer");
 
@@ -815,7 +870,7 @@ function renderCurrentCustomerCard(slideDirection = null) {
   const cotTramText = [cust.so_cot, cust.ten_tram].filter(Boolean).join(" - ");
 
   const hasLocation = Boolean(firstItem.lat && firstItem.lng);
-  let mapLinkHtml = `<a onclick="getLocationAndSave('${cust.ma_khang}')" style="color:red; font-size: 14px; font-weight:bold; text-decoration:none; cursor:pointer;">📍 Lấy mới định vị</a>`;
+  let mapLinkHtml = `<a onclick="openNoteDialogForLocation(${currentCardIndex}, '${cust.ma_khang}')" style="color:red; font-size: 14px; font-weight:bold; text-decoration:none; cursor:pointer;">📍 Lấy mới định vị</a>`;
   if (hasLocation) {
     mapLinkHtml = `<span id="map_link_${cust.ma_khang}"><a href="http://maps.google.com/?q=${firstItem.lat},${firstItem.lng}" target="_blank" style="color:#007bff; font-weight:bold; text-decoration:none;">🌏 Xem Google Maps</a></span>`;
   }
@@ -957,7 +1012,7 @@ function renderCurrentCustomerCard(slideDirection = null) {
   }
 }
 
-function getLocationAndSave(maKhang) {
+function getLocationAndSave(maKhang, locationNote = "") {
   if (!navigator.geolocation) {
     showToast("❌ Trình duyệt không hỗ trợ định vị GPS!");
     return;
@@ -985,7 +1040,8 @@ function getLocationAndSave(maKhang) {
         ten_ndung: currentUser.ten_ndung || "",
         ten_nvien: currentUser.ten_nvien || currentUser.ten_ndung || "",
         ten_cviec: "Ghi điện",
-        ghi_chu: cust.ghi_chu || "",
+        ghi_chu: locationNote || cust.ghi_chu || "",
+        note: locationNote || cust.ghi_chu || "",
         lat: lat,
         lng: lng,
         time: nowStr,
@@ -1001,7 +1057,7 @@ function getLocationAndSave(maKhang) {
         });
         renderCurrentCustomerCard();
       }
-      showToast("📍 Đã lưu tọa độ vị trí vào thiết bị!");
+      showToast("📍 Đã lưu tọa độ vị trí và ghi chú vào thiết bị!");
     },
     (error) => { showToast("❌ Lỗi định vị GPS. Vui lòng bật vị trí!"); },
     { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
@@ -1224,7 +1280,7 @@ function checkCancelButtonStatus(maKhang) {
   } catch(e) {}
 
   const btnCancel = document.getElementById(`btn_cancel_${maKhang}`);
-  if (btnCancel) btnCancel.disabled = !hasNewCS && !cust.hinh_cto && !currentCapturedFiles[makhang] && !offlineImgBase64;
+  if (btnCancel) btnCancel.disabled = !hasNewCS && !cust.hinh_cto && !currentCapturedFiles[maKhang] && !offlineImgBase64;
 }
 
 function filterDaCS() {
