@@ -138,7 +138,6 @@ async function checkAndLoadInitialData() {
       const serverList = data.list;
       const serverFileKey = buildExcelFileKey(serverList);
 
-      // KIỂM TRA ĐIỀU KIỆN TRÙNG KHỚP [ten_ndung+thang+nam+count(id_chiso)]
       const isMatched = (localFileKey === serverFileKey);
       updateFetchButtonState(isMatched);
       
@@ -286,20 +285,17 @@ async function saveCustomerData(maKhang) {
   const ghiChuEl = document.getElementById(`ghi_chu_${maKhang}`);
   if (ghiChuEl) cust.ghi_chu = ghiChuEl.value.trim();
 
-  // CHỈ UPLOAD LÊN CLOUDINARY 1 LẦN DUY NHẤT TẠI ĐÂY
   let cloudUrl = cust.hinh_cto || "";
   if (currentCapturedFiles[maKhang] && navigator.onLine) {
     try {
       showToast("⏳ Đang tải ảnh lên Cloudinary...");
       cloudUrl = await uploadToCloudinary(currentCapturedFiles[maKhang], maKhang);
-      // Xóa file tạm sau khi upload thành công để không bị lặp lại ở hàm đồng bộ
       delete currentCapturedFiles[maKhang];
       let offlineImgs = JSON.parse(localStorage.getItem(getOfflineImagesKey()) || "{}");
       delete offlineImgs[maKhang];
       localStorage.setItem(getOfflineImagesKey(), JSON.stringify(offlineImgs));
     } catch (err) {
       console.error("Lỗi upload ảnh trực tiếp:", err);
-      // Nếu lỗi mạng khi upload trực tiếp, lưu tạm vào thiết bị để đợi đồng bộ sau
       await saveOfflineImage(maKhang, currentCapturedFiles[maKhang]);
     }
   } else if (currentCapturedFiles[maKhang]) {
@@ -380,7 +376,6 @@ async function saveCustomerData(maKhang) {
   updateSummaryBar();
   renderCurrentCustomerCard();
 
-  // Nếu có chụp ảnh mới và có mạng, thực hiện đồng bộ ngay lập tức (lúc này ảnh đã có URL trên Cloudinary nên sẽ không bị upload lại nữa)
   if (hasNewPhoto && navigator.onLine) {
     await syncLocalExcelToSheet(false);
   } else {
@@ -405,6 +400,8 @@ async function cancelCustomerData(maKhang) {
   localStorage.setItem(imgKey, JSON.stringify(offlineImgs));
 
   cust.hinh_cto = "";
+  const cancelledItems = [];
+
   cust.items.forEach(item => {
     item.chiso_moi = "";
     item.san_luong = "";
@@ -425,6 +422,8 @@ async function cancelCustomerData(maKhang) {
       localExcelList[excelItemIndex].ngay_nhap = "";
       localExcelList[excelItemIndex].nguoi_nhap = "";
       localExcelList[excelItemIndex].hinh_cto = "";
+      
+      cancelledItems.push({ ...localExcelList[excelItemIndex] });
     }
   });
 
@@ -432,6 +431,30 @@ async function cancelCustomerData(maKhang) {
   showToast("✂ Đã hủy dữ liệu chỉ số của khách hàng!");
   updateSummaryBar();
   renderCurrentCustomerCard();
+
+  // Đồng bộ ngay lên server để xóa dữ liệu và hình ảnh luôn
+  if (navigator.onLine && cancelledItems.length > 0) {
+    try {
+      showToast("⏳ Đang đồng bộ xóa dữ liệu lên server...");
+      const res = await fetch(API_URL, {
+        method: "POST",
+        headers: { "Content-Type": "text/plain;charset=utf-8" },
+        body: JSON.stringify({
+          action: "SYNC_BATCH_DATA",
+          chiso_logs: cancelledItems,
+          dinhvi_logs: []
+        })
+      });
+      const result = await res.json();
+      if (result.status === "success") {
+        showToast("♻️ Đã đồng bộ xóa dữ liệu và hình ảnh lên server thành công!");
+      } else {
+        showToast("❌ Lỗi đồng bộ xóa lên server: " + result.message);
+      }
+    } catch (e) {
+      showToast("❌ Lỗi kết nối khi đồng bộ xóa lên server!");
+    }
+  }
 }
 
 function fileToBase64(file) {
@@ -546,7 +569,6 @@ async function syncLocalExcelToSheet(isManual = false) {
     return false;
   }
 
-  // 1. Cập nhật trạng thái tthai_dongbo = "1" trong thiết bị TRƯỚC KHI gửi
   const syncedIds = new Set(chisoToSend.map(i => String(i.id_chiso)));
 
   chisoLogs.forEach(item => {
@@ -567,7 +589,6 @@ async function syncLocalExcelToSheet(isManual = false) {
   showToast("⏳ Đang đồng bộ dữ liệu lên server...");
 
   try {
-    // 2. Đồng bộ dữ liệu lên server (chisoToSend lúc này đã mang tthai_dongbo = "1")
     const res = await fetch(API_URL, {
       method: "POST",
       headers: { "Content-Type": "text/plain;charset=utf-8" },
@@ -920,6 +941,9 @@ function renderCurrentCustomerCard(slideDirection = null) {
     `;
   });
 
+  const cancelDisabledAttr = (!alreadyHasCS && !cust.hinh_cto && !currentCapturedFiles[makh] && !offlineImgBase64) ? "disabled" : "";
+  const saveDisabledAttr = !hasLocation ? "disabled" : "";
+
   html += `
           </tbody>
         </table>
@@ -933,9 +957,9 @@ function renderCurrentCustomerCard(slideDirection = null) {
           ${imgPreviewHtml}
         </div>
         <div style="flex: 1; display: flex; flex-direction: column; gap: 6px;">
-          <button class="btn-card btn-card-save" id="btn_save_${cust.ma_khang}" onclick="saveCustomerData('${cust.ma_khang}')">💾 Lưu dữ liệu</button>
+          <button class="btn-card btn-card-save" id="btn_save_${cust.ma_khang}" ${saveDisabledAttr} onclick="saveCustomerData('${cust.ma_khang}')">💾 Lưu dữ liệu</button>
           <button class="btn-card" style="background: #17a2b8;" id="btn_capture_${cust.ma_khang}" onclick="promptImageSource('${cust.ma_khang}')">📷 Chụp ảnh&nbsp;&nbsp;</button>
-          <button class="btn-card btn-card-cancel" id="btn_cancel_${cust.ma_khang}" onclick="cancelCustomerData('${cust.ma_khang}')">✂ Hủy dữ liệu</button>
+          <button class="btn-card btn-card-cancel" id="btn_cancel_${cust.ma_khang}" ${cancelDisabledAttr} onclick="cancelCustomerData('${cust.ma_khang}')">✂ Hủy dữ liệu</button>
         </div>
       </div>
     </div>
@@ -1094,9 +1118,6 @@ function handleSwipeGesture(startX, startY, endX, endY) {
   }
 }
 
-// ----------------------------------------------------
-// XỬ LÝ SỰ KIỆN KHI CHỌN LOẠI CÔNG TƠ TỪ COMBOBOX
-// ----------------------------------------------------
 async function handleComboboxChange(maKhang, bcs, rowIndex, csCu, hsn, sluongThao, sluongKt) {
   const selectEl = document.getElementById(`select_loai_${rowIndex}`);
   const valType = selectEl ? selectEl.value : "";
@@ -1111,7 +1132,6 @@ async function handleComboboxChange(maKhang, bcs, rowIndex, csCu, hsn, sluongTha
   const slKt = Number(sluongKt) || 0;
 
   if (valType === "V") {
-    // 1. Mã V: Tạm tính
     let calculatedCsMoi = csCuVal;
     if (slThao > slKt) {
       calculatedCsMoi = csCuVal;
@@ -1123,7 +1143,6 @@ async function handleComboboxChange(maKhang, bcs, rowIndex, csCu, hsn, sluongTha
     await calculateRow(maKhang, bcs, rowIndex, csCuVal, hsnVal, slThao, slKt);
 
   } else if (valType === "U" || valType === "H" || valType === "M") {
-    // 2 & 4. Mã U, H, M: chiso_moi = chiso_cu
     if (inputEl) inputEl.value = csCuVal;
     await calculateRow(maKhang, bcs, rowIndex, csCuVal, hsnVal, slThao, slKt);
 
@@ -1136,7 +1155,6 @@ async function handleComboboxChange(maKhang, bcs, rowIndex, csCu, hsn, sluongTha
     }
 
   } else if (valType === "Q") {
-    // 3. Mã Q: Qua vòng
     if (inputEl && inputEl.value !== "") {
       await calculateRow(maKhang, bcs, rowIndex, csCuVal, hsnVal, slThao, slKt);
     } else {
@@ -1211,7 +1229,23 @@ async function calculateRow(maKhang, bcs, rowIndex, csCu, hsn, sluongThao, sluon
 }
 
 function checkCancelButtonStatus(maKhang) {
-  // Đã bỏ hoàn toàn logic vô hiệu hóa nút Hủy, hàm giữ lại để tránh lỗi gọi hàm
+  const cust = groupedData[maKhang];
+  if (!cust) return;
+
+  let hasNewCS = false;
+  cust.items.forEach(item => {
+    const inputEl = document.getElementById(`cs_moi_${item.rowIndex}`);
+    if (inputEl && inputEl.value !== "") hasNewCS = true;
+  });
+
+  let offlineImgBase64 = null;
+  try {
+    const offlineImgs = JSON.parse(localStorage.getItem(getOfflineImagesKey()) || "{}");
+    offlineImgBase64 = offlineImgs[maKhang] || null;
+  } catch(e) {}
+
+  const btnCancel = document.getElementById(`btn_cancel_${maKhang}`);
+  if (btnCancel) btnCancel.disabled = !hasNewCS && !cust.hinh_cto && !currentCapturedFiles[maKhang] && !offlineImgBase64;
 }
 
 function filterDaCS() {
