@@ -850,7 +850,7 @@ function renderCurrentCustomerCard(slideDirection = null) {
           <span style="font-size:13px; color:#0056b3; font-weight:bold; background:#fff; padding:2px 0px; border-radius:4px;">
             STT: ${currentCardIndex + 1} / ${customerKeys.length}
           </span>
-          ${isAllSynced ? `<span style="font-size:12px; color:green; font-weight:bold; background:#e6f4ea; padding:2px 6px; border-radius:4px;">♻️ Đã đồng bộ lên server, không thể sửa</span>` : `<span style="font-size:12px; color:#666;">⬅️ Vuốt để đổi KH ➡️</span>`}
+          ${isAllSynced ? `<span style="font-size:12px; color:green; font-weight:bold; background:#e6f4ea; padding:2px 6px; border-radius:4px;">♻️ Đã đồng bộ lên server</span>` : `<span style="font-size:12px; color:#666;">⬅️ Vuốt để đổi KH ➡️</span>`}
         </div>
         <div class="cust-title">Mã KH: ${cust.ma_khang} - <b>Số CTơ:</b> ${cust.so_cto}</div>
         <div class="cust-tenKH">${cust.ten_khang || ''}</div>
@@ -922,7 +922,8 @@ function renderCurrentCustomerCard(slideDirection = null) {
     `;
   });
 
-  const cancelDisabledAttr = isAllSynced || (!alreadyHasCS && !cust.hinh_cto && !currentCapturedFiles[makh] && !offlineImgBase64) ? "disabled" : "";
+  // MỞ KHÓA HOÀN TOÀN: Nút Hủy luôn luôn sáng (không bị ảnh hưởng bởi isAllSynced hay điều kiện dữ liệu)
+  const cancelDisabledAttr = ""; 
   const saveDisabledAttr = isAllSynced || !hasLocation ? "disabled" : "";
 
   html += `
@@ -1216,26 +1217,8 @@ async function calculateRow(maKhang, bcs, rowIndex, csCu, hsn, sluongThao, sluon
 }
 
 function checkCancelButtonStatus(maKhang) {
-  const cust = groupedData[maKhang];
-  if (!cust) return;
-
-  const isAllSynced = cust.items.length > 0 && cust.items.every(i => String(i.tthai_dongbo) === "1");
-  if (isAllSynced) return;
-
-  let hasNewCS = false;
-  cust.items.forEach(item => {
-    const inputEl = document.getElementById(`cs_moi_${item.rowIndex}`);
-    if (inputEl && inputEl.value !== "") hasNewCS = true;
-  });
-
-  let offlineImgBase64 = null;
-  try {
-    const offlineImgs = JSON.parse(localStorage.getItem(getOfflineImagesKey()) || "{}");
-    offlineImgBase64 = offlineImgs[maKhang] || null;
-  } catch(e) {}
-
   const btnCancel = document.getElementById(`btn_cancel_${maKhang}`);
-  if (btnCancel) btnCancel.disabled = !hasNewCS && !cust.hinh_cto && !currentCapturedFiles[maKhang] && !offlineImgBase64;
+  if (btnCancel) btnCancel.disabled = false; // Luôn bật sáng, không disable nữa
 }
 
 function filterDaCS() {
