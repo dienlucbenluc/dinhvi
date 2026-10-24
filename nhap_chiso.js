@@ -536,7 +536,7 @@ async function checkAndAutoSync() {
     item.chiso_moi !== "" && item.chiso_moi !== null && item.chiso_moi !== undefined
   ).length;
 
-  if (validRowsCount >= 20 && validRowsCount % 20 === 0 && navigator.onLine) {
+  if (validRowsCount >= 5 && validRowsCount % 5 === 0 && navigator.onLine) {
     await syncLocalExcelToSheet(false);
   }
 }
