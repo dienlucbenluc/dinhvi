@@ -397,11 +397,15 @@ async function cancelCustomerData(maKhang) {
   const localExcelList = JSON.parse(localStorage.getItem(csKey) || "[]");
   const offlineImgs = JSON.parse(localStorage.getItem(imgKey) || "{}");
 
+  // Xóa toàn bộ ảnh tạm và ảnh lưu trong thiết bị
   delete offlineImgs[maKhang];
   delete currentCapturedFiles[maKhang];
   localStorage.setItem(imgKey, JSON.stringify(offlineImgs));
 
+  // Reset sạch thông tin của khách hàng trên giao diện
   cust.hinh_cto = "";
+  cust.ghi_chu = "";
+  
   cust.items.forEach(item => {
     item.chiso_moi = "";
     item.san_luong = "";
@@ -411,6 +415,7 @@ async function cancelCustomerData(maKhang) {
     item.ngay_nhap = "";
     item.nguoi_nhap = "";
     item.hinh_cto = "";
+    // Đặt rỗng hoàn toàn để đẩy lên server xóa trắng dữ liệu
     item.tthai_dongbo = "";
 
     const excelItemIndex = localExcelList.findIndex(e => String(e.id_chiso) === String(item.id_chiso));
@@ -423,15 +428,17 @@ async function cancelCustomerData(maKhang) {
       localExcelList[excelItemIndex].ngay_nhap = "";
       localExcelList[excelItemIndex].nguoi_nhap = "";
       localExcelList[excelItemIndex].hinh_cto = "";
+      localExcelList[excelItemIndex].ghi_chu = "";
       localExcelList[excelItemIndex].tthai_dongbo = "";
     }
   });
 
   localStorage.setItem(csKey, JSON.stringify(localExcelList));
-  showToast("✂ Đã hủy dữ liệu và đang đồng bộ lên server...");
+  showToast("✂ Đã hủy và xóa sạch thông tin, đang đồng bộ về server...");
   updateSummaryBar();
   renderCurrentCustomerCard();
 
+  // Đồng bộ ngay lập tức trạng thái rỗng lên server
   if (navigator.onLine) {
     await syncLocalExcelToSheet(false);
   }
