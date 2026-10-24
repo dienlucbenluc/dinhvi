@@ -8,12 +8,10 @@ let customerKeys = [];
 let currentCardIndex = 0; 
 let isAnimating = false; 
 
-// Lưu trữ ảnh tạm dạng File/Blob theo ma_khang
 const currentCapturedFiles = {};
 
 const BCS_ORDER = ["BT", "CD", "TD", "SG", "VC", "BN", "CN", "TN", "SN", "VN"];
 
-// Hàm sinh key lưu trữ theo từng người dùng
 function getExcelKeyChiSo() {
   const user = String(currentUser?.ten_ndung || "").trim().toLowerCase();
   return `chiso_excel_data_${user}`;
@@ -33,9 +31,6 @@ function getClientCacheKey() {
   return "cmis_chiso_cache_" + String(currentUser?.ten_ndung || "").trim().toLowerCase();
 }
 
-// ----------------------------------------------------
-// TẠO CHUỖI ĐỊNH DANH KIỂM TRA FILE EXCEL (KHÔNG CHỨA ĐUÔI .XLSX)
-// ----------------------------------------------------
 function buildExcelFileKey(dataList) {
   if (!Array.isArray(dataList) || dataList.length === 0) return "";
   
@@ -55,9 +50,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   currentUser = JSON.parse(sessionStr);
 
   initLocalExcelStore();
-
   await checkAndLoadInitialData();
-
   setupSwipeEvents();
 
   window.addEventListener("online", async () => {
@@ -66,9 +59,6 @@ document.addEventListener("DOMContentLoaded", async () => {
   });
 });
 
-// ----------------------------------------------------
-// KIỂM TRA TRẠNG THÁI NÚT LẤY SỔ GCS
-// ----------------------------------------------------
 function updateFetchButtonState(isEqual) {
   const fetchBtn = document.getElementById("btnFetchGCS");
   if (!fetchBtn) return;
@@ -84,23 +74,14 @@ function updateFetchButtonState(isEqual) {
   }
 }
 
-// ----------------------------------------------------
-// KHỞI TẠO VÀ XỬ LÝ DỮ LIỆU BẢNG EXCEL TRÊN THIẾT BỊ
-// ----------------------------------------------------
 function initLocalExcelStore() {
   const csKey = getExcelKeyChiSo();
   const dvKey = getExcelKeyDinhVi();
   const imgKey = getOfflineImagesKey();
 
-  if (!localStorage.getItem(csKey)) {
-    localStorage.setItem(csKey, JSON.stringify([]));
-  }
-  if (!localStorage.getItem(dvKey)) {
-    localStorage.setItem(dvKey, JSON.stringify([]));
-  }
-  if (!localStorage.getItem(imgKey)) {
-    localStorage.setItem(imgKey, JSON.stringify({}));
-  }
+  if (!localStorage.getItem(csKey)) localStorage.setItem(csKey, JSON.stringify([]));
+  if (!localStorage.getItem(dvKey)) localStorage.setItem(dvKey, JSON.stringify([]));
+  if (!localStorage.getItem(imgKey)) localStorage.setItem(imgKey, JSON.stringify({}));
 }
 
 async function checkAndLoadInitialData() {
@@ -137,7 +118,6 @@ async function checkAndLoadInitialData() {
     if (data.status === "success" && Array.isArray(data.list) && data.list.length > 0) {
       const serverList = data.list;
       const serverFileKey = buildExcelFileKey(serverList);
-
       const isMatched = (localFileKey === serverFileKey);
       updateFetchButtonState(isMatched);
       
@@ -146,7 +126,6 @@ async function checkAndLoadInitialData() {
       } else {
         localStorage.setItem(csKey, JSON.stringify(serverList));
         localStorage.setItem(getClientCacheKey(), JSON.stringify({ time: Date.now(), list: serverList }));
-        
         loadDataFromLocalExcel();
         showToast(`♻️ Lấy dữ liệu chỉ số thành công!`);
       }
@@ -256,7 +235,6 @@ async function saveCustomerData(maKhang) {
 
       if (sluongKt > 0) {
         const percentChange = ((tongSluong - sluongKt) / sluongKt) * 100;
-
         if (Math.abs(percentChange) >= 50) {
           needPhoto = true;
           const sign = percentChange > 0 ? "+" : "";
@@ -275,10 +253,7 @@ async function saveCustomerData(maKhang) {
       `Sản lượng biến động lớn hơn +/- 50%:\n${warnMessage}\nChụp ảnh công tơ trước khi lưu.`, 
       true
     );
-
-    if (confirm) {
-      promptImageSource(maKhang);
-    }
+    if (confirm) promptImageSource(maKhang);
     return;
   }
 
@@ -323,7 +298,6 @@ async function saveCustomerData(maKhang) {
   cust.items.forEach(item => {
     const inputEl = document.getElementById(`cs_moi_${item.rowIndex}`);
     const val = inputEl ? inputEl.value.trim() : "";
-
     const excelItemIndex = localExcelList.findIndex(e => String(e.id_chiso) === String(item.id_chiso));
 
     if (val !== "" && !isNaN(Number(val))) {
@@ -353,6 +327,7 @@ async function saveCustomerData(maKhang) {
       item.ghi_chu = cust.ghi_chu;
       item.ngay_nhap = nowStr;
       item.nguoi_nhap = currentUser.ten_nvien || currentUser.ten_ndung;
+      item.tthai_dongbo = "";
       if (cloudUrl) item.hinh_cto = cloudUrl;
 
       if (excelItemIndex !== -1) {
@@ -364,6 +339,7 @@ async function saveCustomerData(maKhang) {
         localExcelList[excelItemIndex].ghi_chu = cust.ghi_chu;
         localExcelList[excelItemIndex].ngay_nhap = nowStr;
         localExcelList[excelItemIndex].nguoi_nhap = currentUser.ten_nvien || currentUser.ten_ndung;
+        localExcelList[excelItemIndex].tthai_dongbo = "";
         localExcelList[excelItemIndex].lat = item.lat || "";
         localExcelList[excelItemIndex].lng = item.lng || "";
         if (cloudUrl) localExcelList[excelItemIndex].hinh_cto = cloudUrl;
@@ -383,43 +359,7 @@ async function saveCustomerData(maKhang) {
   }
 }
 
-// ----------------------------------------------------
-// HÀM XÓA ẢNH TRÊN CLOUDINARY
-// ----------------------------------------------------
-async function deleteFromCloudinary(imageUrl) {
-  if (!imageUrl || !imageUrl.includes("cloudinary.com")) return;
-  try {
-    // Trích xuất public_id từ URL Cloudinary (VD: chi_so/khachhang_123456)
-    const urlParts = imageUrl.split('/');
-    const uploadIndex = urlParts.indexOf("upload");
-    if (uploadIndex === -1) return;
-    
-    // Bỏ qua phần version v1234567 nếu có
-    let pathParts = urlParts.slice(uploadIndex + 1);
-    if (pathParts[0].startsWith('v') && !isNaN(pathParts[0].substring(1))) {
-      pathParts = pathParts.slice(1);
-    }
-    
-    const publicIdWithExt = pathParts.join('/');
-    const publicId = publicIdWithExt.substring(0, publicIdWithExt.lastIndexOf('.'));
-
-    // Gọi API xóa tới Cloudinary hoặc gửi thông tin qua Google Apps Script xử lý xóa
-    const formData = new FormData();
-    formData.append("public_id", publicId);
-    formData.append("upload_preset", CLOUDINARY_UPLOAD_PRESET);
-
-    await fetch(`https://api.cloudinary.com/v1_1/${encodeURIComponent(CLOUDINARY_CLOUD_NAME)}/image/destroy`, {
-      method: "POST",
-      body: formData
-    });
-  } catch (err) {
-    console.error("Lỗi xóa ảnh Cloudinary:", err);
-  }
-}
-
-// ----------------------------------------------------
-// HÀM HỦY DỮ LIỆU CỦA KHÁCH HÀNG (SỬA LẠI TRIỆT ĐỂ 100%)
-// ----------------------------------------------------
+// ✂️ HỦY DƯ LIỆU VÀ XÓA SẠCH 100% CÁC CỘT + GỬI LỆNH XÓA ẢNH TRÊN CLOUDINARY QUA SERVER
 async function cancelCustomerData(maKhang) {
   const confirm = await showCustomConfirm("HỦY DỮ LIỆU", "Bạn có muốn hủy toàn bộ chỉ số và hình ảnh của khách hàng này không?", true);
   if (!confirm) return;
@@ -432,21 +372,18 @@ async function cancelCustomerData(maKhang) {
   const localExcelList = JSON.parse(localStorage.getItem(csKey) || "[]");
   const offlineImgs = JSON.parse(localStorage.getItem(imgKey) || "{}");
 
-  // 1. Lưu lại URL ảnh hiện tại để xóa trên Cloudinary
   const oldCloudUrl = cust.hinh_cto || "";
 
-  // 2. Xóa dữ liệu tạm ảnh offline trên thiết bị
   delete offlineImgs[maKhang];
   delete currentCapturedFiles[maKhang];
   localStorage.setItem(imgKey, JSON.stringify(offlineImgs));
 
-  // 3. Xóa ghi chú & ảnh ở cấp Khách hàng
   cust.ghi_chu = "";
   cust.hinh_cto = "";
 
   const cancelledItems = [];
 
-  // 4. Reset triệt để TẤT CẢ các trường thông tin trong mảng giao diện và LocalStorage
+  // Ép gán triệt để các cột về chuỗi rỗng "" hoặc "0" theo yêu cầu
   cust.items.forEach(item => {
     item.chiso_moi = "";
     item.san_luong = "";
@@ -456,7 +393,7 @@ async function cancelCustomerData(maKhang) {
     item.ghi_chu = "";
     item.ngay_nhap = "";
     item.nguoi_nhap = "";
-    item.tthai_dongbo = "";
+    item.tthai_dongbo = "0"; // Gán giá trị 0 hoặc "" để server nhận biết trạng thái hủy
     item.hinh_cto = "";
 
     const excelItemIndex = localExcelList.findIndex(e => String(e.id_chiso) === String(item.id_chiso));
@@ -469,43 +406,36 @@ async function cancelCustomerData(maKhang) {
       localExcelList[excelItemIndex].ghi_chu = "";
       localExcelList[excelItemIndex].ngay_nhap = "";
       localExcelList[excelItemIndex].nguoi_nhap = "";
-      localExcelList[excelItemIndex].tthai_dongbo = "";
+      localExcelList[excelItemIndex].tthai_dongbo = "0";
       localExcelList[excelItemIndex].hinh_cto = "";
       
-      // Đưa dòng đã xóa sạch vào mảng gửi lên server để đè trắng
       cancelledItems.push({ ...localExcelList[excelItemIndex] });
     }
   });
 
-  // Lưu lại LocalStorage đã xóa sạch
   localStorage.setItem(csKey, JSON.stringify(localExcelList));
   showToast("✂ Đã hủy toàn bộ dữ liệu & hình ảnh!");
 
   updateSummaryBar();
   renderCurrentCustomerCard();
 
-  // 5. Xóa ảnh trực tiếp trên Cloudinary (nếu có)
-  if (oldCloudUrl && navigator.onLine) {
-    showToast("⏳ Đang xóa hình ảnh trên Cloudinary...");
-    await deleteFromCloudinary(oldCloudUrl);
-  }
-
-  // 6. Đồng bộ đè trắng toàn bộ dữ liệu lên Server (Google Sheet) ngay lập tức
+  // Đồng bộ ngay lập tức thông tin hủy trắng các cột và kèm theo URL ảnh cũ để Backend xử lý xóa Cloudinary
   if (navigator.onLine && cancelledItems.length > 0) {
     try {
-      showToast("⏳ Đang đồng bộ hủy dữ liệu lên server...");
+      showToast("⏳ Đang đồng bộ hủy và xóa dữ liệu/hình ảnh lên server...");
       const res = await fetch(API_URL, {
         method: "POST",
         headers: { "Content-Type": "text/plain;charset=utf-8" },
         body: JSON.stringify({
           action: "SYNC_BATCH_DATA",
           chiso_logs: cancelledItems,
-          dinhvi_logs: []
+          dinhvi_logs: [],
+          delete_image_url: oldCloudUrl // Truyền URL ảnh để server xóa trên Cloudinary
         })
       });
       const result = await res.json();
       if (result.status === "success") {
-        showToast("♻️ Đã hủy và xóa sạch dữ liệu trên Server!");
+        showToast("♻️ Đã hủy và xóa sạch dữ liệu/hình ảnh trên Server!");
       } else {
         showToast("❌ Lỗi đồng bộ hủy lên server: " + result.message);
       }
@@ -620,7 +550,10 @@ async function syncLocalExcelToSheet(isManual = false) {
   const chisoLogs = JSON.parse(localStorage.getItem(csKey) || "[]");
   const dinhviLogs = JSON.parse(localStorage.getItem(dvKey) || "[]");
 
-  const chisoToSend = chisoLogs.filter(i => i.chiso_moi !== "" && i.chiso_moi !== null && i.chiso_moi !== undefined);
+  // Lọc lấy các dòng có chỉ số mới hoặc các dòng bị hủy có tthai_dongbo = "0"
+  const chisoToSend = chisoLogs.filter(i => 
+    (i.chiso_moi !== "" && i.chiso_moi !== null && i.chiso_moi !== undefined) || String(i.tthai_dongbo) === "0"
+  );
 
   if (chisoToSend.length === 0 && dinhviLogs.length === 0) {
     if (isManual) showToast("⛔ Không có dữ liệu chỉ số mới cần đồng bộ!");
@@ -630,19 +563,11 @@ async function syncLocalExcelToSheet(isManual = false) {
   const syncedIds = new Set(chisoToSend.map(i => String(i.id_chiso)));
 
   chisoLogs.forEach(item => {
-    if (syncedIds.has(String(item.id_chiso))) {
+    if (syncedIds.has(String(item.id_chiso)) && String(item.tthai_dongbo) !== "0") {
       item.tthai_dongbo = "1";
     }
   });
   localStorage.setItem(csKey, JSON.stringify(chisoLogs));
-
-  Object.keys(groupedData).forEach(makh => {
-    groupedData[makh].items.forEach(item => {
-      if (syncedIds.has(String(item.id_chiso))) {
-        item.tthai_dongbo = "1";
-      }
-    });
-  });
 
   showToast("⏳ Đang đồng bộ dữ liệu lên server...");
 
@@ -661,7 +586,6 @@ async function syncLocalExcelToSheet(isManual = false) {
     if (result.status === "success") {
       localStorage.setItem(dvKey, JSON.stringify([]));
       showToast("♻️ Đồng bộ dữ liệu lên server thành công!");
-
       renderCurrentCustomerCard();
       return true;
     } else {
@@ -732,16 +656,12 @@ function showToast(msg, isError = false) {
   }
 
   const isErr = isError || /❌|⚠️|lỗi|thất bại/i.test(msg || '');
-
   t.className = isErr ? "error" : "";
   t.innerHTML = msg || "";
-
   t.classList.add("show");
 
   if (toastTimer) clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => {
-    t.classList.remove("show");
-  }, 3000);
+  toastTimer = setTimeout(() => { t.classList.remove("show"); }, 3000);
 }
 
 function showCustomConfirm(title, message, isDanger = false) {
@@ -862,7 +782,6 @@ async function handleImageSelected(event, maKhang) {
   if (!file) return;
 
   currentCapturedFiles[maKhang] = file;
-
   await saveOfflineImage(maKhang, file);
 
   const reader = new FileReader();
@@ -873,7 +792,6 @@ async function handleImageSelected(event, maKhang) {
     }
   };
   reader.readAsDataURL(file);
-
   event.target.value = "";
 }
 
@@ -1303,7 +1221,7 @@ function checkCancelButtonStatus(maKhang) {
   } catch(e) {}
 
   const btnCancel = document.getElementById(`btn_cancel_${maKhang}`);
-  if (btnCancel) btnCancel.disabled = !hasNewCS && !cust.hinh_cto && !currentCapturedFiles[maKhang] && !offlineImgBase64;
+  if (btnCancel) btnCancel.disabled = !hasNewCS && !cust.hinh_cto && !currentCapturedFiles[makhang] && !offlineImgBase64;
 }
 
 function filterDaCS() {
