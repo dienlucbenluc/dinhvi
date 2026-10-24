@@ -286,8 +286,30 @@ async function saveCustomerData(maKhang) {
   const ghiChuEl = document.getElementById(`ghi_chu_${maKhang}`);
   if (ghiChuEl) cust.ghi_chu = ghiChuEl.value.trim();
 
+  // Xử lý ảnh nếu có chụp/lưu ảnh
+  let cloudUrl = cust.hinh_cto || "";
   if (currentCapturedFiles[maKhang]) {
     await saveOfflineImage(maKhang, currentCapturedFiles[maKhang]);
+    if (navigator.onLine) {
+      try {
+        showToast("⏳ Đang tải ảnh lên Cloudinary...");
+        cloudUrl = await uploadToCloudinary(currentCapturedFiles[maKhang], maKhang);
+      } catch (err) {
+        console.error("Lỗi upload ảnh trực tiếp:", err);
+      }
+    }
+  } else if (offlineImgBase64 && navigator.onLine && !cust.hinh_cto) {
+    try {
+      const file = base64ToFile(offlineImgBase64, `${maKhang}_device.jpg`);
+      cloudUrl = await uploadToCloudinary(file, maKhang);
+    } catch (err) {
+      console.error("Lỗi upload ảnh offline:", err);
+    }
+  }
+
+  if (cloudUrl) {
+    cust.hinh_cto = cloudUrl;
+    cust.items.forEach(item => { item.hinh_cto = cloudUrl; });
   }
 
   const csKey = getExcelKeyChiSo();
@@ -326,6 +348,7 @@ async function saveCustomerData(maKhang) {
       item.ghi_chu = cust.ghi_chu;
       item.ngay_nhap = nowStr;
       item.nguoi_nhap = currentUser.ten_nvien || currentUser.ten_ndung;
+      if (cloudUrl) item.hinh_cto = cloudUrl;
 
       if (excelItemIndex !== -1) {
         localExcelList[excelItemIndex].chiso_moi = csMoi;
@@ -338,6 +361,7 @@ async function saveCustomerData(maKhang) {
         localExcelList[excelItemIndex].nguoi_nhap = currentUser.ten_nvien || currentUser.ten_ndung;
         localExcelList[excelItemIndex].lat = item.lat || "";
         localExcelList[excelItemIndex].lng = item.lng || "";
+        if (cloudUrl) localExcelList[excelItemIndex].hinh_cto = cloudUrl;
       }
     }
   });
@@ -347,7 +371,12 @@ async function saveCustomerData(maKhang) {
   updateSummaryBar();
   renderCurrentCustomerCard();
 
-  checkAndAutoSync();
+  // ĐIỀU KIỆN ĐỒNG BỘ: Nếu KH này có chụp ảnh (hoặc có ảnh lưu tạm) thì đồng bộ ngay lập tức, ngược lại kiểm tra đủ 20 KH mới đồng bộ
+  if (hasNewPhoto && navigator.onLine) {
+    await syncLocalExcelToSheet(false);
+  } else {
+    await checkAndAutoSync();
+  }
 }
 
 async function cancelCustomerData(maKhang) {
