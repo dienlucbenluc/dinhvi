@@ -409,7 +409,10 @@ async function cancelCustomerData(maKhang) {
       localExcelList[excelItemIndex].tthai_dongbo = "0";
       localExcelList[excelItemIndex].hinh_cto = "";
       
-      cancelledItems.push({ ...localExcelList[excelItemIndex] });
+      cancelledItems.push({ ...localExcelList[excelItemIndex],
+        type: "CANCEL",         // 👈 Bổ sung dòng này để đồng bộ với server
+        hinh_cto: oldCloudUrl   // 👈 Truyền kèm link ảnh cũ để xóa
+                          });
     }
   });
 
