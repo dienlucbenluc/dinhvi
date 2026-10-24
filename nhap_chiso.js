@@ -286,22 +286,31 @@ async function saveCustomerData(maKhang) {
   const ghiChuEl = document.getElementById(`ghi_chu_${maKhang}`);
   if (ghiChuEl) cust.ghi_chu = ghiChuEl.value.trim();
 
-  // Xử lý ảnh nếu có chụp/lưu ảnh
+  // CHỈ UPLOAD LÊN CLOUDINARY 1 LẦN DUY NHẤT TẠI ĐÂY
   let cloudUrl = cust.hinh_cto || "";
-  if (currentCapturedFiles[maKhang]) {
-    await saveOfflineImage(maKhang, currentCapturedFiles[maKhang]);
-    if (navigator.onLine) {
-      try {
-        showToast("⏳ Đang tải ảnh lên Cloudinary...");
-        cloudUrl = await uploadToCloudinary(currentCapturedFiles[maKhang], maKhang);
-      } catch (err) {
-        console.error("Lỗi upload ảnh trực tiếp:", err);
-      }
+  if (currentCapturedFiles[maKhang] && navigator.onLine) {
+    try {
+      showToast("⏳ Đang tải ảnh lên Cloudinary...");
+      cloudUrl = await uploadToCloudinary(currentCapturedFiles[maKhang], maKhang);
+      // Xóa file tạm sau khi upload thành công để không bị lặp lại ở hàm đồng bộ
+      delete currentCapturedFiles[maKhang];
+      let offlineImgs = JSON.parse(localStorage.getItem(getOfflineImagesKey()) || "{}");
+      delete offlineImgs[maKhang];
+      localStorage.setItem(getOfflineImagesKey(), JSON.stringify(offlineImgs));
+    } catch (err) {
+      console.error("Lỗi upload ảnh trực tiếp:", err);
+      // Nếu lỗi mạng khi upload trực tiếp, lưu tạm vào thiết bị để đợi đồng bộ sau
+      await saveOfflineImage(maKhang, currentCapturedFiles[maKhang]);
     }
+  } else if (currentCapturedFiles[maKhang]) {
+    await saveOfflineImage(maKhang, currentCapturedFiles[maKhang]);
   } else if (offlineImgBase64 && navigator.onLine && !cust.hinh_cto) {
     try {
       const file = base64ToFile(offlineImgBase64, `${maKhang}_device.jpg`);
       cloudUrl = await uploadToCloudinary(file, maKhang);
+      let offlineImgs = JSON.parse(localStorage.getItem(getOfflineImagesKey()) || "{}");
+      delete offlineImgs[maKhang];
+      localStorage.setItem(getOfflineImagesKey(), JSON.stringify(offlineImgs));
     } catch (err) {
       console.error("Lỗi upload ảnh offline:", err);
     }
@@ -371,7 +380,7 @@ async function saveCustomerData(maKhang) {
   updateSummaryBar();
   renderCurrentCustomerCard();
 
-  // ĐIỀU KIỆN ĐỒNG BỘ: Nếu KH này có chụp ảnh (hoặc có ảnh lưu tạm) thì đồng bộ ngay lập tức, ngược lại kiểm tra đủ 20 KH mới đồng bộ
+  // Nếu có chụp ảnh mới và có mạng, thực hiện đồng bộ ngay lập tức (lúc này ảnh đã có URL trên Cloudinary nên sẽ không bị upload lại nữa)
   if (hasNewPhoto && navigator.onLine) {
     await syncLocalExcelToSheet(false);
   } else {
