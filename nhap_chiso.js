@@ -534,7 +534,7 @@ async function checkAndAutoSync() {
     item.chiso_moi !== "" && item.chiso_moi !== null && item.chiso_moi !== undefined
   ).length;
 
-  //SỐ KHÁCH HÀNG NHẬP ĐỦ CHỈ SỐ SẼ ĐỒNG BỘ LÊN SERVER
+  // SỐ KHÁCH HÀNG NHẬP ĐỦ CHỈ SỐ SẼ ĐỒNG BỘ LÊN SERVER
   if (validRowsCount >= 10 && validRowsCount % 10 === 0 && navigator.onLine) {
     await syncLocalExcelToSheet(false);
   }
