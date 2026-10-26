@@ -1390,9 +1390,18 @@ function filterData() {
   });
 
   if (targetIndex !== -1) {
-    currentCardIndex = targetIndex;
+    // Lấy mã khách hàng tìm được
+    const foundMakh = customerKeys[targetIndex];
+    
+    // Đưa mã khách hàng đó lên đầu mảng customerKeys
+    customerKeys.splice(targetIndex, 1);
+    customerKeys.unshift(foundMakh);
+    
+    // Đặt lại vị trí hiển thị về đầu danh sách (index = 0) và render lại
+    currentCardIndex = 0;
     renderCurrentCustomerCard();
-    showToast(`🔍 Tìm thấy KH tại vị trí ${targetIndex + 1}`);
+    
+    //showToast(`🔍 Đã đưa khách hàng ${foundMakh} lên trên cùng`);
   } else {
     showToast("❌ Không tìm thấy thông tin phù hợp!");
   }
