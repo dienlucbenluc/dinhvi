@@ -105,7 +105,7 @@ async function checkAndLoadInitialData() {
     return;
   }
 
-  showToast("⏳ Đang lấy dữ liệu chỉ số (v1.0.1)...");
+  showToast("⏳ Đang lấy dữ liệu chỉ số (v1.0.2)...");
   try {
     const res = await fetch(API_URL, {
       method: "POST",
@@ -329,7 +329,7 @@ cust.items.forEach(item => {
         item.chenh_lech = chenhLech;
         item.tyle_clech = tyleClech;
         item.ghi_chu = cust.ghi_chu;
-        item.loai_chiso = loaiChiSoVal;
+        item.ma_ttcto = maTTCtoVal;
         item.ngay_nhap = nowStr;
         item.nguoi_nhap = currentUser.ten_nvien || currentUser.ten_ndung;
         item.tthai_dongbo = "";
@@ -342,7 +342,7 @@ cust.items.forEach(item => {
           localExcelList[excelItemIndex].chenh_lech = chenhLech;
           localExcelList[excelItemIndex].tyle_clech = tyleClech;
           localExcelList[excelItemIndex].ghi_chu = cust.ghi_chu;
-          localExcelList[excelItemIndex].loai_chiso = loaiChiSoVal;
+          localExcelList[excelItemIndex].ma_ttcto = maTTCtoVal;
           localExcelList[excelItemIndex].ngay_nhap = nowStr;
           localExcelList[excelItemIndex].nguoi_nhap = currentUser.ten_nvien || currentUser.ten_ndung;
           localExcelList[excelItemIndex].tthai_dongbo = "";
@@ -395,7 +395,7 @@ cust.items.forEach(item => {
       item.chenh_lech = "";
       item.tyle_clech = "";
       item.ghi_chu = "";
-      item.loai_chiso = null;
+      item.ma_ttcto = null;
       item.ngay_nhap = "";
       item.nguoi_nhap = "";
       item.tthai_dongbo = "0";
@@ -409,7 +409,7 @@ cust.items.forEach(item => {
         localExcelList[excelItemIndex].chenh_lech = "";
         localExcelList[excelItemIndex].tyle_clech = "";
         localExcelList[excelItemIndex].ghi_chu = "";
-        localExcelList[excelItemIndex].loai_chiso = null;
+        localExcelList[excelItemIndex].ma_ttcto = null;
         localExcelList[excelItemIndex].ngay_nhap = "";
         localExcelList[excelItemIndex].nguoi_nhap = "";
         localExcelList[excelItemIndex].tthai_dongbo = "0";
@@ -967,7 +967,7 @@ function renderCurrentCustomerCard(slideDirection = null) {
 
 cust.items.forEach(item => {
     const csMoiVal = (item.chiso_moi !== "" && item.chiso_moi !== undefined && item.chiso_moi !== null) ? item.chiso_moi : "";
-    const selectedLoai = (item.loai_chiso && item.loai_chiso !== "") ? item.loai_chiso : "";
+    const selectedLoai = (item.ma_ttcto && item.ma_ttcto !== "") ? item.ma_ttcto : "";
 
     html += `
       <tr id="row_${item.rowIndex}">
