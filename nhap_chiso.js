@@ -51,7 +51,6 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   initLocalExcelStore();
   await checkAndLoadInitialData();
-  // Đã bỏ setupSwipeEvents() theo yêu cầu
 
   window.addEventListener("online", async () => {
     showToast("📶 Đã kết nối mạng. Đang xử lý đồng bộ...");
@@ -105,7 +104,7 @@ async function checkAndLoadInitialData() {
     return;
   }
 
-  showToast("⏳ Đang lấy dữ liệu chỉ số (v1.1.2)...");
+  showToast("⏳ Đang lấy dữ liệu chỉ số (v1.1.3)...");
   try {
     const res = await fetch(API_URL, {
       method: "POST",
@@ -547,9 +546,6 @@ async function checkAndAutoSync() {
   }
 }
 
-/* ==========================================================================
-   THÊM LỚP PHỦ FULL MÀN HÌNH KHI ĐỒNG BỘ DỮ LIỆU LÊN SERVER
-   ========================================================================== */
 function showSyncOverlay() {
   let overlay = document.getElementById("syncOverlay");
   if (!overlay) {
@@ -557,13 +553,11 @@ function showSyncOverlay() {
     overlay.id = "syncOverlay";
     overlay.style.cssText = "position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.4);z-index:99999;display:flex;flex-direction:column;justify-content:center;align-items:center;pointer-events:all;";
     
-    // Vòng tròn xoay và dòng chữ thông báo nằm ngay bên dưới
     overlay.innerHTML = `
       <div style="width:50px;height:50px;border:5px solid rgba(255,255,255,0.3);border-top:5px solid #ffffff;border-radius:50%;animation:spinOverlay 1s linear infinite;margin-bottom:12px;"></div>
       <div style="color:#ffffff;font-size:15px;font-weight:bold;text-shadow:0 1px 3px rgba(0,0,0,0.6);">Đang đồng bộ...</div>
     `;
     
-    // Thêm keyframes animation cho vòng tròn quay nếu chưa có
     if (!document.getElementById("syncOverlayStyle")) {
       const style = document.createElement("style");
       style.id = "syncOverlayStyle";
@@ -587,7 +581,7 @@ function hideSyncOverlay() {
 async function syncLocalExcelToSheet(isManual = false) {
   if (!navigator.onLine) return false;
 
-  showSyncOverlay(); // Hiển thị lớp phủ khóa màn hình khi bắt đầu đồng bộ
+  showSyncOverlay();
 
   try {
     showToast("⏳ Đang đẩy ảnh lên Cloudinary...");
@@ -643,7 +637,7 @@ async function syncLocalExcelToSheet(isManual = false) {
     showToast("❌ Lỗi kết nối đồng bộ server!");
     return false;
   } finally {
-    hideSyncOverlay(); // Ẩn lớp phủ khi hoàn tất (thành công hoặc lỗi)
+    hideSyncOverlay();
   }
 }
 
@@ -925,6 +919,9 @@ function renderCurrentCustomerCard() {
     const firstItem = cust.items[0] || {};
     const cotTramText = [cust.so_cot, cust.ten_tram].filter(Boolean).join(" - ");
 
+    // Kiểm tra trạng thái nhap_cmis = 1 từ bất kỳ dòng chỉ số nào của KH này
+    const isNhapCmis = cust.items.some(i => String(i.nhap_cmis) === "1");
+
     const hasLocation = Boolean(firstItem.lat && firstItem.lng);
     let mapLinkHtml = `<a onclick="openNoteDialogForLocation(${index}, '${cust.ma_khang}')" style="color:red; font-size: 14px; font-weight:bold; text-decoration:none; cursor:pointer;">📍 Lấy mới định vị</a>`;
     if (hasLocation) {
@@ -958,6 +955,7 @@ function renderCurrentCustomerCard() {
             <span style="font-size:13px; color:#0056b3; font-weight:bold; background:#fff; padding:2px 0px; border-radius:4px;">
               STT: ${index + 1} / ${customerKeys.length}
             </span>
+            ${isNhapCmis ? `<span style="font-size:13px; color:red; font-weight:bold;">Đã cập nhật CMIS không thể sửa</span>` : ''}
           </div>
           <div class="cust-title">Mã KH: ${cust.ma_khang} - <b>Số CTơ:</b> ${cust.so_cto}</div>
           <div class="cust-tenKH">${cust.ten_khang || ''}</div>
@@ -972,7 +970,8 @@ function renderCurrentCustomerCard() {
                    id="ghi_chu_${cust.ma_khang}" 
                    value="${cust.ghi_chu || ''}" 
                    placeholder="Nhập ghi chú nếu có..." 
-                   onchange="groupedData['${cust.ma_khang}'].ghi_chu = this.value;">
+                   onchange="groupedData['${cust.ma_khang}'].ghi_chu = this.value;"
+                   ${isNhapCmis ? "disabled" : ""}>
           </div>
           <div class="box-maps">${mapLinkHtml}</div>
           <div class="cust-dynamic-info-v2" id="detail_info_${cust.ma_khang}">
@@ -1008,13 +1007,14 @@ function renderCurrentCustomerCard() {
                    class="input-cs-moi" 
                    id="cs_moi_${item.rowIndex}" 
                    value="${csMoiVal}"
+                   ${isNhapCmis ? "disabled" : ""}
                    onfocus="updateKwKtDisplay('${cust.ma_khang}', '${item.bcs}', ${item.sluong_kt || 0}, ${item.sluong_thao || 0})"
                    onchange="calculateRow('${cust.ma_khang}', '${item.bcs}', ${item.rowIndex}, ${item.chiso_cu || 0}, ${item.hsn || 1}, ${item.sluong_thao || 0}, ${item.sluong_kt || 0})">
             <input type="hidden" id="sl_val_${item.rowIndex}" value="${item.san_luong !== "" && item.san_luong !== undefined ? item.san_luong : '-'}">
           </td>
           <td id="tong_sl_${item.rowIndex}" class="val-calc-large text-right">${item.tong_sluong !== "" && item.tong_sluong !== undefined ? item.tong_sluong : '-'}</td>
           <td class="text-center">
-            <select class="select-loai" id="select_loai_${item.rowIndex}" onchange="handleComboboxChange('${cust.ma_khang}', '${item.bcs}', ${item.rowIndex}, ${item.chiso_cu || 0}, ${item.hsn || 1}, ${item.sluong_thao || 0}, ${item.sluong_kt || 0})">
+            <select class="select-loai" id="select_loai_${item.rowIndex}" ${isNhapCmis ? "disabled" : ""} onchange="handleComboboxChange('${cust.ma_khang}', '${item.bcs}', ${item.rowIndex}, ${item.chiso_cu || 0}, ${item.hsn || 1}, ${item.sluong_thao || 0}, ${item.sluong_kt || 0})">
               <option value="" ${selectedLoai === "" ? "selected" : ""}>--</option>
               <option value="U" ${selectedLoai === "U" ? "selected" : ""}>U : Không xài</option>
               <option value="V" ${selectedLoai === "V" ? "selected" : ""}>V : Tạm tính</option>
@@ -1027,8 +1027,9 @@ function renderCurrentCustomerCard() {
       `;
     });
 
-    const cancelDisabledAttr = (!alreadyHasCS && !cust.hinh_cto && !currentCapturedFiles[makh] && !offlineImgBase64) ? "disabled" : "";
-    const saveDisabledAttr = !hasLocation ? "disabled" : "";
+    const cancelDisabledAttr = isNhapCmis || (!alreadyHasCS && !cust.hinh_cto && !currentCapturedFiles[makh] && !offlineImgBase64) ? "disabled" : "";
+    const saveDisabledAttr = isNhapCmis || !hasLocation ? "disabled" : "";
+    const captureDisabledAttr = isNhapCmis ? "disabled" : "";
 
     html += `
             </tbody>
@@ -1044,7 +1045,7 @@ function renderCurrentCustomerCard() {
           </div>
           <div style="flex: 1; display: flex; flex-direction: column; gap: 6px;">
             <button class="btn-card btn-card-save" id="btn_save_${cust.ma_khang}" ${saveDisabledAttr} onclick="saveCustomerData('${cust.ma_khang}')">💾 Lưu dữ liệu</button>
-            <button class="btn-card" style="background: #17a2b8;" id="btn_capture_${cust.ma_khang}" onclick="promptImageSource('${cust.ma_khang}')">📷 Chụp ảnh&nbsp;&nbsp;</button>
+            <button class="btn-card" style="background: #17a2b8;" id="btn_capture_${cust.ma_khang}" ${captureDisabledAttr} onclick="promptImageSource('${cust.ma_khang}')">📷 Chụp ảnh&nbsp;&nbsp;</button>
             <button class="btn-card btn-card-cancel" id="btn_cancel_${cust.ma_khang}" ${cancelDisabledAttr} onclick="cancelCustomerData('${cust.ma_khang}')">✂ Hủy dữ liệu</button>
           </div>
         </div>
@@ -1126,7 +1127,7 @@ function nextCustomer() {
   isAnimating = true;
   const activeCard = document.getElementById("activeCustomerCard");
   if (activeCard) {
-    activeCard.classList.add("slide-up-out"); // Đổi hiệu ứng vuốt lên
+    activeCard.classList.add("slide-up-out");
     setTimeout(() => {
       currentCardIndex = (currentCardIndex >= customerKeys.length - 1) ? 0 : currentCardIndex + 1;
       renderCurrentCustomerCard("up");
@@ -1142,7 +1143,7 @@ function prevCustomer() {
   isAnimating = true;
   const activeCard = document.getElementById("activeCustomerCard");
   if (activeCard) {
-    activeCard.classList.add("slide-down-out"); // Đổi hiệu ứng vuốt xuống
+    activeCard.classList.add("slide-down-out");
     setTimeout(() => {
       currentCardIndex = (currentCardIndex <= 0) ? customerKeys.length - 1 : currentCardIndex - 1;
       renderCurrentCustomerCard("down");
@@ -1185,7 +1186,7 @@ function setupSwipeEvents() {
 
   window.addEventListener('keydown', (e) => {
     if (["INPUT", "TEXTAREA", "SELECT"].includes(document.activeElement.tagName)) return;
-    if (e.key === "ArrowUp") prevCustomer();     // Chuyển phím mũi tên thành lên/xuống
+    if (e.key === "ArrowUp") prevCustomer();
     else if (e.key === "ArrowDown") nextCustomer();
   });
 }
@@ -1193,10 +1194,9 @@ function setupSwipeEvents() {
 function handleSwipeGesture(startX, startY, endX, endY) {
   let diffX = startX - endX;
   let diffY = startY - endY;
-  // Ưu tiên bắt khoảng cách vuốt theo chiều dọc (Y) lớn hơn chiều ngang (X)
   if (Math.abs(diffY) > Math.abs(diffX) && Math.abs(diffY) > 40) {
-    if (diffY > 0) nextCustomer(); // Vuốt lên -> sang khách hàng tiếp theo
-    else prevCustomer();           // Vuốt xuống -> về khách hàng trước
+    if (diffY > 0) nextCustomer();
+    else prevCustomer();
   }
 }
 
@@ -1314,6 +1314,9 @@ function checkCancelButtonStatus(maKhang) {
   const cust = groupedData[maKhang];
   if (!cust) return;
 
+  const isNhapCmis = cust.items.some(i => String(i.nhap_cmis) === "1");
+  if (isNhapCmis) return;
+
   let hasNewCS = false;
   cust.items.forEach(item => {
     const inputEl = document.getElementById(`cs_moi_${item.rowIndex}`);
@@ -1373,8 +1376,7 @@ function showAllData() {
 function filterData() {
   const q = document.getElementById("searchInput").value.toLowerCase().trim();
   if (!q) return;
-  
-  // Tìm mã khách hàng trong danh sách hiện tại
+
   const targetIndex = customerKeys.findIndex(makh => {
     const cust = groupedData[makh];
     return (
@@ -1396,18 +1398,14 @@ function filterData() {
     const cardElement = document.getElementById(`customer_card_${foundMakh}`);
     
     if (cardElement) {
-      // Cuộn màn hình đưa card của khách hàng này lên trên cùng
       cardElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
       
-      // Tạo hiệu ứng chớp sáng nhẹ để bác dễ nhận diện thẻ được tìm thấy
       cardElement.style.transition = "background-color 0.5s";
       cardElement.style.backgroundColor = "#e8f4fd";
       setTimeout(() => {
         cardElement.style.backgroundColor = "";
       }, 1500);
     }
-    
-    //showToast(`🔍 Tìm thấy KH ở STT ${targetIndex + 1} và đã đưa lên trên`);
   } else {
     showToast("❌ Không tìm thấy thông tin phù hợp!");
   }
