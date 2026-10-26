@@ -105,7 +105,7 @@ async function checkAndLoadInitialData() {
     return;
   }
 
-  showToast("⏳ Đang lấy dữ liệu chỉ số (v1.0.3)...");
+  showToast("⏳ Đang lấy dữ liệu chỉ số (v1.0.4)...");
   try {
     const res = await fetch(API_URL, {
       method: "POST",
@@ -295,63 +295,63 @@ async function saveCustomerData(maKhang) {
   const csKey = getExcelKeyChiSo();
   const localExcelList = JSON.parse(localStorage.getItem(csKey) || "[]");
 
-cust.items.forEach(item => {
-      const inputEl = document.getElementById(`cs_moi_${item.rowIndex}`);
-      const val = inputEl ? inputEl.value.trim() : "";
-      const selectEl = document.getElementById(`select_loai_${item.rowIndex}`);
-      const selectedType = selectEl ? selectEl.value.trim() : "";
-      const maTTCtoVal = selectedType !== "" ? selectedType : "";
+  cust.items.forEach(item => {
+    const inputEl = document.getElementById(`cs_moi_${item.rowIndex}`);
+    const val = inputEl ? inputEl.value.trim() : "";
+    const selectEl = document.getElementById(`select_loai_${item.rowIndex}`);
+    const selectedType = selectEl ? selectEl.value.trim() : "";
+    const maTTCtoVal = selectedType !== "" ? selectedType : "";
 
-      const excelItemIndex = localExcelList.findIndex(e => String(e.id_chiso) === String(item.id_chiso));
+    const excelItemIndex = localExcelList.findIndex(e => String(e.id_chiso) === String(item.id_chiso));
 
-      if (val !== "" && !isNaN(Number(val))) {
-        const csMoi = Number(val);
-        const csCu = Number(item.chiso_cu) || 0;
-        const hsn = Number(item.hsn) || 1;
-        const sluongThao = Number(item.sluong_thao) || 0;
-        const sluongKt = Number(item.sluong_kt) || 0;
+    if (val !== "" && !isNaN(Number(val))) {
+      const csMoi = Number(val);
+      const csCu = Number(item.chiso_cu) || 0;
+      const hsn = Number(item.hsn) || 1;
+      const sluongThao = Number(item.sluong_thao) || 0;
+      const sluongKt = Number(item.sluong_kt) || 0;
 
-        let sanLuong = 0;
-        if (csMoi < csCu) {
-          sanLuong = Math.round((csMoi + 100000 - csCu) * hsn);
-        } else {
-          sanLuong = Math.round((csMoi - csCu) * hsn);
-        }
-
-        const tongSluong = sanLuong + sluongThao;
-        const chenhLech = tongSluong - sluongKt;
-        const tyleClech = sluongKt !== 0 ? ((tongSluong / sluongKt) * 100).toFixed(2) + "%" : "0%";
-        const nowStr = new Date().toLocaleString("vi-VN");
-
-        item.chiso_moi = csMoi;
-        item.san_luong = sanLuong;
-        item.tong_sluong = tongSluong;
-        item.chenh_lech = chenhLech;
-        item.tyle_clech = tyleClech;
-        item.ghi_chu = cust.ghi_chu;
-        item.ma_ttcto = maTTCtoVal;
-        item.ngay_nhap = nowStr;
-        item.nguoi_nhap = currentUser.ten_nvien || currentUser.ten_ndung;
-        item.tthai_dongbo = "";
-        if (cloudUrl) item.hinh_cto = cloudUrl;
-
-        if (excelItemIndex !== -1) {
-          localExcelList[excelItemIndex].chiso_moi = csMoi;
-          localExcelList[excelItemIndex].san_luong = sanLuong;
-          localExcelList[excelItemIndex].tong_sluong = tongSluong;
-          localExcelList[excelItemIndex].chenh_lech = chenhLech;
-          localExcelList[excelItemIndex].tyle_clech = tyleClech;
-          localExcelList[excelItemIndex].ghi_chu = cust.ghi_chu;
-          localExcelList[excelItemIndex].ma_ttcto = maTTCtoVal;
-          localExcelList[excelItemIndex].ngay_nhap = nowStr;
-          localExcelList[excelItemIndex].nguoi_nhap = currentUser.ten_nvien || currentUser.ten_ndung;
-          localExcelList[excelItemIndex].tthai_dongbo = "";
-          localExcelList[excelItemIndex].lat = item.lat || "";
-          localExcelList[excelItemIndex].lng = item.lng || "";
-          if (cloudUrl) localExcelList[excelItemIndex].hinh_cto = cloudUrl;
-        }
+      let sanLuong = 0;
+      if (csMoi < csCu) {
+        sanLuong = Math.round((csMoi + 100000 - csCu) * hsn);
+      } else {
+        sanLuong = Math.round((csMoi - csCu) * hsn);
       }
-    });
+
+      const tongSluong = sanLuong + sluongThao;
+      const chenhLech = tongSluong - sluongKt;
+      const tyleClech = sluongKt !== 0 ? ((tongSluong / sluongKt) * 100).toFixed(2) + "%" : "0%";
+      const nowStr = new Date().toLocaleString("vi-VN");
+
+      item.chiso_moi = csMoi;
+      item.san_luong = sanLuong;
+      item.tong_sluong = tongSluong;
+      item.chenh_lech = chenhLech;
+      item.tyle_clech = tyleClech;
+      item.ghi_chu = cust.ghi_chu;
+      item.ma_ttcto = maTTCtoVal;
+      item.ngay_nhap = nowStr;
+      item.nguoi_nhap = currentUser.ten_nvien || currentUser.ten_ndung;
+      item.tthai_dongbo = "";
+      if (cloudUrl) item.hinh_cto = cloudUrl;
+
+      if (excelItemIndex !== -1) {
+        localExcelList[excelItemIndex].chiso_moi = csMoi;
+        localExcelList[excelItemIndex].san_luong = sanLuong;
+        localExcelList[excelItemIndex].tong_sluong = tongSluong;
+        localExcelList[excelItemIndex].chenh_lech = chenhLech;
+        localExcelList[excelItemIndex].tyle_clech = tyleClech;
+        localExcelList[excelItemIndex].ghi_chu = cust.ghi_chu;
+        localExcelList[excelItemIndex].ma_ttcto = maTTCtoVal;
+        localExcelList[excelItemIndex].ngay_nhap = nowStr;
+        localExcelList[excelItemIndex].nguoi_nhap = currentUser.ten_nvien || currentUser.ten_ndung;
+        localExcelList[excelItemIndex].tthai_dongbo = "";
+        localExcelList[excelItemIndex].lat = item.lat || "";
+        localExcelList[excelItemIndex].lng = item.lng || "";
+        if (cloudUrl) localExcelList[excelItemIndex].hinh_cto = cloudUrl;
+      }
+    }
+  });
 
   localStorage.setItem(csKey, JSON.stringify(localExcelList));
   showToast("💾 Đã lưu dữ liệu vào Excel thiết bị!");
@@ -388,40 +388,40 @@ async function cancelCustomerData(maKhang) {
 
   const cancelledItems = [];
 
-cust.items.forEach(item => {
-      item.chiso_moi = "";
-      item.san_luong = "";
-      item.tong_sluong = "";
-      item.chenh_lech = "";
-      item.tyle_clech = "";
-      item.ghi_chu = "";
-      item.ma_ttcto = null;
-      item.ngay_nhap = "";
-      item.nguoi_nhap = "";
-      item.tthai_dongbo = "0";
-      item.hinh_cto = "";
+  cust.items.forEach(item => {
+    item.chiso_moi = "";
+    item.san_luong = "";
+    item.tong_sluong = "";
+    item.chenh_lech = "";
+    item.tyle_clech = "";
+    item.ghi_chu = "";
+    item.ma_ttcto = null;
+    item.ngay_nhap = "";
+    item.nguoi_nhap = "";
+    item.tthai_dongbo = "0";
+    item.hinh_cto = "";
 
-      const excelItemIndex = localExcelList.findIndex(e => String(e.id_chiso) === String(item.id_chiso));
-      if (excelItemIndex !== -1) {
-        localExcelList[excelItemIndex].chiso_moi = "";
-        localExcelList[excelItemIndex].san_luong = "";
-        localExcelList[excelItemIndex].tong_sluong = "";
-        localExcelList[excelItemIndex].chenh_lech = "";
-        localExcelList[excelItemIndex].tyle_clech = "";
-        localExcelList[excelItemIndex].ghi_chu = "";
-        localExcelList[excelItemIndex].ma_ttcto = null;
-        localExcelList[excelItemIndex].ngay_nhap = "";
-        localExcelList[excelItemIndex].nguoi_nhap = "";
-        localExcelList[excelItemIndex].tthai_dongbo = "0";
-        localExcelList[excelItemIndex].hinh_cto = "";
-        
-        cancelledItems.push({
-          ...localExcelList[excelItemIndex],
-          type: "CANCEL",
-          hinh_cto: oldCloudUrl
-        });
-      }
-    });
+    const excelItemIndex = localExcelList.findIndex(e => String(e.id_chiso) === String(item.id_chiso));
+    if (excelItemIndex !== -1) {
+      localExcelList[excelItemIndex].chiso_moi = "";
+      localExcelList[excelItemIndex].san_luong = "";
+      localExcelList[excelItemIndex].tong_sluong = "";
+      localExcelList[excelItemIndex].chenh_lech = "";
+      localExcelList[excelItemIndex].tyle_clech = "";
+      localExcelList[excelItemIndex].ghi_chu = "";
+      localExcelList[excelItemIndex].ma_ttcto = null;
+      localExcelList[excelItemIndex].ngay_nhap = "";
+      localExcelList[excelItemIndex].nguoi_nhap = "";
+      localExcelList[excelItemIndex].tthai_dongbo = "0";
+      localExcelList[excelItemIndex].hinh_cto = "";
+      
+      cancelledItems.push({
+        ...localExcelList[excelItemIndex],
+        type: "CANCEL",
+        hinh_cto: oldCloudUrl
+      });
+    }
+  });
 
   localStorage.setItem(csKey, JSON.stringify(localExcelList));
   showToast("✂ Đã hủy toàn bộ dữ liệu & hình ảnh!");
@@ -542,45 +542,69 @@ async function checkAndAutoSync() {
     item.chiso_moi !== "" && item.chiso_moi !== null && item.chiso_moi !== undefined
   ).length;
 
-  // SỐ KHÁCH HÀNG NHẬP ĐỦ CHỈ SỐ SẼ ĐỒNG BỘ LÊN SERVER
   if (validRowsCount >= 10 && validRowsCount % 10 === 0 && navigator.onLine) {
     await syncLocalExcelToSheet(false);
+  }
+}
+
+/* ==========================================================================
+   THÊM LỚP PHỦ FULL MÀN HÌNH KHI ĐỒNG BỘ DỮ LIỆU LÊN SERVER
+   ========================================================================== */
+function showSyncOverlay() {
+  let overlay = document.getElementById("syncOverlay");
+  if (!overlay) {
+    overlay = document.createElement("div");
+    overlay.id = "syncOverlay";
+    overlay.style.cssText = "position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.4);z-index:99999;display:flex;justify-content:center;align-items:center;color:#fff;font-size:16px;font-weight:bold;pointer-events:all;";
+    overlay.innerHTML = '<div style="background:#333;padding:15px 25px;border-radius:8px;box-shadow:0 4px 12px rgba(0,0,0,0.3);">⏳ Đang đồng bộ dữ liệu lên server, vui lòng đợi...</div>';
+    document.body.appendChild(overlay);
+  } else {
+    overlay.style.display = "flex";
+  }
+}
+
+function hideSyncOverlay() {
+  const overlay = document.getElementById("syncOverlay");
+  if (overlay) {
+    overlay.style.display = "none";
   }
 }
 
 async function syncLocalExcelToSheet(isManual = false) {
   if (!navigator.onLine) return false;
 
-  showToast("⏳ Đang đẩy ảnh lên Cloudinary...");
-  await processOfflineImagesToCloudinary();
-
-  const csKey = getExcelKeyChiSo();
-  const dvKey = getExcelKeyDinhVi();
-
-  const chisoLogs = JSON.parse(localStorage.getItem(csKey) || "[]");
-  const dinhviLogs = JSON.parse(localStorage.getItem(dvKey) || "[]");
-
-  const chisoToSend = chisoLogs.filter(i => 
-    (i.chiso_moi !== "" && i.chiso_moi !== null && i.chiso_moi !== undefined) || String(i.tthai_dongbo) === "0"
-  );
-
-  if (chisoToSend.length === 0 && dinhviLogs.length === 0) {
-    if (isManual) showToast("⛔ Không có dữ liệu chỉ số mới cần đồng bộ!");
-    return false;
-  }
-
-  const syncedIds = new Set(chisoToSend.map(i => String(i.id_chiso)));
-
-  chisoLogs.forEach(item => {
-    if (syncedIds.has(String(item.id_chiso)) && String(item.tthai_dongbo) !== "0") {
-      item.tthai_dongbo = "1";
-    }
-  });
-  localStorage.setItem(csKey, JSON.stringify(chisoLogs));
-
-  showToast("⏳ Đang đồng bộ dữ liệu lên server...");
+  showSyncOverlay(); // Hiển thị lớp phủ khóa màn hình khi bắt đầu đồng bộ
 
   try {
+    showToast("⏳ Đang đẩy ảnh lên Cloudinary...");
+    await processOfflineImagesToCloudinary();
+
+    const csKey = getExcelKeyChiSo();
+    const dvKey = getExcelKeyDinhVi();
+
+    const chisoLogs = JSON.parse(localStorage.getItem(csKey) || "[]");
+    const dinhviLogs = JSON.parse(localStorage.getItem(dvKey) || "[]");
+
+    const chisoToSend = chisoLogs.filter(i => 
+      (i.chiso_moi !== "" && i.chiso_moi !== null && i.chiso_moi !== undefined) || String(i.tthai_dongbo) === "0"
+    );
+
+    if (chisoToSend.length === 0 && dinhviLogs.length === 0) {
+      if (isManual) showToast("⛔ Không có dữ liệu chỉ số mới cần đồng bộ!");
+      return false;
+    }
+
+    const syncedIds = new Set(chisoToSend.map(i => String(i.id_chiso)));
+
+    chisoLogs.forEach(item => {
+      if (syncedIds.has(String(item.id_chiso)) && String(item.tthai_dongbo) !== "0") {
+        item.tthai_dongbo = "1";
+      }
+    });
+    localStorage.setItem(csKey, JSON.stringify(chisoLogs));
+
+    showToast("⏳ Đang đồng bộ dữ liệu lên server...");
+
     const res = await fetch(API_URL, {
       method: "POST",
       headers: { "Content-Type": "text/plain;charset=utf-8" },
@@ -604,6 +628,8 @@ async function syncLocalExcelToSheet(isManual = false) {
   } catch (e) {
     showToast("❌ Lỗi kết nối đồng bộ server!");
     return false;
+  } finally {
+    hideSyncOverlay(); // Ẩn lớp phủ khi hoàn tất (thành công hoặc lỗi)
   }
 }
 
@@ -793,7 +819,6 @@ async function handleImageSelected(event, maKhang) {
   currentCapturedFiles[maKhang] = file;
   await saveOfflineImage(maKhang, file);
 
-  // TỰ ĐỘNG LƯU ẢNH VỀ THIẾT BỊ
   try {
     const downloadLink = document.createElement("a");
     downloadLink.href = URL.createObjectURL(file);
@@ -816,9 +841,6 @@ async function handleImageSelected(event, maKhang) {
   event.target.value = "";
 }
 
-/* ==========================================================================
-   MODAL HỎI GHI CHÚ KHI LẤY ĐỊNH VỊ
-   ========================================================================== */
 function openNoteDialogForLocation(index, safeKey) {
   let modal = document.getElementById('noteLocationModal');
   if (!modal) {
@@ -965,7 +987,7 @@ function renderCurrentCustomerCard(slideDirection = null) {
           <tbody>
   `;
 
-cust.items.forEach(item => {
+  cust.items.forEach(item => {
     const csMoiVal = (item.chiso_moi !== "" && item.chiso_moi !== undefined && item.chiso_moi !== null) ? item.chiso_moi : "";
     const selectedLoai = (item.ma_ttcto && item.ma_ttcto !== "") ? item.ma_ttcto : "";
 
