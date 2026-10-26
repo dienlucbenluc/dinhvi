@@ -105,7 +105,7 @@ async function checkAndLoadInitialData() {
     return;
   }
 
-  showToast("⏳ Đang lấy dữ liệu chỉ số (v1.0.0)...");
+  showToast("⏳ Đang lấy dữ liệu chỉ số (v1.0.1)...");
   try {
     const res = await fetch(API_URL, {
       method: "POST",
@@ -300,7 +300,7 @@ cust.items.forEach(item => {
       const val = inputEl ? inputEl.value.trim() : "";
       const selectEl = document.getElementById(`select_loai_${item.rowIndex}`);
       const selectedType = selectEl ? selectEl.value.trim() : "";
-      const loaiChiSoVal = selectedType !== "" ? selectedType : "DDK";
+      const loaiChiSoVal = selectedType !== "" ? selectedType : "";
 
       const excelItemIndex = localExcelList.findIndex(e => String(e.id_chiso) === String(item.id_chiso));
 
@@ -967,7 +967,7 @@ function renderCurrentCustomerCard(slideDirection = null) {
 
 cust.items.forEach(item => {
     const csMoiVal = (item.chiso_moi !== "" && item.chiso_moi !== undefined && item.chiso_moi !== null) ? item.chiso_moi : "";
-    const selectedLoai = (item.loai_chiso && item.loai_chiso !== "DDK") ? item.loai_chiso : "";
+    const selectedLoai = (item.loai_chiso && item.loai_chiso !== "") ? item.loai_chiso : "";
 
     html += `
       <tr id="row_${item.rowIndex}">
