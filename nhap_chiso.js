@@ -1139,10 +1139,10 @@ function nextCustomer() {
   isAnimating = true;
   const activeCard = document.getElementById("activeCustomerCard");
   if (activeCard) {
-    activeCard.classList.add("slide-left-out");
+    activeCard.classList.add("slide-up-out"); // Đổi hiệu ứng vuốt lên
     setTimeout(() => {
       currentCardIndex = (currentCardIndex >= customerKeys.length - 1) ? 0 : currentCardIndex + 1;
-      renderCurrentCustomerCard("left");
+      renderCurrentCustomerCard("up");
     }, 200);
   } else {
     currentCardIndex = (currentCardIndex >= customerKeys.length - 1) ? 0 : currentCardIndex + 1;
@@ -1155,10 +1155,10 @@ function prevCustomer() {
   isAnimating = true;
   const activeCard = document.getElementById("activeCustomerCard");
   if (activeCard) {
-    activeCard.classList.add("slide-right-out");
+    activeCard.classList.add("slide-down-out"); // Đổi hiệu ứng vuốt xuống
     setTimeout(() => {
       currentCardIndex = (currentCardIndex <= 0) ? customerKeys.length - 1 : currentCardIndex - 1;
-      renderCurrentCustomerCard("right");
+      renderCurrentCustomerCard("down");
     }, 200);
   } else {
     currentCardIndex = (currentCardIndex <= 0) ? customerKeys.length - 1 : currentCardIndex - 1;
@@ -1198,16 +1198,18 @@ function setupSwipeEvents() {
 
   window.addEventListener('keydown', (e) => {
     if (["INPUT", "TEXTAREA", "SELECT"].includes(document.activeElement.tagName)) return;
-    if (e.key === "ArrowLeft") prevCustomer();
-    else if (e.key === "ArrowRight") nextCustomer();
+    if (e.key === "ArrowUp") prevCustomer();     // Chuyển phím mũi tên thành lên/xuống
+    else if (e.key === "ArrowDown") nextCustomer();
   });
 }
 
 function handleSwipeGesture(startX, startY, endX, endY) {
   let diffX = startX - endX;
   let diffY = startY - endY;
-  if (Math.abs(diffX) > Math.abs(diffY) && Math.abs(diffX) > 40) {
-    if (diffX > 0) nextCustomer(); else prevCustomer();
+  // Ưu tiên bắt khoảng cách vuốt theo chiều dọc (Y) lớn hơn chiều ngang (X)
+  if (Math.abs(diffY) > Math.abs(diffX) && Math.abs(diffY) > 40) {
+    if (diffY > 0) nextCustomer(); // Vuốt lên -> sang khách hàng tiếp theo
+    else prevCustomer();           // Vuốt xuống -> về khách hàng trước
   }
 }
 
