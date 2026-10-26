@@ -388,38 +388,40 @@ async function cancelCustomerData(maKhang) {
 
   const cancelledItems = [];
 
-  cust.items.forEach(item => {
-    item.chiso_moi = "";
-    item.san_luong = "";
-    item.tong_sluong = "";
-    item.chenh_lech = "";
-    item.tyle_clech = "";
-    item.ghi_chu = "";
-    item.ngay_nhap = "";
-    item.nguoi_nhap = "";
-    item.tthai_dongbo = "0";
-    item.hinh_cto = "";
+cust.items.forEach(item => {
+      item.chiso_moi = "";
+      item.san_luong = "";
+      item.tong_sluong = "";
+      item.chenh_lech = "";
+      item.tyle_clech = "";
+      item.ghi_chu = "";
+      item.loai_chiso = null;
+      item.ngay_nhap = "";
+      item.nguoi_nhap = "";
+      item.tthai_dongbo = "0";
+      item.hinh_cto = "";
 
-    const excelItemIndex = localExcelList.findIndex(e => String(e.id_chiso) === String(item.id_chiso));
-    if (excelItemIndex !== -1) {
-      localExcelList[excelItemIndex].chiso_moi = "";
-      localExcelList[excelItemIndex].san_luong = "";
-      localExcelList[excelItemIndex].tong_sluong = "";
-      localExcelList[excelItemIndex].chenh_lech = "";
-      localExcelList[excelItemIndex].tyle_clech = "";
-      localExcelList[excelItemIndex].ghi_chu = "";
-      localExcelList[excelItemIndex].ngay_nhap = "";
-      localExcelList[excelItemIndex].nguoi_nhap = "";
-      localExcelList[excelItemIndex].tthai_dongbo = "0";
-      localExcelList[excelItemIndex].hinh_cto = "";
-      
-      cancelledItems.push({
-        ...localExcelList[excelItemIndex],
-        type: "CANCEL",
-        hinh_cto: oldCloudUrl
-      });
-    }
-  });
+      const excelItemIndex = localExcelList.findIndex(e => String(e.id_chiso) === String(item.id_chiso));
+      if (excelItemIndex !== -1) {
+        localExcelList[excelItemIndex].chiso_moi = "";
+        localExcelList[excelItemIndex].san_luong = "";
+        localExcelList[excelItemIndex].tong_sluong = "";
+        localExcelList[excelItemIndex].chenh_lech = "";
+        localExcelList[excelItemIndex].tyle_clech = "";
+        localExcelList[excelItemIndex].ghi_chu = "";
+        localExcelList[excelItemIndex].loai_chiso = null;
+        localExcelList[excelItemIndex].ngay_nhap = "";
+        localExcelList[excelItemIndex].nguoi_nhap = "";
+        localExcelList[excelItemIndex].tthai_dongbo = "0";
+        localExcelList[excelItemIndex].hinh_cto = "";
+        
+        cancelledItems.push({
+          ...localExcelList[excelItemIndex],
+          type: "CANCEL",
+          hinh_cto: oldCloudUrl
+        });
+      }
+    });
 
   localStorage.setItem(csKey, JSON.stringify(localExcelList));
   showToast("✂ Đã hủy toàn bộ dữ liệu & hình ảnh!");
