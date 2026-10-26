@@ -566,7 +566,7 @@ function showSyncOverlay() {
     // Vòng tròn xoay và dòng chữ thông báo nằm ngay bên dưới
     overlay.innerHTML = `
       <div style="width:50px;height:50px;border:5px solid rgba(255,255,255,0.3);border-top:5px solid #ffffff;border-radius:50%;animation:spinOverlay 1s linear infinite;margin-bottom:12px;"></div>
-      <div style="color:#ffffff;font-size:15px;font-weight:bold;text-shadow:0 1px 3px rgba(0,0,0,0.6);">Đang đồng bộ...</div>
+      <div style="color:#ffffff;font-size:15px;font-weight:bold;text-shadow:0 1px 3px rgba(0,0,0,0.6);">Đang gữi dữ liệu...</div>
     `;
     
     // Thêm keyframes animation cho vòng tròn quay nếu chưa có
