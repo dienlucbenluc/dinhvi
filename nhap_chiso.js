@@ -965,8 +965,9 @@ function renderCurrentCustomerCard(slideDirection = null) {
           <tbody>
   `;
 
-  cust.items.forEach(item => {
+cust.items.forEach(item => {
     const csMoiVal = (item.chiso_moi !== "" && item.chiso_moi !== undefined && item.chiso_moi !== null) ? item.chiso_moi : "";
+    const selectedLoai = (item.loai_chiso && item.loai_chiso !== "DDK") ? item.loai_chiso : "";
 
     html += `
       <tr id="row_${item.rowIndex}">
@@ -984,12 +985,12 @@ function renderCurrentCustomerCard(slideDirection = null) {
         <td id="tong_sl_${item.rowIndex}" class="val-calc-large text-right">${item.tong_sluong !== "" && item.tong_sluong !== undefined ? item.tong_sluong : '-'}</td>
         <td class="text-center">
           <select class="select-loai" id="select_loai_${item.rowIndex}" onchange="handleComboboxChange('${cust.ma_khang}', '${item.bcs}', ${item.rowIndex}, ${item.chiso_cu || 0}, ${item.hsn || 1}, ${item.sluong_thao || 0}, ${item.sluong_kt || 0})">
-            <option value="">--</option>
-            <option value="U">U : Không xài</option>
-            <option value="V">V : Tạm tính</option>
-            <option value="Q">Q : Qua vòng</option>
-            <option value="H">H : Hư hỏng</option>
-            <option value="M">M : Mất công tơ</option>
+            <option value="" ${selectedLoai === "" ? "selected" : ""}>--</option>
+            <option value="U" ${selectedLoai === "U" ? "selected" : ""}>U : Không xài</option>
+            <option value="V" ${selectedLoai === "V" ? "selected" : ""}>V : Tạm tính</option>
+            <option value="Q" ${selectedLoai === "Q" ? "selected" : ""}>Q : Qua vòng</option>
+            <option value="H" ${selectedLoai === "H" ? "selected" : ""}>H : Hư hỏng</option>
+            <option value="M" ${selectedLoai === "M" ? "selected" : ""}>M : Mất công tơ</option>
           </select>
         </td>
       </tr>
