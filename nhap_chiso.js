@@ -51,10 +51,9 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   initLocalExcelStore();
   await checkAndLoadInitialData();
-  // Đã bỏ setupSwipeEvents() theo yêu cầu
 
   window.addEventListener("online", async () => {
-    showToast("📶 Đã kết nối mạng. Đang xử lý đồng bộ...");
+    showToast("📶 Đang kết nối mạng. Đang xử lý đồng bộ...");
     await syncLocalExcelToSheet();
   });
 });
@@ -105,7 +104,7 @@ async function checkAndLoadInitialData() {
     return;
   }
 
-  showToast("⏳ Đang lấy dữ liệu chỉ số (v1.1.3)...");
+  showToast("⏳ Đang lấy dữ liệu chỉ số (v1.1.4)...");
   try {
     const res = await fetch(API_URL, {
       method: "POST",
@@ -233,7 +232,7 @@ async function saveCustomerData(maKhang) {
       
       const tongSluong = sanLuong + sluongThao;
 
-if (sluongKt > 0) {
+      if (sluongKt > 0) {
         const percentChange = ((tongSluong - sluongKt) / sluongKt) * 100;
         if (Math.abs(percentChange) >= 50 && (tongSluong > 100 || sluongKt > 100)) {
           needPhoto = true;
@@ -261,9 +260,10 @@ if (sluongKt > 0) {
   if (ghiChuEl) cust.ghi_chu = ghiChuEl.value.trim();
 
   let cloudUrl = cust.hinh_cto || "";
+  
+  // 🟢 Đồng bộ ảnh ngầm âm thầm lên Cloudinary (KHÔNG hiện showSyncOverlay)
   if (currentCapturedFiles[maKhang] && navigator.onLine) {
     try {
-      showToast("⏳ Đang tải ảnh lên Cloudinary...");
       cloudUrl = await uploadToCloudinary(currentCapturedFiles[maKhang], maKhang);
       delete currentCapturedFiles[maKhang];
       let offlineImgs = JSON.parse(localStorage.getItem(getOfflineImagesKey()) || "{}");
@@ -358,11 +358,8 @@ if (sluongKt > 0) {
   updateSummaryBar();
   renderCurrentCustomerCard();
 
-  if (hasNewPhoto && navigator.onLine) {
-    await syncLocalExcelToSheet(false);
-  } else {
-    await checkAndAutoSync();
-  }
+  // Kiểm tra nếu đủ mốc 10 khách hàng thì sync tự động (hiện showSyncOverlay)
+  await checkAndAutoSync();
 }
 
 async function cancelCustomerData(maKhang) {
@@ -372,7 +369,7 @@ async function cancelCustomerData(maKhang) {
   const cust = groupedData[maKhang];
   if (!cust) return;
 
-  showSyncOverlay(); // 🟢 Thêm hiển thị lớp phủ đồng bộ/đang xử lý
+  showSyncOverlay(); // 🟢 Giữ lại showSyncOverlay khi Hủy dữ liệu
 
   const csKey = getExcelKeyChiSo();
   const imgKey = getOfflineImagesKey();
@@ -453,10 +450,10 @@ async function cancelCustomerData(maKhang) {
     } catch (e) {
       showToast("❌ Lỗi kết nối khi đồng bộ hủy lên server!");
     } finally {
-      hideSyncOverlay(); // 🟢 Ẩn lớp phủ sau khi server phản hồi xong
+      hideSyncOverlay(); 
     }
   } else {
-    hideSyncOverlay(); // 🟢 Ẩn lớp phủ nếu ngoại tuyến hoặc không cần gọi API
+    hideSyncOverlay(); 
   }
 }
 
@@ -537,7 +534,7 @@ async function handleSendDataBtn() {
   const confirm = await showCustomConfirm("GỬI DỮ LIỆU", "Bạn muốn gửi dữ liệu chỉ số lên server không?");
   if (!confirm) return;
 
-  await syncLocalExcelToSheet(true);
+  await syncLocalExcelToSheet(true); // 🟢 Bấm nút Gửi thủ công -> hiện showSyncOverlay
 }
 
 async function checkAndAutoSync() {
@@ -548,14 +545,12 @@ async function checkAndAutoSync() {
     item.chiso_moi !== "" && item.chiso_moi !== null && item.chiso_moi !== undefined
   ).length;
 
+  // 🟢 Chỉ tự động gọi hiện showSyncOverlay khi số lượng đủ mốc bội số của 10 khách hàng
   if (validRowsCount >= 10 && validRowsCount % 10 === 0 && navigator.onLine) {
     await syncLocalExcelToSheet(false);
   }
 }
 
-/* ==========================================================================
-   THÊM LỚP PHỦ FULL MÀN HÌNH KHI ĐỒNG BỘ DỮ LIỆU LÊN SERVER
-   ========================================================================== */
 function showSyncOverlay() {
   let overlay = document.getElementById("syncOverlay");
   if (!overlay) {
@@ -563,13 +558,11 @@ function showSyncOverlay() {
     overlay.id = "syncOverlay";
     overlay.style.cssText = "position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.4);z-index:99999;display:flex;flex-direction:column;justify-content:center;align-items:center;pointer-events:all;";
     
-    // Vòng tròn xoay và dòng chữ thông báo nằm ngay bên dưới
     overlay.innerHTML = `
       <div style="width:50px;height:50px;border:5px solid rgba(255,255,255,0.3);border-top:5px solid #ffffff;border-radius:50%;animation:spinOverlay 1s linear infinite;margin-bottom:12px;"></div>
       <div style="color:#ffffff;font-size:15px;font-weight:bold;text-shadow:0 1px 3px rgba(0,0,0,0.6);">Đang gữi dữ liệu...</div>
     `;
     
-    // Thêm keyframes animation cho vòng tròn quay nếu chưa có
     if (!document.getElementById("syncOverlayStyle")) {
       const style = document.createElement("style");
       style.id = "syncOverlayStyle";
@@ -593,7 +586,7 @@ function hideSyncOverlay() {
 async function syncLocalExcelToSheet(isManual = false) {
   if (!navigator.onLine) return false;
 
-  showSyncOverlay(); // Hiển thị lớp phủ khóa màn hình khi bắt đầu đồng bộ
+  showSyncOverlay(); // 🟢 Bật lớp phủ khi tiến hành đồng bộ hàng loạt lên server
 
   try {
     showToast("⏳ Đang đẩy ảnh lên Cloudinary...");
@@ -649,7 +642,7 @@ async function syncLocalExcelToSheet(isManual = false) {
     showToast("❌ Lỗi kết nối đồng bộ server!");
     return false;
   } finally {
-    hideSyncOverlay(); // Ẩn lớp phủ khi hoàn tất (thành công hoặc lỗi)
+    hideSyncOverlay(); // 🟢 Ẩn lớp phủ hoàn tất
   }
 }
 
@@ -1132,7 +1125,7 @@ function nextCustomer() {
   isAnimating = true;
   const activeCard = document.getElementById("activeCustomerCard");
   if (activeCard) {
-    activeCard.classList.add("slide-up-out"); // Đổi hiệu ứng vuốt lên
+    activeCard.classList.add("slide-up-out");
     setTimeout(() => {
       currentCardIndex = (currentCardIndex >= customerKeys.length - 1) ? 0 : currentCardIndex + 1;
       renderCurrentCustomerCard("up");
@@ -1148,7 +1141,7 @@ function prevCustomer() {
   isAnimating = true;
   const activeCard = document.getElementById("activeCustomerCard");
   if (activeCard) {
-    activeCard.classList.add("slide-down-out"); // Đổi hiệu ứng vuốt xuống
+    activeCard.classList.add("slide-down-out");
     setTimeout(() => {
       currentCardIndex = (currentCardIndex <= 0) ? customerKeys.length - 1 : currentCardIndex - 1;
       renderCurrentCustomerCard("down");
@@ -1156,53 +1149,6 @@ function prevCustomer() {
   } else {
     currentCardIndex = (currentCardIndex <= 0) ? customerKeys.length - 1 : currentCardIndex - 1;
     renderCurrentCustomerCard();
-  }
-}
-
-function setupSwipeEvents() {
-  const container = document.getElementById("listContainer");
-  let startX = 0, startY = 0, isMouseDown = false;
-
-  container.addEventListener('touchstart', (e) => {
-    if (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA" || e.target.tagName === "SELECT") return;
-    startX = e.touches[0].clientX;
-    startY = e.touches[0].clientY;
-  }, { passive: true });
-
-  container.addEventListener('touchend', (e) => {
-    if (!startX || !startY || isAnimating) return;
-    handleSwipeGesture(startX, startY, e.changedTouches[0].clientX, e.changedTouches[0].clientY);
-    startX = 0; startY = 0;
-  }, { passive: true });
-
-  container.addEventListener('mousedown', (e) => {
-    if (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA" || e.target.tagName === "SELECT" || e.target.closest("button")) return;
-    isMouseDown = true; startX = e.clientX; startY = e.clientY;
-    container.style.cursor = "grabbing";
-  });
-
-  window.addEventListener('mouseup', (e) => {
-    if (!isMouseDown) return;
-    isMouseDown = false; container.style.cursor = "default";
-    if (!startX || !startY || isAnimating) return;
-    handleSwipeGesture(startX, startY, e.clientX, e.clientY);
-    startX = 0; startY = 0;
-  });
-
-  window.addEventListener('keydown', (e) => {
-    if (["INPUT", "TEXTAREA", "SELECT"].includes(document.activeElement.tagName)) return;
-    if (e.key === "ArrowUp") prevCustomer();     // Chuyển phím mũi tên thành lên/xuống
-    else if (e.key === "ArrowDown") nextCustomer();
-  });
-}
-
-function handleSwipeGesture(startX, startY, endX, endY) {
-  let diffX = startX - endX;
-  let diffY = startY - endY;
-  // Ưu tiên bắt khoảng cách vuốt theo chiều dọc (Y) lớn hơn chiều ngang (X)
-  if (Math.abs(diffY) > Math.abs(diffX) && Math.abs(diffY) > 40) {
-    if (diffY > 0) nextCustomer(); // Vuốt lên -> sang khách hàng tiếp theo
-    else prevCustomer();           // Vuốt xuống -> về khách hàng trước
   }
 }
 
@@ -1380,7 +1326,6 @@ function filterData() {
   const q = document.getElementById("searchInput").value.toLowerCase().trim();
   if (!q) return;
   
-  // Tìm mã khách hàng trong danh sách hiện tại
   const targetIndex = customerKeys.findIndex(makh => {
     const cust = groupedData[makh];
     return (
@@ -1402,18 +1347,13 @@ function filterData() {
     const cardElement = document.getElementById(`customer_card_${foundMakh}`);
     
     if (cardElement) {
-      // Cuộn màn hình đưa card của khách hàng này lên trên cùng
       cardElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      
-      // Tạo hiệu ứng chớp sáng nhẹ để bác dễ nhận diện thẻ được tìm thấy
       cardElement.style.transition = "background-color 0.5s";
       cardElement.style.backgroundColor = "#e8f4fd";
       setTimeout(() => {
         cardElement.style.backgroundColor = "";
       }, 1500);
     }
-    
-    //showToast(`🔍 Tìm thấy KH ở STT ${targetIndex + 1} và đã đưa lên trên`);
   } else {
     showToast("❌ Không tìm thấy thông tin phù hợp!");
   }
