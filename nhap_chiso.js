@@ -51,10 +51,11 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   initLocalExcelStore();
   await checkAndLoadInitialData();
+  // Đã bỏ setupSwipeEvents() theo yêu cầu
 
   window.addEventListener("online", async () => {
     showToast("📶 Đã kết nối mạng. Đang xử lý đồng bộ...");
-    await syncLocalExcelToSheet(false, false);
+    await syncLocalExcelToSheet();
   });
 });
 
@@ -104,7 +105,7 @@ async function checkAndLoadInitialData() {
     return;
   }
 
-  showToast("⏳ Đang lấy dữ liệu chỉ số (v1.1.5)...");
+  showToast("⏳ Đang lấy dữ liệu chỉ số (v1.1.4)...");
   try {
     const res = await fetch(API_URL, {
       method: "POST",
@@ -358,8 +359,9 @@ async function saveCustomerData(maKhang) {
   renderCurrentCustomerCard();
 
   if (hasNewPhoto && navigator.onLine) {
-    // Đồng bộ ngay khi có chụp ảnh nhưng KHÔNG hiện showSyncOverlay() (truyền showOverlay = false)
-    await syncLocalExcelToSheet(false, false);
+    // Yêu cầu 1: Thay thế showSyncOverlay() bằng showToast khi khách hàng có chụp ảnh
+    showToast("⏳ Đang đồng bộ ảnh và dữ liệu lên server...");
+    await syncLocalExcelToSheet(false);
   } else {
     await checkAndAutoSync();
   }
@@ -372,7 +374,8 @@ async function cancelCustomerData(maKhang) {
   const cust = groupedData[maKhang];
   if (!cust) return;
 
-  showSyncOverlay(); // Hiển thị lớp phủ khi hủy dữ liệu
+  // Yêu cầu 2: Chỉ hiện showSyncOverlay() khi bấm hủy dữ liệu
+  showSyncOverlay(); 
 
   const csKey = getExcelKeyChiSo();
   const imgKey = getOfflineImagesKey();
@@ -537,26 +540,17 @@ async function handleSendDataBtn() {
   const confirm = await showCustomConfirm("GỬI DỮ LIỆU", "Bạn muốn gửi dữ liệu chỉ số lên server không?");
   if (!confirm) return;
 
-  // Bấm nút đồng bộ dữ liệu lên server -> Hiện showSyncOverlay() (truyền showOverlay = true)
-  await syncLocalExcelToSheet(true, true);
+  // Yêu cầu 2: Chỉ hiện showSyncOverlay() khi bấm nút đồng bộ dữ liệu lên server
+  await syncLocalExcelToSheet(true);
 }
 
 async function checkAndAutoSync() {
-  const csKey = getExcelKeyChiSo();
-  const localExcelList = JSON.parse(localStorage.getItem(csKey) || "[]");
-  
-  const validRowsCount = localExcelList.filter(item => 
-    item.chiso_moi !== "" && item.chiso_moi !== null && item.chiso_moi !== undefined
-  ).length;
-
-  if (validRowsCount >= 10 && validRowsCount % 10 === 0 && navigator.onLine) {
-    // Nhập đủ 10 khách hàng -> Hiện showSyncOverlay() (truyền showOverlay = true)
-    await syncLocalExcelToSheet(false, true);
-  }
+  // Đã bỏ việc tự động chạy đồng bộ ngầm khi đủ 10 khách hàng theo yêu cầu số 2
+  return;
 }
 
 /* ==========================================================================
-   LỚP PHỦ FULL MÀN HÌNH KHI ĐỒNG BỘ DỮ LIỆU LÊN SERVER
+   LỚP PHỦ FULL MÀN HÌNH KHI ĐỒNG BỘ DỮ LIỆU LÊN SERVER / HỦY
    ========================================================================== */
 function showSyncOverlay() {
   let overlay = document.getElementById("syncOverlay");
@@ -590,10 +584,11 @@ function hideSyncOverlay() {
   }
 }
 
-async function syncLocalExcelToSheet(isManual = false, showOverlay = false) {
+async function syncLocalExcelToSheet(isManual = false) {
   if (!navigator.onLine) return false;
 
-  if (showOverlay) {
+  // Yêu cầu 2: Chỉ hiện showSyncOverlay() khi thao tác đồng bộ thủ công (hoặc hủy)
+  if (isManual) {
     showSyncOverlay(); 
   }
 
@@ -651,7 +646,7 @@ async function syncLocalExcelToSheet(isManual = false, showOverlay = false) {
     showToast("❌ Lỗi kết nối đồng bộ server!");
     return false;
   } finally {
-    if (showOverlay) {
+    if (isManual) {
       hideSyncOverlay(); 
     }
   }
@@ -1163,7 +1158,7 @@ function prevCustomer() {
   }
 }
 
-function handleComboboxChange(maKhang, bcs, rowIndex, csCu, hsn, sluongThao, sluongKt) {
+async function handleComboboxChange(maKhang, bcs, rowIndex, csCu, hsn, sluongThao, sluongKt) {
   const selectEl = document.getElementById(`select_loai_${rowIndex}`);
   const valType = selectEl ? selectEl.value : "";
   const inputEl = document.getElementById(`cs_moi_${rowIndex}`);
