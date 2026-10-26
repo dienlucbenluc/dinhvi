@@ -105,7 +105,7 @@ async function checkAndLoadInitialData() {
     return;
   }
 
-  showToast("⏳ Đang lấy dữ liệu chỉ số (v1.1.6)...");
+  showToast("⏳ Đang lấy dữ liệu chỉ số (v1.1.7)...");
   try {
     const res = await fetch(API_URL, {
       method: "POST",
@@ -235,7 +235,7 @@ async function saveCustomerData(maKhang) {
 
       if (sluongKt > 0) {
         const percentChange = ((tongSluong - sluongKt) / sluongKt) * 100;
-        if (Math.abs(percentChange) >= 50 && (tongSluong > 100 || sluongKt > 100)) {
+        if (Math.abs(percentChange) >= 50) {
           needPhoto = true;
           const sign = percentChange > 0 ? "+" : "";
           warnMessage += `• BCS [${item.bcs}]: Sản lượng ${tongSluong} kW (Kỳ trước ${sluongKt} kW, biến động ${sign}${percentChange.toFixed(1)}%)\n`;
@@ -359,8 +359,7 @@ async function saveCustomerData(maKhang) {
   renderCurrentCustomerCard();
 
   if (hasNewPhoto && navigator.onLine) {
-    // Yêu cầu 1: Thay thế showSyncOverlay() bằng showToast khi khách hàng có chụp ảnh
-    showToast("⏳ Đang đồng bộ ảnh và dữ liệu lên server...");
+    showToast("⏳ Đang đồng bộ ảnh và dữ liệu lên server..."); // Yêu cầu 1: thay thế showSyncOverlay() bằng showToast
     await syncLocalExcelToSheet(false);
   } else {
     await checkAndAutoSync();
@@ -374,8 +373,7 @@ async function cancelCustomerData(maKhang) {
   const cust = groupedData[maKhang];
   if (!cust) return;
 
-  // Yêu cầu 2: Chỉ hiện showSyncOverlay() khi bấm hủy dữ liệu
-  showSyncOverlay(); 
+  showSyncOverlay(); // Yêu cầu 4: hiện showSyncOverlay khi bấm nút hủy dữ liệu
 
   const csKey = getExcelKeyChiSo();
   const imgKey = getOfflineImagesKey();
@@ -456,10 +454,10 @@ async function cancelCustomerData(maKhang) {
     } catch (e) {
       showToast("❌ Lỗi kết nối khi đồng bộ hủy lên server!");
     } finally {
-      hideSyncOverlay(); 
+      hideSyncOverlay();
     }
   } else {
-    hideSyncOverlay(); 
+    hideSyncOverlay();
   }
 }
 
@@ -540,17 +538,26 @@ async function handleSendDataBtn() {
   const confirm = await showCustomConfirm("GỬI DỮ LIỆU", "Bạn muốn gửi dữ liệu chỉ số lên server không?");
   if (!confirm) return;
 
-  // Yêu cầu 2: Chỉ hiện showSyncOverlay() khi bấm nút đồng bộ dữ liệu lên server
+  showSyncOverlay(); // Yêu cầu 3: hiện showSyncOverlay khi bấm nút đồng bộ dữ liệu
   await syncLocalExcelToSheet(true);
 }
 
 async function checkAndAutoSync() {
-  // Đã bỏ việc tự động chạy đồng bộ ngầm khi đủ 10 khách hàng theo yêu cầu số 2
-  return;
+  const csKey = getExcelKeyChiSo();
+  const localExcelList = JSON.parse(localStorage.getItem(csKey) || "[]");
+  
+  const validRowsCount = localExcelList.filter(item => 
+    item.chiso_moi !== "" && item.chiso_moi !== null && item.chiso_moi !== undefined
+  ).length;
+
+  if (validRowsCount >= 10 && validRowsCount % 10 === 0 && navigator.onLine) {
+    showSyncOverlay(); // Yêu cầu 2: hiện showSyncOverlay trong hàm đồng bộ lên server đủ chỉ số 10 khách hàng
+    await syncLocalExcelToSheet(false);
+  }
 }
 
 /* ==========================================================================
-   LỚP PHỦ FULL MÀN HÌNH KHI ĐỒNG BỘ DỮ LIỆU LÊN SERVER / HỦY
+   THÊM LỚP PHỦ FULL MÀN HÌNH KHI ĐỒNG BỘ DỮ LIỆU LÊN SERVER
    ========================================================================== */
 function showSyncOverlay() {
   let overlay = document.getElementById("syncOverlay");
@@ -559,11 +566,13 @@ function showSyncOverlay() {
     overlay.id = "syncOverlay";
     overlay.style.cssText = "position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.4);z-index:99999;display:flex;flex-direction:column;justify-content:center;align-items:center;pointer-events:all;";
     
+    // Vòng tròn xoay và dòng chữ thông báo nằm ngay bên dưới
     overlay.innerHTML = `
       <div style="width:50px;height:50px;border:5px solid rgba(255,255,255,0.3);border-top:5px solid #ffffff;border-radius:50%;animation:spinOverlay 1s linear infinite;margin-bottom:12px;"></div>
       <div style="color:#ffffff;font-size:15px;font-weight:bold;text-shadow:0 1px 3px rgba(0,0,0,0.6);">Đang gữi dữ liệu...</div>
     `;
     
+    // Thêm keyframes animation cho vòng tròn quay nếu chưa có
     if (!document.getElementById("syncOverlayStyle")) {
       const style = document.createElement("style");
       style.id = "syncOverlayStyle";
@@ -587,10 +596,7 @@ function hideSyncOverlay() {
 async function syncLocalExcelToSheet(isManual = false) {
   if (!navigator.onLine) return false;
 
-  // Yêu cầu 2: Chỉ hiện showSyncOverlay() khi thao tác đồng bộ thủ công (hoặc hủy)
-  if (isManual) {
-    showSyncOverlay(); 
-  }
+  showSyncOverlay(); // Hiển thị lớp phủ khóa màn hình khi bắt đầu đồng bộ
 
   try {
     showToast("⏳ Đang đẩy ảnh lên Cloudinary...");
@@ -646,9 +652,7 @@ async function syncLocalExcelToSheet(isManual = false) {
     showToast("❌ Lỗi kết nối đồng bộ server!");
     return false;
   } finally {
-    if (isManual) {
-      hideSyncOverlay(); 
-    }
+    hideSyncOverlay(); // Ẩn lớp phủ khi hoàn tất (thành công hoặc lỗi)
   }
 }
 
@@ -1131,7 +1135,7 @@ function nextCustomer() {
   isAnimating = true;
   const activeCard = document.getElementById("activeCustomerCard");
   if (activeCard) {
-    activeCard.classList.add("slide-up-out"); 
+    activeCard.classList.add("slide-up-out"); // Đổi hiệu ứng vuốt lên
     setTimeout(() => {
       currentCardIndex = (currentCardIndex >= customerKeys.length - 1) ? 0 : currentCardIndex + 1;
       renderCurrentCustomerCard("up");
@@ -1147,7 +1151,7 @@ function prevCustomer() {
   isAnimating = true;
   const activeCard = document.getElementById("activeCustomerCard");
   if (activeCard) {
-    activeCard.classList.add("slide-down-out"); 
+    activeCard.classList.add("slide-down-out"); // Đổi hiệu ứng vuốt xuống
     setTimeout(() => {
       currentCardIndex = (currentCardIndex <= 0) ? customerKeys.length - 1 : currentCardIndex - 1;
       renderCurrentCustomerCard("down");
@@ -1155,6 +1159,53 @@ function prevCustomer() {
   } else {
     currentCardIndex = (currentCardIndex <= 0) ? customerKeys.length - 1 : currentCardIndex - 1;
     renderCurrentCustomerCard();
+  }
+}
+
+function setupSwipeEvents() {
+  const container = document.getElementById("listContainer");
+  let startX = 0, startY = 0, isMouseDown = false;
+
+  container.addEventListener('touchstart', (e) => {
+    if (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA" || e.target.tagName === "SELECT") return;
+    startX = e.touches[0].clientX;
+    startY = e.touches[0].clientY;
+  }, { passive: true });
+
+  container.addEventListener('touchend', (e) => {
+    if (!startX || !startY || isAnimating) return;
+    handleSwipeGesture(startX, startY, e.changedTouches[0].clientX, e.changedTouches[0].clientY);
+    startX = 0; startY = 0;
+  }, { passive: true });
+
+  container.addEventListener('mousedown', (e) => {
+    if (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA" || e.target.tagName === "SELECT" || e.target.closest("button")) return;
+    isMouseDown = true; startX = e.clientX; startY = e.clientY;
+    container.style.cursor = "grabbing";
+  });
+
+  window.addEventListener('mouseup', (e) => {
+    if (!isMouseDown) return;
+    isMouseDown = false; container.style.cursor = "default";
+    if (!startX || !startY || isAnimating) return;
+    handleSwipeGesture(startX, startY, e.clientX, e.clientY);
+    startX = 0; startY = 0;
+  });
+
+  window.addEventListener('keydown', (e) => {
+    if (["INPUT", "TEXTAREA", "SELECT"].includes(document.activeElement.tagName)) return;
+    if (e.key === "ArrowUp") prevCustomer();     // Chuyển phím mũi tên thành lên/xuống
+    else if (e.key === "ArrowDown") nextCustomer();
+  });
+}
+
+function handleSwipeGesture(startX, startY, endX, endY) {
+  let diffX = startX - endX;
+  let diffY = startY - endY;
+  // Ưu tiên bắt khoảng cách vuốt theo chiều dọc (Y) lớn hơn chiều ngang (X)
+  if (Math.abs(diffY) > Math.abs(diffX) && Math.abs(diffY) > 40) {
+    if (diffY > 0) nextCustomer(); // Vuốt lên -> sang khách hàng tiếp theo
+    else prevCustomer();           // Vuốt xuống -> về khách hàng trước
   }
 }
 
@@ -1354,6 +1405,7 @@ function filterData() {
     
     if (cardElement) {
       cardElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      
       cardElement.style.transition = "background-color 0.5s";
       cardElement.style.backgroundColor = "#e8f4fd";
       setTimeout(() => {
