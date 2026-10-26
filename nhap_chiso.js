@@ -105,7 +105,7 @@ async function checkAndLoadInitialData() {
     return;
   }
 
-  showToast("⏳ Đang lấy dữ liệu chỉ số (v1.0.2)...");
+  showToast("⏳ Đang lấy dữ liệu chỉ số (v1.0.3)...");
   try {
     const res = await fetch(API_URL, {
       method: "POST",
@@ -300,7 +300,7 @@ cust.items.forEach(item => {
       const val = inputEl ? inputEl.value.trim() : "";
       const selectEl = document.getElementById(`select_loai_${item.rowIndex}`);
       const selectedType = selectEl ? selectEl.value.trim() : "";
-      const loaiChiSoVal = selectedType !== "" ? selectedType : "";
+      const maTTCtoVal = selectedType !== "" ? selectedType : "";
 
       const excelItemIndex = localExcelList.findIndex(e => String(e.id_chiso) === String(item.id_chiso));
 
