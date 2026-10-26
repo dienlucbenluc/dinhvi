@@ -105,7 +105,7 @@ async function checkAndLoadInitialData() {
     return;
   }
 
-  showToast("⏳ Đang lấy dữ liệu chỉ số (v1.1.2)...");
+  showToast("⏳ Đang lấy dữ liệu chỉ số (v1.1.3)...");
   try {
     const res = await fetch(API_URL, {
       method: "POST",
@@ -372,6 +372,8 @@ async function cancelCustomerData(maKhang) {
   const cust = groupedData[maKhang];
   if (!cust) return;
 
+  showSyncOverlay(); // 🟢 Thêm hiển thị lớp phủ đồng bộ/đang xử lý
+
   const csKey = getExcelKeyChiSo();
   const imgKey = getOfflineImagesKey();
   const localExcelList = JSON.parse(localStorage.getItem(csKey) || "[]");
@@ -450,7 +452,11 @@ async function cancelCustomerData(maKhang) {
       }
     } catch (e) {
       showToast("❌ Lỗi kết nối khi đồng bộ hủy lên server!");
+    } finally {
+      hideSyncOverlay(); // 🟢 Ẩn lớp phủ sau khi server phản hồi xong
     }
+  } else {
+    hideSyncOverlay(); // 🟢 Ẩn lớp phủ nếu ngoại tuyến hoặc không cần gọi API
   }
 }
 
