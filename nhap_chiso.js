@@ -105,7 +105,7 @@ async function checkAndLoadInitialData() {
     return;
   }
 
-  showToast("⏳ Đang lấy dữ liệu chỉ số (v1.0.8)...");
+  showToast("⏳ Đang lấy dữ liệu chỉ số (v1.0.9)...");
   try {
     const res = await fetch(API_URL, {
       method: "POST",
@@ -1373,6 +1373,8 @@ function showAllData() {
 function filterData() {
   const q = document.getElementById("searchInput").value.toLowerCase().trim();
   if (!q) return;
+  
+  // Tìm mã khách hàng trong danh sách hiện tại
   const targetIndex = customerKeys.findIndex(makh => {
     const cust = groupedData[makh];
     return (
@@ -1390,18 +1392,22 @@ function filterData() {
   });
 
   if (targetIndex !== -1) {
-    // Lấy mã khách hàng tìm được
     const foundMakh = customerKeys[targetIndex];
+    const cardElement = document.getElementById(`customer_card_${foundMakh}`);
     
-    // Đưa mã khách hàng đó lên đầu mảng customerKeys
-    customerKeys.splice(targetIndex, 1);
-    customerKeys.unshift(foundMakh);
+    if (cardElement) {
+      // Cuộn màn hình đưa card của khách hàng này lên trên cùng
+      cardElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      
+      // Tạo hiệu ứng chớp sáng nhẹ để bác dễ nhận diện thẻ được tìm thấy
+      cardElement.style.transition = "background-color 0.5s";
+      cardElement.style.backgroundColor = "#e8f4fd";
+      setTimeout(() => {
+        cardElement.style.backgroundColor = "";
+      }, 1500);
+    }
     
-    // Đặt lại vị trí hiển thị về đầu danh sách (index = 0) và render lại
-    currentCardIndex = 0;
-    renderCurrentCustomerCard();
-    
-    //showToast(`🔍 Đã đưa khách hàng ${foundMakh} lên trên cùng`);
+    showToast(`🔍 Tìm thấy KH ở STT ${targetIndex + 1} và đã đưa lên trên`);
   } else {
     showToast("❌ Không tìm thấy thông tin phù hợp!");
   }
