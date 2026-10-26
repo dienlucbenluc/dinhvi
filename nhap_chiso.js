@@ -925,7 +925,7 @@ function openNoteDialogForLocation(index, safeKey) {
       <div id="noteLocationModal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:9999;justify-content:center;align-items:center;">
         <div style="background:#fff;padding:20px;border-radius:8px;width:90%;max-width:350px;box-sizing:border-box;">
           <h3 style="margin-top:0;font-size:16px;text-align:center;color:red;">NHẬP CHI TIẾT VỊ TRÍ CÔNG TƠ</h3>
-          <input type="text" id="inputLocationNote" placeholder="Nhập chi tiết vị trí công tơ..." style="width:100%;padding:8px;box-sizing:border-box;margin-bottom:15px;border:1px solid #ccc;border-radius:4px;" oninput="validateNoteInput()">
+          <input type="text" id="inputLocationNote" placeholder="Số trụ, mô tả sơ bộ vị trí công tơ..." style="width:100%;padding:8px;box-sizing:border-box;margin-bottom:15px;border:1px solid #ccc;border-radius:4px;" oninput="validateNoteInput()">
           <div style="display:flex;justify-content:center;gap:10px;">
             <button type="button" onclick="closeNoteDialog()" style="width:110px;padding:6px 12px;background:#FFB6C1;border:none;border-radius:4px;cursor:pointer;">❎  Thoát</button>
             <button type="button" id="btnExecuteGetLocation" onclick="executeGetLocationWithNote()" style="width:110px;padding:6px 12px;background:#007bff;color:#fff;border:none;border-radius:4px;cursor:pointer;opacity:0.5;pointer-events:none;">📍 Thực hiện</button>
