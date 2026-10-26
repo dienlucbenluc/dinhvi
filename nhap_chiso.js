@@ -233,9 +233,9 @@ async function saveCustomerData(maKhang) {
       
       const tongSluong = sanLuong + sluongThao;
 
-      if (sluongKt > 0) {
+if (sluongKt > 0) {
         const percentChange = ((tongSluong - sluongKt) / sluongKt) * 100;
-        if (Math.abs(percentChange) >= 50) {
+        if (Math.abs(percentChange) >= 50 && (tongSluong > 100 || sluongKt > 100)) {
           needPhoto = true;
           const sign = percentChange > 0 ? "+" : "";
           warnMessage += `• BCS [${item.bcs}]: Sản lượng ${tongSluong} kW (Kỳ trước ${sluongKt} kW, biến động ${sign}${percentChange.toFixed(1)}%)\n`;
