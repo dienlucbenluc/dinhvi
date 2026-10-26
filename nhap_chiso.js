@@ -927,8 +927,8 @@ function openNoteDialogForLocation(index, safeKey) {
           <h3 style="margin-top:0;font-size:16px;text-align:center;color:red;">NHẬP CHI TIẾT VỊ TRÍ CÔNG TƠ</h3>
           <input type="text" id="inputLocationNote" placeholder="Số trụ, mô tả sơ bộ vị trí công tơ..." style="width:100%;padding:8px;box-sizing:border-box;margin-bottom:15px;border:1px solid #ccc;border-radius:4px;" oninput="validateNoteInput()">
           <div style="display:flex;justify-content:center;gap:10px;">
-            <button type="button" onclick="closeNoteDialog()" style="width:110px;padding:6px 12px;background:#FFB6C1;border:none;border-radius:4px;cursor:pointer;">❎  Thoát</button>
-            <button type="button" id="btnExecuteGetLocation" onclick="executeGetLocationWithNote()" style="width:110px;padding:6px 12px;background:#007bff;color:#fff;border:none;border-radius:4px;cursor:pointer;opacity:0.5;pointer-events:none;">📍 Thực hiện</button>
+            <button type="button" onclick="closeNoteDialog()" style="width:110px;padding:6px 12px;background:#FFB6C1;border:none;border-radius:4px;cursor:pointer;font-weight: bold;">📤&nbsp;&nbsp;Thoát</button>
+            <button type="button" id="btnExecuteGetLocation" onclick="executeGetLocationWithNote()" style="width:110px;padding:6px 12px;background:#007bff;color:#000;border:none;border-radius:4px;cursor:pointer;opacity:0.5;pointer-events:none;font-weight: bold;">📍&nbsp;&nbsp;Thực hiện</button>
           </div>
         </div>
       </div>`;
