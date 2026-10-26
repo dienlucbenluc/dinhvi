@@ -51,7 +51,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   initLocalExcelStore();
   await checkAndLoadInitialData();
-  setupSwipeEvents();
+  // Đã bỏ setupSwipeEvents() theo yêu cầu
 
   window.addEventListener("online", async () => {
     showToast("📶 Đã kết nối mạng. Đang xử lý đồng bộ...");
@@ -910,7 +910,7 @@ function executeGetLocationWithNote() {
   getLocationAndSave(context.safeKey, note);
 }
 
-function renderCurrentCustomerCard(slideDirection = null) {
+function renderCurrentCustomerCard() {
   const container = document.getElementById("listContainer");
 
   if (customerKeys.length === 0) {
@@ -918,156 +918,143 @@ function renderCurrentCustomerCard(slideDirection = null) {
     return;
   }
 
-  if (currentCardIndex < 0) currentCardIndex = customerKeys.length - 1;
-  if (currentCardIndex >= customerKeys.length) currentCardIndex = 0;
+  let allCardsHtml = "";
 
-  const makh = customerKeys[currentCardIndex];
-  const cust = groupedData[makh];
-  const firstItem = cust.items[0] || {};
-  const cotTramText = [cust.so_cot, cust.ten_tram].filter(Boolean).join(" - ");
+  customerKeys.forEach((makh, index) => {
+    const cust = groupedData[makh];
+    const firstItem = cust.items[0] || {};
+    const cotTramText = [cust.so_cot, cust.ten_tram].filter(Boolean).join(" - ");
 
-  const hasLocation = Boolean(firstItem.lat && firstItem.lng);
-  let mapLinkHtml = `<a onclick="openNoteDialogForLocation(${currentCardIndex}, '${cust.ma_khang}')" style="color:red; font-size: 14px; font-weight:bold; text-decoration:none; cursor:pointer;">📍 Lấy mới định vị</a>`;
-  if (hasLocation) {
-    mapLinkHtml = `<span id="map_link_${cust.ma_khang}"><a href="http://maps.google.com/?q=${firstItem.lat},${firstItem.lng}" target="_blank" style="color:#007bff; font-weight:bold; text-decoration:none;">🌏 Xem Google Maps</a></span>`;
-  }
+    const hasLocation = Boolean(firstItem.lat && firstItem.lng);
+    let mapLinkHtml = `<a onclick="openNoteDialogForLocation(${index}, '${cust.ma_khang}')" style="color:red; font-size: 14px; font-weight:bold; text-decoration:none; cursor:pointer;">📍 Lấy mới định vị</a>`;
+    if (hasLocation) {
+      mapLinkHtml = `<span id="map_link_${cust.ma_khang}"><a href="http://maps.google.com/?q=${firstItem.lat},${firstItem.lng}" target="_blank" style="color:#007bff; font-weight:bold; text-decoration:none;">🌏 Xem Google Maps</a></span>`;
+    }
 
-  const alreadyHasCS = cust.items.some(i => i.chiso_moi !== "" && i.chiso_moi !== undefined && i.chiso_moi !== null);
+    const alreadyHasCS = cust.items.some(i => i.chiso_moi !== "" && i.chiso_moi !== undefined && i.chiso_moi !== null);
 
-  let initialClass = "";
-  if (slideDirection === "left") initialClass = "slide-left-in";
-  else if (slideDirection === "right") initialClass = "slide-right-in";
+    let offlineImgBase64 = null;
+    try {
+      const offlineImgs = JSON.parse(localStorage.getItem(getOfflineImagesKey()) || "{}");
+      offlineImgBase64 = offlineImgs[makh] || null;
+    } catch(e) {}
 
-  let offlineImgBase64 = null;
-  try {
-    const offlineImgs = JSON.parse(localStorage.getItem(getOfflineImagesKey()) || "{}");
-    offlineImgBase64 = offlineImgs[makh] || null;
-  } catch(e) {}
+    let imgPreviewHtml = "";
+    if (currentCapturedFiles[makh]) {
+      const tempUrl = URL.createObjectURL(currentCapturedFiles[makh]);
+      imgPreviewHtml = `<img src="${tempUrl}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 4px;" />`;
+    } else if (offlineImgBase64) {
+      imgPreviewHtml = `<img src="${offlineImgBase64}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 4px;" />`;
+    } else if (cust.hinh_cto) {
+      imgPreviewHtml = `<a href="${cust.hinh_cto}" target="_blank"><img src="${cust.hinh_cto}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 4px;" /></a>`;
+    } else {
+      imgPreviewHtml = `<span style="font-size: 12px; color: #888;">Khung ảnh</span>`;
+    }
 
-  let imgPreviewHtml = "";
-  if (currentCapturedFiles[makh]) {
-    const tempUrl = URL.createObjectURL(currentCapturedFiles[makh]);
-    imgPreviewHtml = `<img src="${tempUrl}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 4px;" />`;
-  } else if (offlineImgBase64) {
-    imgPreviewHtml = `<img src="${offlineImgBase64}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 4px;" />`;
-  } else if (cust.hinh_cto) {
-    imgPreviewHtml = `<a href="${cust.hinh_cto}" target="_blank"><img src="${cust.hinh_cto}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 4px;" /></a>`;
-  } else {
-    imgPreviewHtml = `<span style="font-size: 12px; color: #888;">Khung ảnh</span>`;
-  }
+    let html = `
+      <div class="customer-card" id="customer_card_${cust.ma_khang}" style="margin-bottom: 15px;">
+        <div class="cust-header">
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <span style="font-size:13px; color:#0056b3; font-weight:bold; background:#fff; padding:2px 0px; border-radius:4px;">
+              STT: ${index + 1} / ${customerKeys.length}
+            </span>
+          </div>
+          <div class="cust-title">Mã KH: ${cust.ma_khang} - <b>Số CTơ:</b> ${cust.so_cto}</div>
+          <div class="cust-tenKH">${cust.ten_khang || ''}</div>
+          <div class="cust-address" title="${cust.dia_chi || ''}"><b>Đ/C:</b> ${cust.dia_chi || ''}</div>
+          <div class="cust-row-group">
+           Sổ: ${cust.ma_sogcs}-DS: ${cust.danh_so || ''}-ĐT: ${cust.so_dthoai || ''}
+          </div>
+          <div class="cust-address"> Cột - Trạm: ${cotTramText || ''}</div>
 
-  let html = `
-    <div class="customer-card ${initialClass}" id="activeCustomerCard">
-      <div class="cust-header">
-        <div style="display:flex; justify-content:space-between; align-items:center;">
-          <span style="font-size:13px; color:#0056b3; font-weight:bold; background:#fff; padding:2px 0px; border-radius:4px;">
-            STT: ${currentCardIndex + 1} / ${customerKeys.length}
-          </span>
-          <span style="font-size:12px; color:#666;">⬅️ Vuốt để đổi KH ➡️</span>
+          <div class="cust-row-group">
+            <input type="text" class="input-ghichu" 
+                   id="ghi_chu_${cust.ma_khang}" 
+                   value="${cust.ghi_chu || ''}" 
+                   placeholder="Nhập ghi chú nếu có..." 
+                   onchange="groupedData['${cust.ma_khang}'].ghi_chu = this.value;">
+          </div>
+          <div class="box-maps">${mapLinkHtml}</div>
+          <div class="cust-dynamic-info-v2" id="detail_info_${cust.ma_khang}">
+            <span>kW tháo <span id="bcs_thao_label_${cust.ma_khang}">(${firstItem.bcs || ''})</span>: <b id="kw_thao_val_${cust.ma_khang}">${firstItem.sluong_thao || 0}</b></span>
+            <span>kW kỳ trước <span id="bcs_label_${cust.ma_khang}">(${firstItem.bcs || ''})</span>: <b id="kw_kt_val_${cust.ma_khang}">${firstItem.sluong_kt || 0}</b></span>
+          </div>
         </div>
-        <div class="cust-title">Mã KH: ${cust.ma_khang} - <b>Số CTơ:</b> ${cust.so_cto}</div>
-        <div class="cust-tenKH">${cust.ten_khang || ''}</div>
-        <div class="cust-address" title="${cust.dia_chi || ''}"><b>Đ/C:</b> ${cust.dia_chi || ''}</div>
-        <div class="cust-row-group">
-         Sổ: ${cust.ma_sogcs}-DS: ${cust.danh_so || ''}-ĐT: ${cust.so_dthoai || ''}
-        </div>
-        <div class="cust-address"> Cột - Trạm: ${cotTramText || ''}</div>
 
-        <div class="cust-row-group">
-          <input type="text" class="input-ghichu" 
-                 id="ghi_chu_${cust.ma_khang}" 
-                 value="${cust.ghi_chu || ''}" 
-                 placeholder="Nhập ghi chú nếu có..." 
-                 onchange="groupedData['${cust.ma_khang}'].ghi_chu = this.value;">
-        </div>
-        <div class="box-maps">${mapLinkHtml}</div>
-        <div class="cust-dynamic-info-v2" id="detail_info_${cust.ma_khang}">
-          <span>kW tháo <span id="bcs_thao_label_${cust.ma_khang}">(${firstItem.bcs || ''})</span>: <b id="kw_thao_val_${cust.ma_khang}">${firstItem.sluong_thao || 0}</b></span>
-          <span>kW kỳ trước <span id="bcs_label_${cust.ma_khang}">(${firstItem.bcs || ''})</span>: <b id="kw_kt_val_${cust.ma_khang}">${firstItem.sluong_kt || 0}</b></span>
-        </div>
-      </div>
+        <div class="table-responsive">
+          <table class="chiso-table">
+            <thead>
+              <tr>
+                <th style="width: 12%;">BCS</th>
+                <th style="width: 22%;">CS cũ</th>
+                <th style="width: 31%;">CS mới</th>
+                <th style="width: 20%;">Tổng kW</th>
+                <th style="width: 15%;">Loại</th>
+              </tr>
+            </thead>
+            <tbody>
+    `;
 
-      <div class="table-responsive">
-        <table class="chiso-table">
-          <thead>
-            <tr>
-              <th style="width: 12%;">BCS</th>
-              <th style="width: 22%;">CS cũ</th>
-              <th style="width: 31%;">CS mới</th>
-              <th style="width: 20%;">Tổng kW</th>
-              <th style="width: 15%;">Loại</th>
-            </tr>
-          </thead>
-          <tbody>
-  `;
+    cust.items.forEach(item => {
+      const csMoiVal = (item.chiso_moi !== "" && item.chiso_moi !== undefined && item.chiso_moi !== null) ? item.chiso_moi : "";
+      const selectedLoai = (item.ma_ttcto && item.ma_ttcto !== "") ? item.ma_ttcto : "";
 
-  cust.items.forEach(item => {
-    const csMoiVal = (item.chiso_moi !== "" && item.chiso_moi !== undefined && item.chiso_moi !== null) ? item.chiso_moi : "";
-    const selectedLoai = (item.ma_ttcto && item.ma_ttcto !== "") ? item.ma_ttcto : "";
+      html += `
+        <tr id="row_${item.rowIndex}">
+          <td class="text-center" style="padding: 6px 2px;"><span class="bcs-badge">${item.bcs}</span></td>
+          <td class="val-calc-large text-right">${item.chiso_cu}</td>
+          <td>
+            <input type="number" 
+                   class="input-cs-moi" 
+                   id="cs_moi_${item.rowIndex}" 
+                   value="${csMoiVal}"
+                   onfocus="updateKwKtDisplay('${cust.ma_khang}', '${item.bcs}', ${item.sluong_kt || 0}, ${item.sluong_thao || 0})"
+                   onchange="calculateRow('${cust.ma_khang}', '${item.bcs}', ${item.rowIndex}, ${item.chiso_cu || 0}, ${item.hsn || 1}, ${item.sluong_thao || 0}, ${item.sluong_kt || 0})">
+            <input type="hidden" id="sl_val_${item.rowIndex}" value="${item.san_luong !== "" && item.san_luong !== undefined ? item.san_luong : '-'}">
+          </td>
+          <td id="tong_sl_${item.rowIndex}" class="val-calc-large text-right">${item.tong_sluong !== "" && item.tong_sluong !== undefined ? item.tong_sluong : '-'}</td>
+          <td class="text-center">
+            <select class="select-loai" id="select_loai_${item.rowIndex}" onchange="handleComboboxChange('${cust.ma_khang}', '${item.bcs}', ${item.rowIndex}, ${item.chiso_cu || 0}, ${item.hsn || 1}, ${item.sluong_thao || 0}, ${item.sluong_kt || 0})">
+              <option value="" ${selectedLoai === "" ? "selected" : ""}>--</option>
+              <option value="U" ${selectedLoai === "U" ? "selected" : ""}>U : Không xài</option>
+              <option value="V" ${selectedLoai === "V" ? "selected" : ""}>V : Tạm tính</option>
+              <option value="Q" ${selectedLoai === "Q" ? "selected" : ""}>Q : Qua vòng</option>
+              <option value="H" ${selectedLoai === "H" ? "selected" : ""}>H : Hư hỏng</option>
+              <option value="M" ${selectedLoai === "M" ? "selected" : ""}>M : Mất công tơ</option>
+            </select>
+          </td>
+        </tr>
+      `;
+    });
+
+    const cancelDisabledAttr = (!alreadyHasCS && !cust.hinh_cto && !currentCapturedFiles[makh] && !offlineImgBase64) ? "disabled" : "";
+    const saveDisabledAttr = !hasLocation ? "disabled" : "";
 
     html += `
-      <tr id="row_${item.rowIndex}">
-        <td class="text-center" style="padding: 6px 2px;"><span class="bcs-badge">${item.bcs}</span></td>
-        <td class="val-calc-large text-right">${item.chiso_cu}</td>
-        <td>
-          <input type="number" 
-                 class="input-cs-moi" 
-                 id="cs_moi_${item.rowIndex}" 
-                 value="${csMoiVal}"
-                 onfocus="updateKwKtDisplay('${cust.ma_khang}', '${item.bcs}', ${item.sluong_kt || 0}, ${item.sluong_thao || 0})"
-                 onchange="calculateRow('${cust.ma_khang}', '${item.bcs}', ${item.rowIndex}, ${item.chiso_cu || 0}, ${item.hsn || 1}, ${item.sluong_thao || 0}, ${item.sluong_kt || 0})">
-          <input type="hidden" id="sl_val_${item.rowIndex}" value="${item.san_luong !== "" && item.san_luong !== undefined ? item.san_luong : '-'}">
-        </td>
-        <td id="tong_sl_${item.rowIndex}" class="val-calc-large text-right">${item.tong_sluong !== "" && item.tong_sluong !== undefined ? item.tong_sluong : '-'}</td>
-        <td class="text-center">
-          <select class="select-loai" id="select_loai_${item.rowIndex}" onchange="handleComboboxChange('${cust.ma_khang}', '${item.bcs}', ${item.rowIndex}, ${item.chiso_cu || 0}, ${item.hsn || 1}, ${item.sluong_thao || 0}, ${item.sluong_kt || 0})">
-            <option value="" ${selectedLoai === "" ? "selected" : ""}>--</option>
-            <option value="U" ${selectedLoai === "U" ? "selected" : ""}>U : Không xài</option>
-            <option value="V" ${selectedLoai === "V" ? "selected" : ""}>V : Tạm tính</option>
-            <option value="Q" ${selectedLoai === "Q" ? "selected" : ""}>Q : Qua vòng</option>
-            <option value="H" ${selectedLoai === "H" ? "selected" : ""}>H : Hư hỏng</option>
-            <option value="M" ${selectedLoai === "M" ? "selected" : ""}>M : Mất công tơ</option>
-          </select>
-        </td>
-      </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <input type="file" id="input_camera_${cust.ma_khang}" accept="image/*" capture="environment" style="display:none;" onchange="handleImageSelected(event, '${cust.ma_khang}')">
+        <input type="file" id="input_gallery_${cust.ma_khang}" accept="image/*" style="display:none;" onchange="handleImageSelected(event, '${cust.ma_khang}')">
+
+        <div class="card-btn-group">
+          <div id="img_preview_container_${cust.ma_khang}" style="flex: 1; height: 110px; border: 1px dashed #ccc; border-radius: 6px; display: flex; align-items: center; justify-content: center; overflow: hidden; background: #fafafa;">
+            ${imgPreviewHtml}
+          </div>
+          <div style="flex: 1; display: flex; flex-direction: column; gap: 6px;">
+            <button class="btn-card btn-card-save" id="btn_save_${cust.ma_khang}" ${saveDisabledAttr} onclick="saveCustomerData('${cust.ma_khang}')">💾 Lưu dữ liệu</button>
+            <button class="btn-card" style="background: #17a2b8;" id="btn_capture_${cust.ma_khang}" onclick="promptImageSource('${cust.ma_khang}')">📷 Chụp ảnh&nbsp;&nbsp;</button>
+            <button class="btn-card btn-card-cancel" id="btn_cancel_${cust.ma_khang}" ${cancelDisabledAttr} onclick="cancelCustomerData('${cust.ma_khang}')">✂ Hủy dữ liệu</button>
+          </div>
+        </div>
+      </div>
     `;
+
+    allCardsHtml += html;
   });
 
-  const cancelDisabledAttr = (!alreadyHasCS && !cust.hinh_cto && !currentCapturedFiles[makh] && !offlineImgBase64) ? "disabled" : "";
-  const saveDisabledAttr = !hasLocation ? "disabled" : "";
-
-  html += `
-          </tbody>
-        </table>
-      </div>
-
-      <input type="file" id="input_camera_${cust.ma_khang}" accept="image/*" capture="environment" style="display:none;" onchange="handleImageSelected(event, '${cust.ma_khang}')">
-      <input type="file" id="input_gallery_${cust.ma_khang}" accept="image/*" style="display:none;" onchange="handleImageSelected(event, '${cust.ma_khang}')">
-
-      <div class="card-btn-group">
-        <div id="img_preview_container_${cust.ma_khang}" style="flex: 1; height: 110px; border: 1px dashed #ccc; border-radius: 6px; display: flex; align-items: center; justify-content: center; overflow: hidden; background: #fafafa;">
-          ${imgPreviewHtml}
-        </div>
-        <div style="flex: 1; display: flex; flex-direction: column; gap: 6px;">
-          <button class="btn-card btn-card-save" id="btn_save_${cust.ma_khang}" ${saveDisabledAttr} onclick="saveCustomerData('${cust.ma_khang}')">💾 Lưu dữ liệu</button>
-          <button class="btn-card" style="background: #17a2b8;" id="btn_capture_${cust.ma_khang}" onclick="promptImageSource('${cust.ma_khang}')">📷 Chụp ảnh&nbsp;&nbsp;</button>
-          <button class="btn-card btn-card-cancel" id="btn_cancel_${cust.ma_khang}" ${cancelDisabledAttr} onclick="cancelCustomerData('${cust.ma_khang}')">✂ Hủy dữ liệu</button>
-        </div>
-      </div>
-    </div>
-  `;
-
-  container.innerHTML = html;
-
-  if (slideDirection) {
-    const activeCard = document.getElementById("activeCustomerCard");
-    setTimeout(() => {
-      activeCard.classList.remove("slide-left-in", "slide-right-in");
-      setTimeout(() => { isAnimating = false; }, 250);
-    }, 20);
-  } else {
-    isAnimating = false;
-  }
+  container.innerHTML = allCardsHtml;
 }
 
 function getLocationAndSave(maKhang, locationNote = "") {
