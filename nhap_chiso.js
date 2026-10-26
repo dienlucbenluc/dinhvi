@@ -105,7 +105,7 @@ async function checkAndLoadInitialData() {
     return;
   }
 
-  showToast("⏳ Đang lấy dữ liệu chỉ số (v1.0.5)...");
+  showToast("⏳ Đang lấy dữ liệu chỉ số (v1.0.6)...");
   try {
     const res = await fetch(API_URL, {
       method: "POST",
@@ -555,10 +555,13 @@ function showSyncOverlay() {
   if (!overlay) {
     overlay = document.createElement("div");
     overlay.id = "syncOverlay";
-    overlay.style.cssText = "position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.4);z-index:99999;display:flex;justify-content:center;align-items:center;pointer-events:all;";
+    overlay.style.cssText = "position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.4);z-index:99999;display:flex;flex-direction:column;justify-content:center;align-items:center;pointer-events:all;";
     
-    // Tạo vòng tròn xoay vòng bằng thuần CSS, không chữ, nằm chính giữa
-    overlay.innerHTML = '<div style="width:50px;height:50px;border:5px solid rgba(255,255,255,0.3);border-top:5px solid #ffffff;border-radius:50%;animation:spinOverlay 1s linear infinite;"></div>';
+    // Vòng tròn xoay và dòng chữ thông báo nằm ngay bên dưới
+    overlay.innerHTML = `
+      <div style="width:50px;height:50px;border:5px solid rgba(255,255,255,0.3);border-top:5px solid #ffffff;border-radius:50%;animation:spinOverlay 1s linear infinite;margin-bottom:12px;"></div>
+      <div style="color:#ffffff;font-size:15px;font-weight:bold;text-shadow:0 1px 3px rgba(0,0,0,0.6);">⏳ Đang đồng bộ dữ liệu lên server...</div>
+    `;
     
     // Thêm keyframes animation cho vòng tròn quay nếu chưa có
     if (!document.getElementById("syncOverlayStyle")) {
