@@ -785,6 +785,18 @@ async function handleImageSelected(event, maKhang) {
   currentCapturedFiles[maKhang] = file;
   await saveOfflineImage(maKhang, file);
 
+  // TỰ ĐỘNG LƯU ẢNH VỀ THIẾT BỊ
+  try {
+    const downloadLink = document.createElement("a");
+    downloadLink.href = URL.createObjectURL(file);
+    downloadLink.download = `${maKhang}_${Date.now()}.jpg`;
+    document.body.appendChild(downloadLink);
+    downloadLink.click();
+    document.body.removeChild(downloadLink);
+  } catch (e) {
+    console.error("Lỗi tải ảnh về thiết bị:", e);
+  }
+
   const reader = new FileReader();
   reader.onload = (e) => {
     const previewContainer = document.getElementById(`img_preview_container_${maKhang}`);
