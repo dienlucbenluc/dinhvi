@@ -53,8 +53,8 @@ document.addEventListener("DOMContentLoaded", async () => {
   await checkAndLoadInitialData();
 
   window.addEventListener("online", async () => {
-    showToast("📶 Đang kết nối mạng. Đang xử lý đồng bộ...");
-    await syncLocalExcelToSheet();
+    showToast("📶 Đã kết nối mạng. Đang xử lý đồng bộ...");
+    await syncLocalExcelToSheet(false, false);
   });
 });
 
@@ -104,7 +104,7 @@ async function checkAndLoadInitialData() {
     return;
   }
 
-  showToast("⏳ Đang lấy dữ liệu chỉ số (v1.1.4)...");
+  showToast("⏳ Đang lấy dữ liệu chỉ số (v1.1.5)...");
   try {
     const res = await fetch(API_URL, {
       method: "POST",
@@ -260,10 +260,9 @@ async function saveCustomerData(maKhang) {
   if (ghiChuEl) cust.ghi_chu = ghiChuEl.value.trim();
 
   let cloudUrl = cust.hinh_cto || "";
-  
-  // 🟢 Đồng bộ ảnh ngầm âm thầm lên Cloudinary (KHÔNG hiện showSyncOverlay)
   if (currentCapturedFiles[maKhang] && navigator.onLine) {
     try {
+      showToast("⏳ Đang tải ảnh lên Cloudinary...");
       cloudUrl = await uploadToCloudinary(currentCapturedFiles[maKhang], maKhang);
       delete currentCapturedFiles[maKhang];
       let offlineImgs = JSON.parse(localStorage.getItem(getOfflineImagesKey()) || "{}");
@@ -358,8 +357,12 @@ async function saveCustomerData(maKhang) {
   updateSummaryBar();
   renderCurrentCustomerCard();
 
-  // Kiểm tra nếu đủ mốc 10 khách hàng thì sync tự động (hiện showSyncOverlay)
-  await checkAndAutoSync();
+  if (hasNewPhoto && navigator.onLine) {
+    // Đồng bộ ngay khi có chụp ảnh nhưng KHÔNG hiện showSyncOverlay() (truyền showOverlay = false)
+    await syncLocalExcelToSheet(false, false);
+  } else {
+    await checkAndAutoSync();
+  }
 }
 
 async function cancelCustomerData(maKhang) {
@@ -369,7 +372,7 @@ async function cancelCustomerData(maKhang) {
   const cust = groupedData[maKhang];
   if (!cust) return;
 
-  showSyncOverlay(); // 🟢 Giữ lại showSyncOverlay khi Hủy dữ liệu
+  showSyncOverlay(); // Hiển thị lớp phủ khi hủy dữ liệu
 
   const csKey = getExcelKeyChiSo();
   const imgKey = getOfflineImagesKey();
@@ -534,7 +537,8 @@ async function handleSendDataBtn() {
   const confirm = await showCustomConfirm("GỬI DỮ LIỆU", "Bạn muốn gửi dữ liệu chỉ số lên server không?");
   if (!confirm) return;
 
-  await syncLocalExcelToSheet(true); // 🟢 Bấm nút Gửi thủ công -> hiện showSyncOverlay
+  // Bấm nút đồng bộ dữ liệu lên server -> Hiện showSyncOverlay() (truyền showOverlay = true)
+  await syncLocalExcelToSheet(true, true);
 }
 
 async function checkAndAutoSync() {
@@ -545,12 +549,15 @@ async function checkAndAutoSync() {
     item.chiso_moi !== "" && item.chiso_moi !== null && item.chiso_moi !== undefined
   ).length;
 
-  // 🟢 Chỉ tự động gọi hiện showSyncOverlay khi số lượng đủ mốc bội số của 10 khách hàng
   if (validRowsCount >= 10 && validRowsCount % 10 === 0 && navigator.onLine) {
-    await syncLocalExcelToSheet(false);
+    // Nhập đủ 10 khách hàng -> Hiện showSyncOverlay() (truyền showOverlay = true)
+    await syncLocalExcelToSheet(false, true);
   }
 }
 
+/* ==========================================================================
+   LỚP PHỦ FULL MÀN HÌNH KHI ĐỒNG BỘ DỮ LIỆU LÊN SERVER
+   ========================================================================== */
 function showSyncOverlay() {
   let overlay = document.getElementById("syncOverlay");
   if (!overlay) {
@@ -583,10 +590,12 @@ function hideSyncOverlay() {
   }
 }
 
-async function syncLocalExcelToSheet(isManual = false) {
+async function syncLocalExcelToSheet(isManual = false, showOverlay = false) {
   if (!navigator.onLine) return false;
 
-  showSyncOverlay(); // 🟢 Bật lớp phủ khi tiến hành đồng bộ hàng loạt lên server
+  if (showOverlay) {
+    showSyncOverlay(); 
+  }
 
   try {
     showToast("⏳ Đang đẩy ảnh lên Cloudinary...");
@@ -642,7 +651,9 @@ async function syncLocalExcelToSheet(isManual = false) {
     showToast("❌ Lỗi kết nối đồng bộ server!");
     return false;
   } finally {
-    hideSyncOverlay(); // 🟢 Ẩn lớp phủ hoàn tất
+    if (showOverlay) {
+      hideSyncOverlay(); 
+    }
   }
 }
 
@@ -1125,7 +1136,7 @@ function nextCustomer() {
   isAnimating = true;
   const activeCard = document.getElementById("activeCustomerCard");
   if (activeCard) {
-    activeCard.classList.add("slide-up-out");
+    activeCard.classList.add("slide-up-out"); 
     setTimeout(() => {
       currentCardIndex = (currentCardIndex >= customerKeys.length - 1) ? 0 : currentCardIndex + 1;
       renderCurrentCustomerCard("up");
@@ -1141,7 +1152,7 @@ function prevCustomer() {
   isAnimating = true;
   const activeCard = document.getElementById("activeCustomerCard");
   if (activeCard) {
-    activeCard.classList.add("slide-down-out");
+    activeCard.classList.add("slide-down-out"); 
     setTimeout(() => {
       currentCardIndex = (currentCardIndex <= 0) ? customerKeys.length - 1 : currentCardIndex - 1;
       renderCurrentCustomerCard("down");
@@ -1152,7 +1163,7 @@ function prevCustomer() {
   }
 }
 
-async function handleComboboxChange(maKhang, bcs, rowIndex, csCu, hsn, sluongThao, sluongKt) {
+function handleComboboxChange(maKhang, bcs, rowIndex, csCu, hsn, sluongThao, sluongKt) {
   const selectEl = document.getElementById(`select_loai_${rowIndex}`);
   const valType = selectEl ? selectEl.value : "";
   const inputEl = document.getElementById(`cs_moi_${rowIndex}`);
