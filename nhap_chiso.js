@@ -295,57 +295,63 @@ async function saveCustomerData(maKhang) {
   const csKey = getExcelKeyChiSo();
   const localExcelList = JSON.parse(localStorage.getItem(csKey) || "[]");
 
-  cust.items.forEach(item => {
-    const inputEl = document.getElementById(`cs_moi_${item.rowIndex}`);
-    const val = inputEl ? inputEl.value.trim() : "";
-    const excelItemIndex = localExcelList.findIndex(e => String(e.id_chiso) === String(item.id_chiso));
+cust.items.forEach(item => {
+      const inputEl = document.getElementById(`cs_moi_${item.rowIndex}`);
+      const val = inputEl ? inputEl.value.trim() : "";
+      const selectEl = document.getElementById(`select_loai_${item.rowIndex}`);
+      const selectedType = selectEl ? selectEl.value.trim() : "";
+      const loaiChiSoVal = selectedType !== "" ? selectedType : "DDK";
 
-    if (val !== "" && !isNaN(Number(val))) {
-      const csMoi = Number(val);
-      const csCu = Number(item.chiso_cu) || 0;
-      const hsn = Number(item.hsn) || 1;
-      const sluongThao = Number(item.sluong_thao) || 0;
-      const sluongKt = Number(item.sluong_kt) || 0;
+      const excelItemIndex = localExcelList.findIndex(e => String(e.id_chiso) === String(item.id_chiso));
 
-      let sanLuong = 0;
-      if (csMoi < csCu) {
-        sanLuong = Math.round((csMoi + 100000 - csCu) * hsn);
-      } else {
-        sanLuong = Math.round((csMoi - csCu) * hsn);
+      if (val !== "" && !isNaN(Number(val))) {
+        const csMoi = Number(val);
+        const csCu = Number(item.chiso_cu) || 0;
+        const hsn = Number(item.hsn) || 1;
+        const sluongThao = Number(item.sluong_thao) || 0;
+        const sluongKt = Number(item.sluong_kt) || 0;
+
+        let sanLuong = 0;
+        if (csMoi < csCu) {
+          sanLuong = Math.round((csMoi + 100000 - csCu) * hsn);
+        } else {
+          sanLuong = Math.round((csMoi - csCu) * hsn);
+        }
+
+        const tongSluong = sanLuong + sluongThao;
+        const chenhLech = tongSluong - sluongKt;
+        const tyleClech = sluongKt !== 0 ? ((tongSluong / sluongKt) * 100).toFixed(2) + "%" : "0%";
+        const nowStr = new Date().toLocaleString("vi-VN");
+
+        item.chiso_moi = csMoi;
+        item.san_luong = sanLuong;
+        item.tong_sluong = tongSluong;
+        item.chenh_lech = chenhLech;
+        item.tyle_clech = tyleClech;
+        item.ghi_chu = cust.ghi_chu;
+        item.loai_chiso = loaiChiSoVal;
+        item.ngay_nhap = nowStr;
+        item.nguoi_nhap = currentUser.ten_nvien || currentUser.ten_ndung;
+        item.tthai_dongbo = "";
+        if (cloudUrl) item.hinh_cto = cloudUrl;
+
+        if (excelItemIndex !== -1) {
+          localExcelList[excelItemIndex].chiso_moi = csMoi;
+          localExcelList[excelItemIndex].san_luong = sanLuong;
+          localExcelList[excelItemIndex].tong_sluong = tongSluong;
+          localExcelList[excelItemIndex].chenh_lech = chenhLech;
+          localExcelList[excelItemIndex].tyle_clech = tyleClech;
+          localExcelList[excelItemIndex].ghi_chu = cust.ghi_chu;
+          localExcelList[excelItemIndex].loai_chiso = loaiChiSoVal;
+          localExcelList[excelItemIndex].ngay_nhap = nowStr;
+          localExcelList[excelItemIndex].nguoi_nhap = currentUser.ten_nvien || currentUser.ten_ndung;
+          localExcelList[excelItemIndex].tthai_dongbo = "";
+          localExcelList[excelItemIndex].lat = item.lat || "";
+          localExcelList[excelItemIndex].lng = item.lng || "";
+          if (cloudUrl) localExcelList[excelItemIndex].hinh_cto = cloudUrl;
+        }
       }
-
-      const tongSluong = sanLuong + sluongThao;
-      const chenhLech = tongSluong - sluongKt;
-      const tyleClech = sluongKt !== 0 ? ((tongSluong / sluongKt) * 100).toFixed(2) + "%" : "0%";
-      const nowStr = new Date().toLocaleString("vi-VN");
-
-      item.chiso_moi = csMoi;
-      item.san_luong = sanLuong;
-      item.tong_sluong = tongSluong;
-      item.chenh_lech = chenhLech;
-      item.tyle_clech = tyleClech;
-      item.ghi_chu = cust.ghi_chu;
-      item.ngay_nhap = nowStr;
-      item.nguoi_nhap = currentUser.ten_nvien || currentUser.ten_ndung;
-      item.tthai_dongbo = "";
-      if (cloudUrl) item.hinh_cto = cloudUrl;
-
-      if (excelItemIndex !== -1) {
-        localExcelList[excelItemIndex].chiso_moi = csMoi;
-        localExcelList[excelItemIndex].san_luong = sanLuong;
-        localExcelList[excelItemIndex].tong_sluong = tongSluong;
-        localExcelList[excelItemIndex].chenh_lech = chenhLech;
-        localExcelList[excelItemIndex].tyle_clech = tyleClech;
-        localExcelList[excelItemIndex].ghi_chu = cust.ghi_chu;
-        localExcelList[excelItemIndex].ngay_nhap = nowStr;
-        localExcelList[excelItemIndex].nguoi_nhap = currentUser.ten_nvien || currentUser.ten_ndung;
-        localExcelList[excelItemIndex].tthai_dongbo = "";
-        localExcelList[excelItemIndex].lat = item.lat || "";
-        localExcelList[excelItemIndex].lng = item.lng || "";
-        if (cloudUrl) localExcelList[excelItemIndex].hinh_cto = cloudUrl;
-      }
-    }
-  });
+    });
 
   localStorage.setItem(csKey, JSON.stringify(localExcelList));
   showToast("💾 Đã lưu dữ liệu vào Excel thiết bị!");
