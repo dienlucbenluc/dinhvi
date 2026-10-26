@@ -555,8 +555,19 @@ function showSyncOverlay() {
   if (!overlay) {
     overlay = document.createElement("div");
     overlay.id = "syncOverlay";
-    overlay.style.cssText = "position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.4);z-index:99999;display:flex;justify-content:center;align-items:center;color:#fff;font-size:16px;font-weight:bold;pointer-events:all;";
-    overlay.innerHTML = '<div style="background:#333;padding:15px 25px;border-radius:8px;box-shadow:0 4px 12px rgba(0,0,0,0.3);">⏳ Đang đồng bộ dữ liệu lên server, vui lòng đợi...</div>';
+    overlay.style.cssText = "position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.4);z-index:99999;display:flex;justify-content:center;align-items:center;pointer-events:all;";
+    
+    // Tạo vòng tròn xoay vòng bằng thuần CSS, không chữ, nằm chính giữa
+    overlay.innerHTML = '<div style="width:50px;height:50px;border:5px solid rgba(255,255,255,0.3);border-top:5px solid #ffffff;border-radius:50%;animation:spinOverlay 1s linear infinite;"></div>';
+    
+    // Thêm keyframes animation cho vòng tròn quay nếu chưa có
+    if (!document.getElementById("syncOverlayStyle")) {
+      const style = document.createElement("style");
+      style.id = "syncOverlayStyle";
+      style.innerHTML = "@keyframes spinOverlay { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }";
+      document.head.appendChild(style);
+    }
+
     document.body.appendChild(overlay);
   } else {
     overlay.style.display = "flex";
