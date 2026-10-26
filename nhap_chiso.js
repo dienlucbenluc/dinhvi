@@ -1407,7 +1407,7 @@ function filterData() {
       }, 1500);
     }
     
-    showToast(`🔍 Tìm thấy KH ở STT ${targetIndex + 1} và đã đưa lên trên`);
+    //showToast(`🔍 Tìm thấy KH ở STT ${targetIndex + 1} và đã đưa lên trên`);
   } else {
     showToast("❌ Không tìm thấy thông tin phù hợp!");
   }
