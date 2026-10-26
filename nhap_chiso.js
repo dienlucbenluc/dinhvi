@@ -10,7 +10,7 @@ let isAnimating = false;
 
 const currentCapturedFiles = {};
 
-const BCS_ORDER = ["BT", "CD", "TD", "SG", "VC", "BN", "CN", "TN", "SN", "VN"];
+const BCS_ORDER = ["BT", "CD", "TD", "TG", "VC", "BN", "CN", "TN", "SN", "VN"];
 
 function getExcelKeyChiSo() {
   const user = String(currentUser?.ten_ndung || "").trim().toLowerCase();
