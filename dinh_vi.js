@@ -1,3 +1,4 @@
+name=dinh_vi.js
 const API_URL = "https://script.google.com/macros/s/AKfycbxX2x0MN69JtvdCIna5AkOv5YlCz0sQLI7FYdHbQ6Lg8Q0SXWkBSA_r-p7_21qZ0JwU/exec";
 
 let allLocations = [];
@@ -605,7 +606,8 @@ function getLocation() {
   const searchType = document.getElementById("loai_tim").value;
   const searchValueInput = document.getElementById("locName").value.trim();
   const jobTitle = document.getElementById("jobSelect").value;
-  const noteContent = document.getElementById("locNote").value.trim();
+  const noteElement = document.getElementById("locNote");
+  const noteContent = noteElement ? noteElement.value.trim() : "";
 
   if (!searchValueInput) {
     showToast("Vui lòng nhập thông tin tìm kiếm...");
@@ -624,6 +626,60 @@ function getLocation() {
 
   if (!jobTitle) {
     showToast("Vui lòng chọn Tên công việc");
+    return;
+  }
+
+  // Thêm ràng buộc kiểm tra locNote trống
+  if (!noteContent) {
+    const oldToast = document.getElementById("custom-toast");
+    if (oldToast) oldToast.remove();
+
+    const toast = document.createElement("div");
+    toast.id = "custom-toast";
+    toast.innerText = "Bạn chưa nhập số trụ và mô tả sơ bộ vị trí công tơ";
+
+    Object.assign(toast.style, {
+      position: "fixed",
+      top: "10px",
+      right: "10px",
+      transform: "translateX(120%)",
+      backgroundColor: "#B22222",
+      color: "white",
+      padding: "12px 20px",
+      borderRadius: "8px",
+      boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
+      fontSize: "14px",
+      fontWeight: "bold",
+      zIndex: "10000",
+      opacity: "0",
+      transition: "all 0.3s ease-in-out",
+      whiteSpace: "normal",
+      wordWrap: "break-word",
+      maxWidth: "300px",
+      textAlign: "left",
+      lineHeight: "1.4",
+      cursor: "pointer"
+    });
+
+    toast.title = "Bấm để đóng thông báo";
+
+    toast.onclick = function() {
+      toast.style.opacity = "0";
+      toast.style.transform = "translateX(120%)";
+      setTimeout(() => {
+        toast.remove();
+        if (noteElement) {
+          noteElement.focus();
+        }
+      }, 300);
+    };
+
+    document.body.appendChild(toast);
+
+    setTimeout(() => {
+      toast.style.opacity = "1";
+      toast.style.transform = "translateX(0)";
+    }, 10);
     return;
   }
 
