@@ -601,11 +601,75 @@ function confirmRegetLocation() {
   getGPSAndSave(true);
 }
 
+// ==========================================
+// CÁC HÀM XỬ LÝ DIALOG NHẬP NOTE VÀ LẤY TỌA ĐỘ
+// ==========================================
+function openNoteDialogForLocation(index, safeKey) {
+  let modal = document.getElementById('noteLocationModal');
+  if (!modal) {
+    const modalHtml = `
+      <div id="noteLocationModal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:9999;justify-content:center;align-items:center;">
+        <div style="background:#fff;padding:20px;border-radius:8px;width:90%;max-width:350px;box-sizing:border-box;">
+          <h3 style="margin-top:0;font-size:16px;text-align:center;color:red;">YÊU CẦU NHẬP GHI CHÚ</h3>
+          <input type="text" id="inputLocationNote" placeholder="Nhập chi tiết vị trí công tơ..." style="width:100%;padding:8px;box-sizing:border-box;margin-bottom:15px;border:1px solid #ccc;border-radius:4px;" oninput="validateNoteInput()">
+          <div style="display:flex;justify-content:center;gap:10px;">
+            <button type="button" onclick="closeNoteDialog()" style="width:110px;padding:6px 12px;background:#FFB6C1;border:none;border-radius:4px;cursor:pointer;">❎  Thoát</button>
+            <button type="button" id="btnExecuteGetLocation" onclick="executeGetLocationWithNote()" style="width:110px;padding:6px 12px;background:#007bff;color:#fff;border:none;border-radius:4px;cursor:pointer;opacity:0.5;pointer-events:none;">📍 Thực hiện</button>
+          </div>
+        </div>
+      </div>`;
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+    modal = document.getElementById('noteLocationModal');
+  }
+
+  window._pendingLocationContext = { index, safeKey };
+  document.getElementById('inputLocationNote').value = '';
+  validateNoteInput();
+  modal.style.display = 'flex';
+}
+
+function closeNoteDialog() {
+  const modal = document.getElementById('noteLocationModal');
+  if (modal) modal.style.display = 'none';
+  window._pendingLocationContext = null;
+}
+
+function validateNoteInput() {
+  const val = document.getElementById('inputLocationNote')?.value.trim() || '';
+  const btn = document.getElementById('btnExecuteGetLocation');
+  if (!btn) return;
+  if (val.length > 0) {
+    btn.style.opacity = '1';
+    btn.style.pointerEvents = 'auto';
+  } else {
+    btn.style.opacity = '0.5';
+    btn.style.pointerEvents = 'none';
+  }
+}
+
+function executeGetLocationWithNote() {
+  const noteVal = document.getElementById('inputLocationNote')?.value.trim() || '';
+  if (!noteVal) {
+    showToast("Vui lòng nhập ghi chú trước khi lấy định vị!");
+    return;
+  }
+  
+  // Gán nội dung note vừa nhập vào ô ghi chú chính trên giao diện (hoặc lưu tạm)
+  const locNoteEl = document.getElementById("locNote");
+  if (locNoteEl) {
+    locNoteEl.value = noteVal;
+  }
+
+  closeNoteDialog();
+  
+  // Tiếp tục tiến hành lấy định vị thực tế
+  proceedGetLocationAfterNote();
+}
+
 function getLocation() {
   const searchType = document.getElementById("loai_tim").value;
   const searchValueInput = document.getElementById("locName").value.trim();
   const jobTitle = document.getElementById("jobSelect").value;
-  const noteContent = document.getElementById("locNote").value.trim();
 
   if (!searchValueInput) {
     showToast("Vui lòng nhập thông tin tìm kiếm...");
@@ -626,6 +690,14 @@ function getLocation() {
     showToast("Vui lòng chọn Tên công việc");
     return;
   }
+
+  // Bắt đầu bấm lấy mới định vị công tơ -> Hiển thị Dialog yêu cầu nhập Note trước
+  openNoteDialogForLocation();
+}
+
+function proceedGetLocationAfterNote() {
+  const searchType = document.getElementById("loai_tim").value;
+  const searchValueInput = document.getElementById("locName").value.trim();
 
   // Bắt đầu tiến trình -> Làm mờ nút
   disableGetLocationButton();
@@ -980,7 +1052,7 @@ function saveNewPassword() {
     return;
   }
 
-  showToast("⏳ Đang đổi mật khẩu...", true);
+  showToast("⏳ Đổi mật khẩu...", true);
 
   fetch(API_URL, {
     method: "POST",
