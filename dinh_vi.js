@@ -167,12 +167,6 @@ function restoreLocalSettings() {
       el.dispatchEvent(new Event('change'));
     }
   }
-  
-  const searchInput = localStorage.getItem("cmis_searchInput");
-  if (searchInput) {
-    const el = document.getElementById("searchInput");
-    if(el) el.value = searchInput;
-  }
 }
 
 function populateDropdown(id1, id2, dataArray, defaultText) {
