@@ -627,6 +627,63 @@ function getLocation() {
     return;
   }
 
+  // Ràng buộc kiểm tra locNote
+  const noteElement = document.getElementById("locNote");
+  const noteContent = noteElement ? noteElement.value.trim() : "";
+
+  if (!noteContent) {
+    const oldToast = document.getElementById("custom-toast");
+    if (oldToast) oldToast.remove();
+
+    const toast = document.createElement("div");
+    toast.id = "custom-toast";
+    toast.innerText = "Bạn chưa nhập số trụ và mô tả sơ bộ vị trí công tơ";
+
+    Object.assign(toast.style, {
+      position: "fixed",
+      top: "10px",
+      right: "10px",
+      transform: "translateX(120%)",
+      backgroundColor: "#B22222",
+      color: "white",
+      padding: "12px 20px",
+      borderRadius: "8px",
+      boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
+      fontSize: "14px",
+      fontWeight: "bold",
+      zIndex: "10000",
+      opacity: "0",
+      transition: "all 0.3s ease-in-out",
+      whiteSpace: "normal",
+      wordWrap: "break-word",
+      maxWidth: "300px",
+      textAlign: "left",
+      lineHeight: "1.4",
+      cursor: "pointer"
+    });
+
+    toast.title = "Bấm để đóng thông báo";
+
+    toast.onclick = function() {
+      toast.style.opacity = "0";
+      toast.style.transform = "translateX(120%)";
+      setTimeout(() => {
+        toast.remove();
+        if (noteElement) {
+          noteElement.focus();
+        }
+      }, 300);
+    };
+
+    document.body.appendChild(toast);
+
+    setTimeout(() => {
+      toast.style.opacity = "1";
+      toast.style.transform = "translateX(0)";
+    }, 10);
+    return;
+  }
+  
   // Bắt đầu tiến trình -> Làm mờ nút
   disableGetLocationButton();
 
