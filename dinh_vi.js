@@ -626,7 +626,11 @@ function getLocation() {
     showToast("Vui lòng chọn Tên công việc");
     return;
   }
-
+  if (!noteContent) {
+    showToast("Nhập số trụ, mô tả sơ bộ vị trí công tơ.");
+    noteContent.focus();
+    return;
+  }
   // Bắt đầu tiến trình -> Làm mờ nút
   disableGetLocationButton();
 
