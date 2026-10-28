@@ -627,35 +627,6 @@ function getLocation() {
     return;
   }
 
- // Ràng buộc kiểm tra locNote
-  const noteElement = document.getElementById("locNote");
-  const noteContent = noteElement ? noteElement.value.trim() : "";
-
-  if (!noteContent) {
-    showToast("Bạn chưa nhập số trụ và mô tả sơ bộ vị trí công tơ", true);
-    
-    // Gắn sự kiện click trực tiếp vào toast hiện tại để đóng và focus vào ô locNote
-    setTimeout(() => {
-      const currentToast = document.getElementById("custom-toast");
-      if (currentToast) {
-        currentToast.style.cursor = "pointer";
-        currentToast.title = "Bấm để đóng thông báo";
-        currentToast.onclick = function() {
-          currentToast.style.opacity = "0";
-          currentToast.style.transform = "translateX(120%)";
-          setTimeout(() => {
-            currentToast.remove();
-            if (noteElement) {
-              noteElement.focus();
-            }
-          }, 300);
-        };
-      }
-    }, 50);
-
-    return;
-  }
-  
   // Bắt đầu tiến trình -> Làm mờ nút
   disableGetLocationButton();
 
