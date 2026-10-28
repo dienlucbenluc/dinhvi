@@ -1135,8 +1135,9 @@ function getLocationAndSave(maKhang, locationNote = "") {
       const firstItem = (cust.items && cust.items[0]) ? cust.items[0] : {};
       const nowStr = new Date().toLocaleString("vi-VN");
 
-      const dvKey = getExcelKeyDinhVi();
-      const dinhViList = JSON.parse(localStorage.getItem(dvKey) || "[]");
+const dvKey = getExcelKeyDinhVi();
+      let dinhViList = JSON.parse(localStorage.getItem(dvKey) || "[]");
+      dinhViList = dinhViList.filter(item => String(item.ma_khang) !== String(maKhang));
       dinhViList.push({
         id: String(Date.now()) + Math.floor(Math.random() * 10),
         ma_khang: maKhang,
