@@ -603,9 +603,12 @@ async function syncCustomerWithPhotoToSheet() {
     const chisoLogs = JSON.parse(localStorage.getItem(csKey) || "[]");
     const dinhviLogs = JSON.parse(localStorage.getItem(dvKey) || "[]");
 
-    const chisoToSend = chisoLogs.filter(i => 
-      (i.chiso_moi !== "" && i.chiso_moi !== null && i.chiso_moi !== undefined) || String(i.tthai_dongbo) === "0"
-    );
+    // 🎯 SỬA: CHỈ LỌC KHÁCH HÀNG CHƯA ĐỒNG BỘ HOẶC CÓ CHỈ SỐ MỚI THAY ĐỔI
+    const chisoToSend = chisoLogs.filter(i => {
+      const hasNewValue = (i.chiso_moi !== "" && i.chiso_moi !== null && i.chiso_moi !== undefined);
+      const isNotSynced = String(i.tthai_dongbo || "0") !== "1";
+      return hasNewValue && isNotSynced;
+    });
 
     if (chisoToSend.length === 0 && dinhviLogs.length === 0) {
       showToast("⛔ Không có dữ liệu mới cần đồng bộ!");
@@ -615,7 +618,7 @@ async function syncCustomerWithPhotoToSheet() {
     const syncedIds = new Set(chisoToSend.map(i => String(i.id_chiso)));
 
     chisoLogs.forEach(item => {
-      if (syncedIds.has(String(item.id_chiso)) && String(item.tthai_dongbo) !== "0") {
+      if (syncedIds.has(String(item.id_chiso))) {
         item.tthai_dongbo = "1";
       }
     });
@@ -662,19 +665,23 @@ async function syncLocalExcelToSheet(isManual = false) {
     const chisoLogs = JSON.parse(localStorage.getItem(csKey) || "[]");
     const dinhviLogs = JSON.parse(localStorage.getItem(dvKey) || "[]");
 
-    const chisoToSend = chisoLogs.filter(i => 
-      (i.chiso_moi !== "" && i.chiso_moi !== null && i.chiso_moi !== undefined) || String(i.tthai_dongbo) === "0"
-    );
+    // 🎯 SỬA: CHỈ LỌC KHÁCH HÀNG CHƯA ĐỒNG BỘ HOẶC CÓ CHỈ SỐ MỚI THAY ĐỔI
+    const chisoToSend = chisoLogs.filter(i => {
+      const hasNewValue = (i.chiso_moi !== "" && i.chiso_moi !== null && i.chiso_moi !== undefined);
+      const isNotSynced = String(i.tthai_dongbo || "0") !== "1";
+      return hasNewValue && isNotSynced;
+    });
 
     if (chisoToSend.length === 0 && dinhviLogs.length === 0) {
       if (isManual) showToast("⛔ Không có dữ liệu chỉ số mới cần đồng bộ!");
+      hideSyncOverlay();
       return false;
     }
 
     const syncedIds = new Set(chisoToSend.map(i => String(i.id_chiso)));
 
     chisoLogs.forEach(item => {
-      if (syncedIds.has(String(item.id_chiso)) && String(item.tthai_dongbo) !== "0") {
+      if (syncedIds.has(String(item.id_chiso))) {
         item.tthai_dongbo = "1";
       }
     });
