@@ -603,11 +603,15 @@ async function syncCustomerWithPhotoToSheet() {
     const chisoLogs = JSON.parse(localStorage.getItem(csKey) || "[]");
     const dinhviLogs = JSON.parse(localStorage.getItem(dvKey) || "[]");
 
-    // 🎯 SỬA: CHỈ LỌC KHÁCH HÀNG CHƯA ĐỒNG BỘ HOẶC CÓ CHỈ SỐ MỚI THAY ĐỔI
     const chisoToSend = chisoLogs.filter(i => {
-      const hasNewValue = (i.chiso_moi !== "" && i.chiso_moi !== null && i.chiso_moi !== undefined);
       const isNotSynced = String(i.tthai_dongbo || "0") !== "1";
-      return hasNewValue && isNotSynced;
+      const hasCSMoi = i.chiso_moi !== "" && i.chiso_moi !== null && i.chiso_moi !== undefined;
+      const hasSanLuong = i.san_luong !== "" && i.san_luong !== null && i.san_luong !== undefined;
+      const hasTongSluong = i.tong_sluong !== "" && i.tong_sluong !== null && i.tong_sluong !== undefined;
+      const hasChenhLech = i.chenh_lech !== "" && i.chenh_lech !== null && i.chenh_lech !== undefined;
+      const hasTyleClech = i.tyle_clech !== "" && i.tyle_clech !== null && i.tyle_clech !== undefined;
+
+      return isNotSynced && hasCSMoi && hasSanLuong && hasTongSluong && hasChenhLech && hasTyleClech;
     });
 
     if (chisoToSend.length === 0 && dinhviLogs.length === 0) {
@@ -665,11 +669,16 @@ async function syncLocalExcelToSheet(isManual = false) {
     const chisoLogs = JSON.parse(localStorage.getItem(csKey) || "[]");
     const dinhviLogs = JSON.parse(localStorage.getItem(dvKey) || "[]");
 
-    // 🎯 SỬA: CHỈ LỌC KHÁCH HÀNG CHƯA ĐỒNG BỘ HOẶC CÓ CHỈ SỐ MỚI THAY ĐỔI
+    // Yêu cầu 2: Lọc các khách hàng đã ghi đủ thông tin (chiso_moi, san_luong, tong_sluong, chenh_lech, tyle_clech) và chưa đồng bộ (tthai_dongbo <> 1)
     const chisoToSend = chisoLogs.filter(i => {
-      const hasNewValue = (i.chiso_moi !== "" && i.chiso_moi !== null && i.chiso_moi !== undefined);
       const isNotSynced = String(i.tthai_dongbo || "0") !== "1";
-      return hasNewValue && isNotSynced;
+      const hasCSMoi = i.chiso_moi !== "" && i.chiso_moi !== null && i.chiso_moi !== undefined;
+      const hasSanLuong = i.san_luong !== "" && i.san_luong !== null && i.san_luong !== undefined;
+      const hasTongSluong = i.tong_sluong !== "" && i.tong_sluong !== null && i.tong_sluong !== undefined;
+      const hasChenhLech = i.chenh_lech !== "" && i.chenh_lech !== null && i.chenh_lech !== undefined;
+      const hasTyleClech = i.tyle_clech !== "" && i.tyle_clech !== null && i.tyle_clech !== undefined;
+
+      return isNotSynced && hasCSMoi && hasSanLuong && hasTongSluong && hasChenhLech && hasTyleClech;
     });
 
     if (chisoToSend.length === 0 && dinhviLogs.length === 0) {
@@ -678,6 +687,7 @@ async function syncLocalExcelToSheet(isManual = false) {
       return false;
     }
 
+    // Yêu cầu 1: Cập nhật tthai_dongbo = "1" trên thiết bị ngay cho những khách hàng chuẩn bị đồng bộ
     const syncedIds = new Set(chisoToSend.map(i => String(i.id_chiso)));
 
     chisoLogs.forEach(item => {
