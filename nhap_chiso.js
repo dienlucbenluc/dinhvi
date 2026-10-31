@@ -331,7 +331,11 @@ async function saveCustomerData(maKhang) {
       item.ma_ttcto = maTTCtoVal;
       item.ngay_nhap = nowStr;
       item.nguoi_nhap = currentUser.ten_nvien || currentUser.ten_ndung;
-      item.tthai_dongbo = "";
+      
+      // 🎯 BỔ SUNG: Khi bấm lưu lại (dù trước đó đã đồng bộ tthai_dongbo = 1), 
+      // ta set lại thành "0" để hệ thống biết cần đồng bộ cập nhật lại thay đổi mới này.
+      item.tthai_dongbo = "0";
+
       if (cloudUrl) item.hinh_cto = cloudUrl;
 
       if (excelItemIndex !== -1) {
@@ -344,7 +348,10 @@ async function saveCustomerData(maKhang) {
         localExcelList[excelItemIndex].ma_ttcto = maTTCtoVal;
         localExcelList[excelItemIndex].ngay_nhap = nowStr;
         localExcelList[excelItemIndex].nguoi_nhap = currentUser.ten_nvien || currentUser.ten_ndung;
-        localExcelList[excelItemIndex].tthai_dongbo = "";
+        
+        // 🎯 Cập nhật trên phần tử của file Excel thiết bị thành "0"
+        localExcelList[excelItemIndex].tthai_dongbo = "0";
+
         localExcelList[excelItemIndex].lat = item.lat || "";
         localExcelList[excelItemIndex].lng = item.lng || "";
         if (cloudUrl) localExcelList[excelItemIndex].hinh_cto = cloudUrl;
@@ -358,7 +365,7 @@ async function saveCustomerData(maKhang) {
   renderCurrentCustomerCard();
 
   if (hasNewPhoto && navigator.onLine) {
-    await syncCustomerWithPhotoToSheet(); // Gọi hàm đồng bộ riêng cho khách hàng có chụp ảnh (chỉ hiện showToast)
+    await syncCustomerWithPhotoToSheet(); 
   } else {
     await checkAndAutoSync();
   }
