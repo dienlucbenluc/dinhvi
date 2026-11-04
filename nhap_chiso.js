@@ -198,176 +198,187 @@ function downloadAllExcelFiles() {
 }
 
 async function saveCustomerData(maKhang) {
-  const cust = groupedData[maKhang];
-  if (!cust) return;
+  const btnSave = document.getElementById(`btn_save_${maKkhang || maKhang}`); // Lấy chính xác nút lưu của khách hàng
+  if (btnSave) {
+    btnSave.disabled = true;
+    btnSave.style.opacity = "0.5";
+    btnSave.style.cursor = "not-allowed";
+  }
 
-  let offlineImgBase64 = null;
   try {
-    const offlineImgs = JSON.parse(localStorage.getItem(getOfflineImagesKey()) || "{}");
-    offlineImgBase64 = offlineImgs[maKhang] || null;
-  } catch(e) {}
+    const cust = groupedData[maKhang];
+    if (!cust) return;
 
-  const hasNewPhoto = Boolean(currentCapturedFiles[maKhang] || offlineImgBase64);
+    let offlineImgBase64 = null;
+    try {
+      const offlineImgs = JSON.parse(localStorage.getItem(getOfflineImagesKey()) || "{}");
+      offlineImgBase64 = offlineImgs[maKhang] || null;
+    } catch(e) {}
 
-  let needPhoto = false;
-  let warnMessage = "";
+    let hasNewPhoto = Boolean(currentCapturedFiles[maKhang] || offlineImgBase64);
 
-  cust.items.forEach(item => {
-    const inputEl = document.getElementById(`cs_moi_${item.rowIndex}`);
-    const val = inputEl ? inputEl.value.trim() : "";
+    let needPhoto = false;
+    let warnMessage = "";
 
-    if (val !== "" && !isNaN(Number(val))) {
-      const csMoi = Number(val);
-      const csCu = Number(item.chiso_cu) || 0;
-      const hsn = Number(item.hsn) || 1;
-      const sluongThao = Number(item.sluong_thao) || 0;
-      const sluongKt = Number(item.sluong_kt) || 0;
+    cust.items.forEach(item => {
+      const inputEl = document.getElementById(`cs_moi_${item.rowIndex}`);
+      const val = inputEl ? inputEl.value.trim() : "";
 
-      let sanLuong = 0;
-      if (csMoi < csCu) {
-        sanLuong = Math.round((csMoi + 100000 - csCu) * hsn);
-      } else {
-        sanLuong = Math.round((csMoi - csCu) * hsn);
-      }
-      
-      const tongSluong = sanLuong + sluongThao;
+      if (val !== "" && !isNaN(Number(val))) {
+        const csMoi = Number(val);
+        const csCu = Number(item.chiso_cu) || 0;
+        const hsn = Number(item.hsn) || 1;
+        const sluongThao = Number(item.sluong_thao) || 0;
+        const sluongKt = Number(item.sluong_kt) || 0;
 
-      if (sluongKt > 0) {
-        const percentChange = ((tongSluong - sluongKt) / sluongKt) * 100;
-        if (Math.abs(percentChange) >= 50) {
-          needPhoto = true;
-          const sign = percentChange > 0 ? "+" : "";
-          warnMessage += `• BCS [${item.bcs}]: Sản lượng ${tongSluong} kW (Kỳ trước ${sluongKt} kW, biến động ${sign}${percentChange.toFixed(1)}%)\n`;
+        let sanLuong = 0;
+        if (csMoi < csCu) {
+          sanLuong = Math.round((csMoi + 100000 - csCu) * hsn);
+        } else {
+          sanLuong = Math.round((csMoi - csCu) * hsn);
         }
-      } else if (tongSluong > 0) {
-        needPhoto = true;
-        warnMessage += `• BCS [${item.bcs}]: Sản lượng ${tongSluong} kW (Kỳ trước 0 kW)\n`;
-      }
-    }
-  });
-
-  if (needPhoto && !hasNewPhoto) {
-    const confirm = await showCustomConfirm(
-      "⚠️ BẮT BUỘC CHỤP ẢNH", 
-      `Sản lượng biến động lớn hơn +/- 50%:\n${warnMessage}\nChụp ảnh công tơ trước khi lưu.`, 
-      true
-    );
-    if (confirm) promptImageSource(maKhang);
-    return;
-  }
-
-  const ghiChuEl = document.getElementById(`ghi_chu_${maKhang}`);
-  if (ghiChuEl) cust.ghi_chu = ghiChuEl.value.trim();
-
-  let cloudUrl = cust.hinh_cto || "";
-  if (currentCapturedFiles[maKhang] && navigator.onLine) {
-    try {
-      showToast("⏳ Đang tải ảnh lên Cloudinary...");
-      cloudUrl = await uploadToCloudinary(currentCapturedFiles[maKhang], maKhang);
-      delete currentCapturedFiles[maKhang];
-      let offlineImgs = JSON.parse(localStorage.getItem(getOfflineImagesKey()) || "{}");
-      delete offlineImgs[maKhang];
-      localStorage.setItem(getOfflineImagesKey(), JSON.stringify(offlineImgs));
-    } catch (err) {
-      console.error("Lỗi upload ảnh trực tiếp:", err);
-      await saveOfflineImage(maKhang, currentCapturedFiles[maKhang]);
-    }
-  } else if (currentCapturedFiles[maKhang]) {
-    await saveOfflineImage(maKhang, currentCapturedFiles[maKhang]);
-  } else if (offlineImgBase64 && navigator.onLine && !cust.hinh_cto) {
-    try {
-      const file = base64ToFile(offlineImgBase64, `${maKhang}_device.jpg`);
-      cloudUrl = await uploadToCloudinary(file, maKhang);
-      let offlineImgs = JSON.parse(localStorage.getItem(getOfflineImagesKey()) || "{}");
-      delete offlineImgs[maKhang];
-      localStorage.setItem(getOfflineImagesKey(), JSON.stringify(offlineImgs));
-    } catch (err) {
-      console.error("Lỗi upload ảnh offline:", err);
-    }
-  }
-
-  if (cloudUrl) {
-    cust.hinh_cto = cloudUrl;
-    cust.items.forEach(item => { item.hinh_cto = cloudUrl; });
-  }
-
-  const csKey = getExcelKeyChiSo();
-  const localExcelList = JSON.parse(localStorage.getItem(csKey) || "[]");
-
-  cust.items.forEach(item => {
-    const inputEl = document.getElementById(`cs_moi_${item.rowIndex}`);
-    const val = inputEl ? inputEl.value.trim() : "";
-    const selectEl = document.getElementById(`select_loai_${item.rowIndex}`);
-    const selectedType = selectEl ? selectEl.value.trim() : "";
-    const maTTCtoVal = selectedType !== "" ? selectedType : "";
-
-    const excelItemIndex = localExcelList.findIndex(e => String(e.id_chiso) === String(item.id_chiso));
-
-    if (val !== "" && !isNaN(Number(val))) {
-      const csMoi = Number(val);
-      const csCu = Number(item.chiso_cu) || 0;
-      const hsn = Number(item.hsn) || 1;
-      const sluongThao = Number(item.sluong_thao) || 0;
-      const sluongKt = Number(item.sluong_kt) || 0;
-
-      let sanLuong = 0;
-      if (csMoi < csCu) {
-        sanLuong = Math.round((csMoi + 100000 - csCu) * hsn);
-      } else {
-        sanLuong = Math.round((csMoi - csCu) * hsn);
-      }
-
-      const tongSluong = sanLuong + sluongThao;
-      const chenhLech = tongSluong - sluongKt;
-      const tyleClech = sluongKt !== 0 ? ((tongSluong / sluongKt) * 100).toFixed(2) + "%" : "0%";
-      const nowStr = new Date().toLocaleString("vi-VN");
-
-      item.chiso_moi = csMoi;
-      item.san_luong = sanLuong;
-      item.tong_sluong = tongSluong;
-      item.chenh_lech = chenhLech;
-      item.tyle_clech = tyleClech;
-      item.ghi_chu = cust.ghi_chu;
-      item.ma_ttcto = maTTCtoVal;
-      item.ngay_nhap = nowStr;
-      item.nguoi_nhap = currentUser.ten_nvien || currentUser.ten_ndung;
-      
-      // 🎯 BỔ SUNG: Khi bấm lưu lại (dù trước đó đã đồng bộ tthai_dongbo = 1), 
-      // ta set lại thành "0" để hệ thống biết cần đồng bộ cập nhật lại thay đổi mới này.
-      item.tthai_dongbo = "0";
-
-      if (cloudUrl) item.hinh_cto = cloudUrl;
-
-      if (excelItemIndex !== -1) {
-        localExcelList[excelItemIndex].chiso_moi = csMoi;
-        localExcelList[excelItemIndex].san_luong = sanLuong;
-        localExcelList[excelItemIndex].tong_sluong = tongSluong;
-        localExcelList[excelItemIndex].chenh_lech = chenhLech;
-        localExcelList[excelItemIndex].tyle_clech = tyleClech;
-        localExcelList[excelItemIndex].ghi_chu = cust.ghi_chu;
-        localExcelList[excelItemIndex].ma_ttcto = maTTCtoVal;
-        localExcelList[excelItemIndex].ngay_nhap = nowStr;
-        localExcelList[excelItemIndex].nguoi_nhap = currentUser.ten_nvien || currentUser.ten_ndung;
         
-        // 🎯 Cập nhật trên phần tử của file Excel thiết bị thành "0"
-        localExcelList[excelItemIndex].tthai_dongbo = "0";
+        const tongSluong = sanLuong + sluongThao;
 
-        localExcelList[excelItemIndex].lat = item.lat || "";
-        localExcelList[excelItemIndex].lng = item.lng || "";
-        if (cloudUrl) localExcelList[excelItemIndex].hinh_cto = cloudUrl;
+        if (sluongKt > 0) {
+          const percentChange = ((tongSluong - sluongKt) / sluongKt) * 100;
+          if (Math.abs(percentChange) >= 50) {
+            needPhoto = true;
+            const sign = percentChange > 0 ? "+" : "";
+            warnMessage += `• BCS [${item.bcs}]: Sản lượng ${tongSluong} kW (Kỳ trước ${sluongKt} kW, biến động ${sign}${percentChange.toFixed(1)}%)\n`;
+          }
+        } else if (tongSluong > 0) {
+          needPhoto = true;
+          warnMessage += `• BCS [${item.bcs}]: Sản lượng ${tongSluong} kW (Kỳ trước 0 kW)\n`;
+        }
+      }
+    });
+
+    if (needPhoto && !hasNewPhoto) {
+      const confirm = await showCustomConfirm(
+        "⚠️ BẮT BUỘC CHỤP ẢNH", 
+        `Sản lượng biến động lớn hơn +/- 50%:\n${warnMessage}\nChụp ảnh công tơ trước khi lưu.`, 
+        true
+      );
+      if (confirm) promptImageSource(maKhang);
+      return;
+    }
+
+    const ghiChuEl = document.getElementById(`ghi_chu_${maKhang}`);
+    if (ghiChuEl) cust.ghi_chu = ghiChuEl.value.trim();
+
+    let cloudUrl = cust.hinh_cto || "";
+    if (currentCapturedFiles[maKhang] && navigator.onLine) {
+      try {
+        showToast("⏳ Đang tải ảnh lên Cloudinary...");
+        cloudUrl = await uploadToCloudinary(currentCapturedFiles[maKhang], maKhang);
+        delete currentCapturedFiles[maKhang];
+        let offlineImgs = JSON.parse(localStorage.getItem(getOfflineImagesKey()) || "{}");
+        delete offlineImgs[maKhang];
+        localStorage.setItem(getOfflineImagesKey(), JSON.stringify(offlineImgs));
+      } catch (err) {
+        console.error("Lỗi upload ảnh trực tiếp:", err);
+        await saveOfflineImage(maKhang, currentCapturedFiles[maKhang]);
+      }
+    } else if (currentCapturedFiles[maKhang]) {
+      await saveOfflineImage(maKhang, currentCapturedFiles[maKhang]);
+    } else if (offlineImgBase64 && navigator.onLine && !cust.hinh_cto) {
+      try {
+        const file = base64ToFile(offlineImgBase64, `${maKhang}_device.jpg`);
+        cloudUrl = await uploadToCloudinary(file, maKhang);
+        let offlineImgs = JSON.parse(localStorage.getItem(getOfflineImagesKey()) || "{}");
+        delete offlineImgs[maKhang];
+        localStorage.setItem(getOfflineImagesKey(), JSON.stringify(offlineImgs));
+      } catch (err) {
+        console.error("Lỗi upload ảnh offline:", err);
       }
     }
-  });
 
-  localStorage.setItem(csKey, JSON.stringify(localExcelList));
-  showToast("💾 Đã lưu dữ liệu vào Excel thiết bị!");
-  updateSummaryBar();
-  renderCurrentCustomerCard();
+    if (cloudUrl) {
+      cust.hinh_cto = cloudUrl;
+      cust.items.forEach(item => { item.hinh_cto = cloudUrl; });
+    }
 
-  if (hasNewPhoto && navigator.onLine) {
-    await syncCustomerWithPhotoToSheet(); 
-  } else {
-    await checkAndAutoSync();
+    const csKey = getExcelKeyChiSo();
+    const localExcelList = JSON.parse(localStorage.getItem(csKey) || "[]");
+
+    cust.items.forEach(item => {
+      const inputEl = document.getElementById(`cs_moi_${item.rowIndex}`);
+      const val = inputEl ? inputEl.value.trim() : "";
+      const selectEl = document.getElementById(`select_loai_${item.rowIndex}`);
+      const selectedType = selectEl ? selectEl.value.trim() : "";
+      const maTTCtoVal = selectedType !== "" ? selectedType : "";
+
+      const excelItemIndex = localExcelList.findIndex(e => String(e.id_chiso) === String(item.id_chiso));
+
+      if (val !== "" && !isNaN(Number(val))) {
+        const csMoi = Number(val);
+        const csCu = Number(item.chiso_cu) || 0;
+        const hsn = Number(item.hsn) || 1;
+        const sluongThao = Number(item.sluong_thao) || 0;
+        const sluongKt = Number(item.sluong_kt) || 0;
+
+        let sanLuong = 0;
+        if (csMoi < csCu) {
+          sanLuong = Math.round((csMoi + 100000 - csCu) * hsn);
+        } else {
+          sanLuong = Math.round((csMoi - csCu) * hsn);
+        }
+
+        const tongSluong = sanLuong + sluongThao;
+        const chenhLech = tongSluong - sluongKt;
+        const tyleClech = sluongKt !== 0 ? ((tongSluong / sluongKt) * 100).toFixed(2) + "%" : "0%";
+        const nowStr = new Date().toLocaleString("vi-VN");
+
+        item.chiso_moi = csMoi;
+        item.san_luong = sanLuong;
+        item.tong_sluong = tongSluong;
+        item.chenh_lech = chenhLech;
+        item.tyle_clech = tyleClech;
+        item.ghi_chu = cust.ghi_chu;
+        item.ma_ttcto = maTTCtoVal;
+        item.ngay_nhap = nowStr;
+        item.nguoi_nhap = currentUser.ten_nvien || currentUser.ten_ndung;
+        item.tthai_dongbo = "0";
+
+        if (cloudUrl) item.hinh_cto = cloudUrl;
+
+        if (excelItemIndex !== -1) {
+          localExcelList[excelItemIndex].chiso_moi = csMoi;
+          localExcelList[excelItemIndex].san_luong = sanLuong;
+          localExcelList[excelItemIndex].tong_sluong = tongSluong;
+          localExcelList[excelItemIndex].chenh_lech = chenhLech;
+          localExcelList[excelItemIndex].tyle_clech = tyleClech;
+          localExcelList[excelItemIndex].ghi_chu = cust.ghi_chu;
+          localExcelList[excelItemIndex].ma_ttcto = maTTCtoVal;
+          localExcelList[excelItemIndex].ngay_nhap = nowStr;
+          localExcelList[excelItemIndex].nguoi_nhap = currentUser.ten_nvien || currentUser.ten_ndung;
+          localExcelList[excelItemIndex].tthai_dongbo = "0";
+          localExcelList[excelItemIndex].lat = item.lat || "";
+          localExcelList[excelItemIndex].lng = item.lng || "";
+          if (cloudUrl) localExcelList[excelItemIndex].hinh_cto = cloudUrl;
+        }
+      }
+    });
+
+    localStorage.setItem(csKey, JSON.stringify(localExcelList));
+    showToast("💾 Đã lưu dữ liệu vào Excel thiết bị!");
+    updateSummaryBar();
+    renderCurrentCustomerCard();
+
+    if (hasNewPhoto && navigator.onLine) {
+      await syncCustomerWithPhotoToSheet(); 
+    } else {
+      await checkAndAutoSync();
+    }
+  } finally {
+    // Kích hoạt lại nút lưu sau khi hoàn tất xử lý (kể cả khi có lỗi)
+    const btnSaveEnd = document.getElementById(`btn_save_${maKhang}`);
+    if (btnSaveEnd) {
+      btnSaveEnd.disabled = false;
+      btnSaveEnd.style.opacity = "1";
+      btnSaveEnd.style.cursor = "pointer";
+    }
   }
 }
 
