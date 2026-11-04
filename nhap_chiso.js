@@ -199,10 +199,13 @@ function downloadAllExcelFiles() {
 
 async function saveCustomerData(maKhang) {
   const btnSave = document.getElementById(`btn_save_${maKhang}`);
-if (btnSave) {
+  if (btnSave) {
     btnSave.disabled = true;
-    btnSave.classList.add("btn-disabled-custom"); // Áp dụng class xám màu bằng !important
+    btnSave.classList.add("btn-disabled-custom");
   }
+
+  // Dùng setTimeout nhỏ để trình duyệt kịp cập nhật giao diện đổi màu xám trước khi chạy các tác vụ nặng
+  await new Promise(resolve => setTimeout(resolve, 10));
 
   try {
     const cust = groupedData[maKhang];
@@ -254,6 +257,11 @@ if (btnSave) {
     });
 
     if (needPhoto && !hasNewPhoto) {
+      if (btnSave) {
+        btnSave.disabled = false;
+        btnSave.classList.remove("btn-disabled-custom");
+      }
+
       const confirm = await showCustomConfirm(
         "⚠️ BẮT BUỘC CHỤP ẢNH", 
         `Sản lượng biến động lớn hơn +/- 50%:\n${warnMessage}\nChụp ảnh công tơ trước khi lưu.`, 
@@ -373,14 +381,7 @@ if (btnSave) {
     console.error("Lỗi khi lưu dữ liệu:", error);
     showToast("❌ Lỗi trong quá trình lưu dữ liệu!");
   } finally {
-    // Đảm bảo sau khi xử lý xong (kể cả khi return hoặc lỗi) thì luôn vẽ lại giao diện và mở khóa nút
     renderCurrentCustomerCard();
-    
-    const btnSaveEnd = document.getElementById(`btn_save_${maKhang}`);
-if (btnSaveEnd) {
-      btnSaveEnd.disabled = false;
-      btnSaveEnd.classList.remove("btn-disabled-custom"); // Gỡ bỏ class xám để trả về màu gốc
-    }
   }
 }
 
