@@ -197,8 +197,8 @@ function downloadAllExcelFiles() {
   showToast(`📊 Đã tải dữ liệu: ${fileName}`);
 }
 
-async function saveCustomerData(maKhang) {
-  const btnSave = document.getElementById(`btn_save_${maKhang}`); 
+async function saveCustomerData(maKhang) {async function saveCustomerData(maKhang) {
+  const btnSave = document.getElementById(`btn_save_${maKhang}`);
   if (btnSave) {
     btnSave.disabled = true;
     btnSave.style.opacity = "0.5";
@@ -215,7 +215,7 @@ async function saveCustomerData(maKhang) {
       offlineImgBase64 = offlineImgs[maKhang] || null;
     } catch(e) {}
 
-    let hasNewPhoto = Boolean(currentCapturedFiles[maKhang] || offlineImgBase64);
+    const hasNewPhoto = Boolean(currentCapturedFiles[maKhang] || offlineImgBase64);
 
     let needPhoto = false;
     let warnMessage = "";
@@ -372,7 +372,7 @@ async function saveCustomerData(maKhang) {
       await checkAndAutoSync();
     }
   } finally {
-    // Kích hoạt lại nút lưu sau khi hoàn tất xử lý (kể cả khi có lỗi)
+    // Phục hồi lại nút lưu sau khi hoàn tất xử lý
     const btnSaveEnd = document.getElementById(`btn_save_${maKhang}`);
     if (btnSaveEnd) {
       btnSaveEnd.disabled = false;
