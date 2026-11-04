@@ -199,12 +199,9 @@ function downloadAllExcelFiles() {
 
 async function saveCustomerData(maKhang) {
   const btnSave = document.getElementById(`btn_save_${maKhang}`);
-  if (btnSave) {
+if (btnSave) {
     btnSave.disabled = true;
-    btnSave.style.opacity = "0.7";
-    btnSave.style.setProperty("background-color", "#d6d8db", "important");
-    btnSave.style.setProperty("color", "#6c757d", "important");
-    btnSave.style.cursor = "not-allowed";
+    btnSave.classList.add("btn-disabled-custom"); // Áp dụng class xám màu bằng !important
   }
 
   try {
@@ -380,12 +377,9 @@ async function saveCustomerData(maKhang) {
     renderCurrentCustomerCard();
     
     const btnSaveEnd = document.getElementById(`btn_save_${maKhang}`);
-    if (btnSaveEnd) {
+if (btnSaveEnd) {
       btnSaveEnd.disabled = false;
-      btnSaveEnd.style.opacity = "1";
-      btnSaveEnd.style.removeProperty("background-color");
-      btnSaveEnd.style.removeProperty("color");
-      btnSaveEnd.style.cursor = "pointer";
+      btnSaveEnd.classList.remove("btn-disabled-custom"); // Gỡ bỏ class xám để trả về màu gốc
     }
   }
 }
