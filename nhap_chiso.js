@@ -940,7 +940,7 @@ async function handleImageSelected(event, maKhang) {
       document.body.appendChild(downloadLink);
       downloadLink.click();
       document.body.removeChild(downloadLink);
-    } else (e) {
+    } catch (e) { // 👈 Đã sửa từ else (e) thành catch (e)
       console.error("Lỗi tải ảnh về thiết bị:", e);
     }
   }
@@ -955,7 +955,7 @@ async function handleImageSelected(event, maKhang) {
   };
   reader.readAsDataURL(file);
   event.target.value = "";
-}
+} 
 
 function openNoteDialogForLocation(index, safeKey) {
   let modal = document.getElementById('noteLocationModal');
