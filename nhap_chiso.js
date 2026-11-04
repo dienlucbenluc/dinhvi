@@ -202,6 +202,7 @@ async function saveCustomerData(maKhang) {
   if (btnSave) {
     btnSave.disabled = true;
     btnSave.style.opacity = "0.5";
+    btnSave.style.backgroundColor = "#d6d8db";
     btnSave.style.color = "#6c757d";
     btnSave.style.cursor = "not-allowed";
   }
@@ -382,6 +383,7 @@ async function saveCustomerData(maKhang) {
     if (btnSaveEnd) {
       btnSaveEnd.disabled = false;
       btnSaveEnd.style.opacity = "1";
+      btnSaveEnd.style.backgroundColor = "";
       btnSaveEnd.style.color = "#fff";
       btnSaveEnd.style.cursor = "pointer";
     }
