@@ -876,7 +876,15 @@ function updateSummaryBar() {
   });
   document.getElementById("sumTongKh").innerText = tongKh;
   document.getElementById("sumDaCS").innerText = daCoCS;
-  document.getElementById("sumChuaGhi").innerText = tongKh - daCoCS;
+  
+  // 1. Tính số lượng chưa ghi
+  const sumChuaGhi = tongKh - daCoCS;
+  document.getElementById("sumChuaGhi").innerText = sumChuaGhi;
+
+  // 2. Thêm điều kiện kiểm tra: Nếu tất cả đã ghi xong (sumChuaGhi = 0) và có mạng thì tự động đồng bộ ngay
+  if (sumChuaGhi === 0 && tongKh > 0 && navigator.onLine) {
+    syncLocalExcelToSheet();
+  }
 }
 
 function promptImageSource(maKhang) {
