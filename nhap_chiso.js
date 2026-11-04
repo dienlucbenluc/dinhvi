@@ -198,7 +198,7 @@ function downloadAllExcelFiles() {
 }
 
 async function saveCustomerData(maKhang) {
-  const btnSave = document.getElementById(`btn_save_${maKkhang || maKhang}`); // Lấy chính xác nút lưu của khách hàng
+  const btnSave = document.getElementById(`btn_save_${maKhang}`); 
   if (btnSave) {
     btnSave.disabled = true;
     btnSave.style.opacity = "0.5";
