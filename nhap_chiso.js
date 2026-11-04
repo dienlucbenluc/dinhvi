@@ -925,20 +925,27 @@ async function handleImageSelected(event, maKhang) {
   const file = event.target.files && event.target.files[0];
   if (!file) return;
 
+  // Lưu file vào bộ nhớ tạm để chuẩn bị xử lý
   currentCapturedFiles[maKhang] = file;
   await saveOfflineImage(maKhang, file);
 
-  try {
-    const downloadLink = document.createElement("a");
-    downloadLink.href = URL.createObjectURL(file);
-    downloadLink.download = `${maKhang}_${Date.now()}.jpg`;
-    document.body.appendChild(downloadLink);
-    downloadLink.click();
-    document.body.removeChild(downloadLink);
-  } catch (e) {
-    console.error("Lỗi tải ảnh về thiết bị:", e);
+  // 🎯 KIỂM TRA HỆ THỐNG: Nếu KHÔNG PHẢI iOS (tức là Android hoặc PC) thì mới thực hiện tải file về thiết bị
+  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  
+  if (!isIOS) {
+    try {
+      const downloadLink = document.createElement("a");
+      downloadLink.href = URL.createObjectURL(file);
+      downloadLink.download = `${maKhang}_${Date.now()}.jpg`;
+      document.body.appendChild(downloadLink);
+      downloadLink.click();
+      document.body.removeChild(downloadLink);
+    } else (e) {
+      console.error("Lỗi tải ảnh về thiết bị:", e);
+    }
   }
 
+  // Hiển thị khung xem trước ảnh (áp dụng chung cho cả iOS và Android)
   const reader = new FileReader();
   reader.onload = (e) => {
     const previewContainer = document.getElementById(`img_preview_container_${maKhang}`);
