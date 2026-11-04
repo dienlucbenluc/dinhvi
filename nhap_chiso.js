@@ -197,7 +197,7 @@ function downloadAllExcelFiles() {
   showToast(`📊 Đã tải dữ liệu: ${fileName}`);
 }
 
-async function saveCustomerData(maKhang) {async function saveCustomerData(maKhang) {
+async function saveCustomerData(maKhang) {
   const btnSave = document.getElementById(`btn_save_${maKhang}`);
   if (btnSave) {
     btnSave.disabled = true;
@@ -364,15 +364,19 @@ async function saveCustomerData(maKhang) {async function saveCustomerData(maKhan
     localStorage.setItem(csKey, JSON.stringify(localExcelList));
     showToast("💾 Đã lưu dữ liệu vào Excel thiết bị!");
     updateSummaryBar();
-    renderCurrentCustomerCard();
 
     if (hasNewPhoto && navigator.onLine) {
       await syncCustomerWithPhotoToSheet(); 
     } else {
       await checkAndAutoSync();
     }
+  } catch (error) {
+    console.error("Lỗi khi lưu dữ liệu:", error);
+    showToast("❌ Lỗi trong quá trình lưu dữ liệu!");
   } finally {
-    // Phục hồi lại nút lưu sau khi hoàn tất xử lý
+    // Đảm bảo sau khi xử lý xong (kể cả khi return hoặc lỗi) thì luôn vẽ lại giao diện và mở khóa nút
+    renderCurrentCustomerCard();
+    
     const btnSaveEnd = document.getElementById(`btn_save_${maKhang}`);
     if (btnSaveEnd) {
       btnSaveEnd.disabled = false;
