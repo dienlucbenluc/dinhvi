@@ -200,13 +200,13 @@ async function saveCustomerData(maKhang) {
   const cust = groupedData[maKhang];
   if (!cust) return;
 
-  // 1. Lấy đúng giá trị từ các ô input và select trên giao diện card của khách hàng đó
+  // 1. Lấy an toàn các giá trị từ giao diện card của khách hàng
   const modemEl = document.getElementById(`modem_${maKhang}`);
-  const htruongEl = document.getElementById(`CAIDAT_HTRUONG_${makh}` ) || document.getElementById(`CAIDAT_HTRUONG_${maKhang}`);
-  const kybbEl = document.getElementById(`LOAI_KYBBAN_${makh}`) || document.getElementById(`LOAI_KYBBAN_${maKhang}`);
+  const htruongEl = document.getElementById(`CAIDAT_HTRUONG_${maKhang}`) || document.getElementById(`CAIDAT_HTRUONG_${maKhang.toLowerCase()}`);
+  const kybbEl = document.getElementById(`LOAI_KYBBAN_${maKhang}`) || document.getElementById(`LOAI_KYBBAN_${maKhang.toLowerCase()}`);
   const ghichuEl = document.getElementById(`ghi_chu_${maKhang}`);
 
-  // 2. Gán giá trị thực tế người dùng chọn/nhập vào đối tượng dữ liệu
+  // 2. Gán giá trị vào đối tượng dữ liệu
   cust.MODEM = modemEl ? modemEl.value.trim() : (cust.MODEM || "");
   cust.CAIDAT_HTRUONG = htruongEl ? htruongEl.value : (cust.CAIDAT_HTRUONG || "");
   cust.LOAI_KYBBAN = kybbEl ? kybbEl.value : (cust.LOAI_KYBBAN || "");
@@ -216,18 +216,21 @@ async function saveCustomerData(maKhang) {
   cust.THAY_CTO = "X"; 
   cust.NGAY_THIEN = new Date().toLocaleString("vi-VN");
 
-  // 3. Lưu vào LocalStorage của thiết bị
+  // 3. Lưu vào bộ nhớ LocalStorage của thiết bị
   const storeKey = getExcelKeyCaiDat();
   let localList = JSON.parse(localStorage.getItem(storeKey) || "[]");
   
   localList.forEach(item => {
     if (String(item.MA_KHANG) === String(maKhang)) {
       item.MODEM = cust.MODEM;
-      item.CAIDAT_HTRUONG = cust.CAIDAT_HTRUONG; // Lưu đúng giá trị value của select (ví dụ: '1', '2' hoặc 'X', 'K'...)
-      item.LOAI_KYBBAN = cust.LOAI_KYBBAN;       // Lưu đúng giá trị value của select (ví dụ: 'X', 'K'...)
+      item.CAIDAT_HTRUONG = cust.CAIDAT_HTRUONG;
+      item.LOAI_KYBBAN = cust.LOAI_KYBBAN;
       item.GHI_CHU = cust.GHI_CHU;
       item.THAY_CTO = cust.THAY_CTO;
       item.NGAY_THIEN = cust.NGAY_THIEN;
+      // Đồng thời giữ lại tọa độ LAT/LNG nếu đã lấy định vị trước đó
+      item.LAT = cust.LAT || item.LAT || "";
+      item.LNG = cust.LNG || item.LNG || "";
     }
   });
 
@@ -235,7 +238,7 @@ async function saveCustomerData(maKhang) {
   showToast("💾 Đã lưu dữ liệu cài đặt thành công!");
   updateSummaryBar();
   
-  // 4. Đồng bộ ngay lên server nếu có mạng
+  // 4. Nếu có mạng thì tự động đồng bộ ngầm lên server
   if (navigator.onLine) {
     await syncLocalExcelToSheet();
   }
