@@ -171,16 +171,16 @@ function renderCurrentCustomerCard() {
           <div style="flex:1;">
             <label style="font-size:11px; font-weight:bold;">Loại ký BB:</label>
 <select class="select-field" id="LOAI_KYBBAN_${makh}">
-  <option value="2" ${cust.LOAI_KYBBAN === "Ký giấy" ? "selected" : ""}>Ký giấy</option>
-  <option value="1" ${cust.LOAI_KYBBAN === "Ký số" ? "selected" : ""}>Ký số</option>
-  <option value="0" ${cust.LOAI_KYBBAN === "Chưa ký" ? "selected" : ""}>Chưa ký</option>
+  <option value="Ký giấy" ${cust.LOAI_KYBBAN === "Ký giấy" ? "selected" : ""}>Ký giấy</option>
+  <option value="Ký số" ${cust.LOAI_KYBBAN === "Ký số" ? "selected" : ""}>Ký số</option>
+  <option value="Chưa ký" ${cust.LOAI_KYBBAN === "Chưa ký" ? "selected" : ""}>Chưa ký</option>
 </select>
           </div>
           <div style="flex:1;">
             <label style="font-size:11px; font-weight:bold;">Tình trạng cài đặt:</label>
 <select class="select-field" id="CAIDAT_HTRUONG_${makh}">
-  <option value="1" ${cust.CAIDAT_HTRUONG === "Thành công" ? "selected" : ""}>Thành công</option>
-  <option value="2" ${cust.CAIDAT_HTRUONG === "Lỗi cài đặt" ? "selected" : ""}>Lỗi cài đặt</option>
+  <option value="Thành công" ${cust.CAIDAT_HTRUONG === "Thành công" ? "selected" : ""}>Thành công</option>
+  <option value="Lỗi cài đặt" ${cust.CAIDAT_HTRUONG === "Lỗi cài đặt" ? "selected" : ""}>Lỗi cài đặt</option>
 </select>
           </div>
         </div>
