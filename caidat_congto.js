@@ -200,30 +200,31 @@ async function saveCustomerData(maKhang) {
   const cust = groupedData[maKhang];
   if (!cust) return;
 
-  // Lấy dữ liệu an toàn từ các input và select có trên giao diện card
+  // 1. Lấy đúng giá trị từ các ô input và select trên giao diện card của khách hàng đó
   const modemEl = document.getElementById(`modem_${maKhang}`);
-  const htruongEl = document.getElementById(`CAIDAT_HTRUONG_${maKhang}`);
-  const kybbEl = document.getElementById(`LOAI_KYBBAN_${maKhang}`);
+  const htruongEl = document.getElementById(`CAIDAT_HTRUONG_${makh}` ) || document.getElementById(`CAIDAT_HTRUONG_${maKhang}`);
+  const kybbEl = document.getElementById(`LOAI_KYBBAN_${makh}`) || document.getElementById(`LOAI_KYBBAN_${maKhang}`);
   const ghichuEl = document.getElementById(`ghi_chu_${maKhang}`);
 
+  // 2. Gán giá trị thực tế người dùng chọn/nhập vào đối tượng dữ liệu
   cust.MODEM = modemEl ? modemEl.value.trim() : (cust.MODEM || "");
   cust.CAIDAT_HTRUONG = htruongEl ? htruongEl.value : (cust.CAIDAT_HTRUONG || "");
   cust.LOAI_KYBBAN = kybbEl ? kybbEl.value : (cust.LOAI_KYBBAN || "");
   cust.GHI_CHU = ghichuEl ? ghichuEl.value.trim() : (cust.GHI_CHU || "");
   
-  // Đánh dấu đã thực hiện và lấy thời gian hiện tại
+  // Đánh dấu trạng thái đã thực hiện và thời gian lưu
   cust.THAY_CTO = "X"; 
   cust.NGAY_THIEN = new Date().toLocaleString("vi-VN");
 
+  // 3. Lưu vào LocalStorage của thiết bị
   const storeKey = getExcelKeyCaiDat();
   let localList = JSON.parse(localStorage.getItem(storeKey) || "[]");
   
-  // Cập nhật vào danh sách lưu trữ dưới máy (LocalStorage)
   localList.forEach(item => {
     if (String(item.MA_KHANG) === String(maKhang)) {
       item.MODEM = cust.MODEM;
-      item.CAIDAT_HTRUONG = cust.CAIDAT_HTRUONG;
-      item.LOAI_KYBBAN = cust.LOAI_KYBBAN;
+      item.CAIDAT_HTRUONG = cust.CAIDAT_HTRUONG; // Lưu đúng giá trị value của select (ví dụ: '1', '2' hoặc 'X', 'K'...)
+      item.LOAI_KYBBAN = cust.LOAI_KYBBAN;       // Lưu đúng giá trị value của select (ví dụ: 'X', 'K'...)
       item.GHI_CHU = cust.GHI_CHU;
       item.THAY_CTO = cust.THAY_CTO;
       item.NGAY_THIEN = cust.NGAY_THIEN;
@@ -234,7 +235,7 @@ async function saveCustomerData(maKhang) {
   showToast("💾 Đã lưu dữ liệu cài đặt thành công!");
   updateSummaryBar();
   
-  // Nếu có mạng thì tiến hành đồng bộ ngầm lên server
+  // 4. Đồng bộ ngay lên server nếu có mạng
   if (navigator.onLine) {
     await syncLocalExcelToSheet();
   }
