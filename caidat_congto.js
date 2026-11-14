@@ -144,6 +144,15 @@ function renderCurrentCustomerCard() {
                    onchange="groupedData['${makh}'].GHI_CHU = this.value;">
           </div>
 
+        <div class="tech-info-grid">
+          <div>Loại cto: <span>${cust.LOAI_CTO || ''}</span></div>
+          <div>Mã Cloại: <span>${cust.MA_CLOAI || ''}</span></div>
+          <div>Dòng/Áp: <span>${cust.DONG_DIEN || ''} / ${cust.DIEN_AP || ''}</span></div>
+          <div>Mật khẩu P3: <span>${cust.MK_CAP3 || ''}</span></div>
+          <div>Năm SX: <span>${cust.NAM_SX || ''}</span></div>
+          <div>Hệ số nhân: <span>${cust.HSN || 1}</span></div>
+        </div>
+
           <!-- 👉 THAY THẾ HOẶC ĐẶT PHẦN NÀY VÀO VỊ TRÍ KHUNG MAPS CŨ TRONG HÀM renderCurrentCustomerCard -->
           <div class="box-maps">
             ${
@@ -157,15 +166,6 @@ function renderCurrentCustomerCard() {
               })()
             }
           </div>
-
-        <div class="tech-info-grid">
-          <div>Loại cto: <span>${cust.LOAI_CTO || ''}</span></div>
-          <div>Mã Cloại: <span>${cust.MA_CLOAI || ''}</span></div>
-          <div>Dòng/Áp: <span>${cust.DONG_DIEN || ''} / ${cust.DIEN_AP || ''}</span></div>
-          <div>Mật khẩu P3: <span>${cust.MK_CAP3 || ''}</span></div>
-          <div>Năm SX: <span>${cust.NAM_SX || ''}</span></div>
-          <div>Hệ số nhân: <span>${cust.HSN || 1}</span></div>
-        </div>
 
         <div style="margin-top: 6px; display:flex; gap:6px;">
           <div style="flex:1;">
