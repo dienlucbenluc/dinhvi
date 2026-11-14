@@ -167,33 +167,21 @@ function renderCurrentCustomerCard() {
           <div>Hệ số nhân: <span>${cust.HSN || 1}</span></div>
         </div>
 
-        <div style="margin-top: 6px;">
-          <table style="width:100%; font-size:13px; border-collapse:collapse;">
-            <tr>
-              <td style="width:50%; padding-right:4px;">
-                <label style="font-size:11px; font-weight:bold;">Modem:</label>
-                <input type="text" class="input-field" id="modem_${makh}" value="${cust.MODEM || ''}" placeholder="Nhập modem...">
-              </td>
-              <td style="width:50%; padding-left:4px;">
-                <label style="font-size:11px; font-weight:bold;">Cài đặt hệ trưởng:</label>
-                <input type="text" class="input-field" id="htruong_${makh}" value="${cust.CAIDAT_HTRUONG || ''}" placeholder="Hệ trưởng...">
-              </td>
-            </tr>
-          </table>
-        </div>
-
         <div style="margin-top: 6px; display:flex; gap:6px;">
           <div style="flex:1;">
             <label style="font-size:11px; font-weight:bold;">Loại ký BB:</label>
-            <select class="select-field" id="thay_cto_${makh}">
+            <select class="select-field" id="LOAI_KYBBAN_${makh}">
               <option value="X" ${cust.LOAI_KYBBAN === "2" ? "selected" : ""}>Ký giấy</option>
               <option value="K" ${cust.LOAI_KYBBAN === "1" ? "selected" : ""}>Ký số</option>
               <option value="K" ${cust.LOAI_KYBBAN === "0" ? "selected" : ""}>Chưa ký</option>
             </select>
           </div>
           <div style="flex:1;">
-            <label style="font-size:11px; font-weight:bold;">Nhân viên cài đặt:</label>
-            <input type="text" class="input-field" id="nv_cdat_${makh}" value="${cust.NVIEN_CDAT || currentUser.ten_nvien || ''}">
+            <label style="font-size:11px; font-weight:bold;">Tình trạng cài đặt:</label>
+               <select class="select-field" id="CAIDAT_HTRUONG_${makh}">
+              <option value="X" ${cust.CAIDAT_HTRUONG === "1" ? "selected" : ""}>Thành công</option>
+              <option value="K" ${cust.CAIDAT_HTRUONG === "2" ? "selected" : ""}>Lỗi cài đặt</option>
+            </select>
           </div>
         </div>
 
