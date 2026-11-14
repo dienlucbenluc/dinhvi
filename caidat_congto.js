@@ -141,7 +141,7 @@ function renderCurrentCustomerCard() {
           <div>Loại cto: <span>${cust.LOAI_CTO || ''}</span></div>
           <div>Sốc tơ: <span>${cust.SO_TBI || ''}</span></div>
           <div>GĐV: <span>${cust.TEN_NVGCS || ''}</span></div>
-          <div>Mật khẩu P3: <span>${cust.MK_CAP3 || ''}</span></div>
+          <div>Mật khẩu C3: <span>${cust.MK_CAP3 || ''}</span></div>
         </div>
 
           <!-- 👉 THAY THẾ HOẶC ĐẶT PHẦN NÀY VÀO VỊ TRÍ KHUNG MAPS CŨ TRONG HÀM renderCurrentCustomerCard -->
@@ -158,7 +158,7 @@ function renderCurrentCustomerCard() {
               (() => {
                 const hasLocation = Boolean(cust.LAT && cust.LNG);
                 if (hasLocation) {
-                  return `<span id="map_link_${makh}"><a href="http://maps.google.com/?q=${cust.LAT},${cust.LNG}" target="_blank" style="color:#007bff; font-weight:bold; text-decoration:none;">🌏 Xem Google Maps (${Number(cust.LAT).toFixed(5)}, ${Number(cust.LNG).toFixed(5)})</a></span>`;
+                  return `<span id="map_link_${makh}"><a href="http://maps.google.com/?q=${cust.LAT},${cust.LNG}" target="_blank" style="color:#007bff; font-weight:bold; text-decoration:none;">🌏 Xem VT công tơ trên Google Maps</a></span>`;
                 } else {
                   return `<a onclick="openNoteDialogForLocation(${index}, '${makh}')" style="color:red; font-size: 14px; font-weight:bold; text-decoration:none; cursor:pointer;">📍 Lấy mới định vị</a>`;
                 }
