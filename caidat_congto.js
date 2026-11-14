@@ -200,29 +200,41 @@ async function saveCustomerData(maKhang) {
   const cust = groupedData[maKhang];
   if (!cust) return;
 
-  cust.MODEM = document.getElementById(`modem_${maKhang}`).value.trim();
-  cust.CAIDAT_HTRUONG = document.getElementById(`htruong_${maKhang}`).value.trim();
-  cust.THAY_CTO = document.getElementById(`thay_cto_${maKhang}`).value;
-  cust.NVIEN_CDAT = document.getElementById(`nv_cdat_${maKhang}`).value.trim();
+  // Lấy dữ liệu an toàn từ các input và select có trên giao diện card
+  const modemEl = document.getElementById(`modem_${maKhang}`);
+  const htruongEl = document.getElementById(`CAIDAT_HTRUONG_${maKhang}`);
+  const kybbEl = document.getElementById(`LOAI_KYBBAN_${maKhang}`);
+  const ghichuEl = document.getElementById(`ghi_chu_${maKhang}`);
+
+  cust.MODEM = modemEl ? modemEl.value.trim() : (cust.MODEM || "");
+  cust.CAIDAT_HTRUONG = htruongEl ? htruongEl.value : (cust.CAIDAT_HTRUONG || "");
+  cust.LOAI_KYBBAN = kybbEl ? kybbEl.value : (cust.LOAI_KYBBAN || "");
+  cust.GHI_CHU = ghichuEl ? ghichuEl.value.trim() : (cust.GHI_CHU || "");
+  
+  // Đánh dấu đã thực hiện và lấy thời gian hiện tại
+  cust.THAY_CTO = "X"; 
   cust.NGAY_THIEN = new Date().toLocaleString("vi-VN");
 
   const storeKey = getExcelKeyCaiDat();
   let localList = JSON.parse(localStorage.getItem(storeKey) || "[]");
   
+  // Cập nhật vào danh sách lưu trữ dưới máy (LocalStorage)
   localList.forEach(item => {
     if (String(item.MA_KHANG) === String(maKhang)) {
       item.MODEM = cust.MODEM;
       item.CAIDAT_HTRUONG = cust.CAIDAT_HTRUONG;
+      item.LOAI_KYBBAN = cust.LOAI_KYBBAN;
+      item.GHI_CHU = cust.GHI_CHU;
       item.THAY_CTO = cust.THAY_CTO;
-      item.NVIEN_CDAT = cust.NVIEN_CDAT;
       item.NGAY_THIEN = cust.NGAY_THIEN;
     }
   });
 
   localStorage.setItem(storeKey, JSON.stringify(localList));
-  showToast("💾 Đã lưu dữ liệu cài đặt công tơ!");
+  showToast("💾 Đã lưu dữ liệu cài đặt thành công!");
   updateSummaryBar();
   
+  // Nếu có mạng thì tiến hành đồng bộ ngầm lên server
   if (navigator.onLine) {
     await syncLocalExcelToSheet();
   }
