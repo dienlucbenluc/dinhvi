@@ -136,14 +136,6 @@ function renderCurrentCustomerCard() {
         <div class="cust-address"><b>Đ/C:</b> ${cust.DCHI_DDO || ''}</div>
         <div class="cust-row-group">Sổ: ${cust.MA_SOGCS || ''} - Danh số: ${cust.DANH_SO || ''} - Trạm: ${cust.TEN_TRAM || ''}</div>
 
-<div class="cust-row-group">
-            <input type="text" class="input-ghichu" 
-                   id="ghi_chu_${makh}" 
-                   value="${cust.GHI_CHU || ''}" 
-                   placeholder="Nhập ghi chú nếu có..." 
-                   onchange="groupedData['${makh}'].GHI_CHU = this.value;">
-          </div>
-
         <div class="tech-info-grid">
           <div>Loại cto: <span>${cust.LOAI_CTO || ''}</span></div>
           <div>Mã Cloại: <span>${cust.MA_CLOAI || ''}</span></div>
@@ -154,6 +146,14 @@ function renderCurrentCustomerCard() {
         </div>
 
           <!-- 👉 THAY THẾ HOẶC ĐẶT PHẦN NÀY VÀO VỊ TRÍ KHUNG MAPS CŨ TRONG HÀM renderCurrentCustomerCard -->
+         <div class="cust-row-group">
+            <input type="text" class="input-ghichu" 
+                   id="ghi_chu_${makh}" 
+                   value="${cust.GHI_CHU || ''}" 
+                   placeholder="Nhập ghi chú nếu có..." 
+                   onchange="groupedData['${makh}'].GHI_CHU = this.value;">
+          </div>
+          
           <div class="box-maps">
             ${
               (() => {
