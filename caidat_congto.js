@@ -1,4 +1,4 @@
-const API_URL = "https://script.google.com/macros/s/AKfycbwjw5x47mNLBpC3Ar4beIIM20XzZJAVXMLusNZV2rHbyCvls7pICldt7UAkM6htgqpa/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbztnw4S7AQaWVt3jS7B_9bcoj0aOJCOElNMz8HQpanPWh-_ufs2bmZGyqBjYhN1VZpA/exec";
 const CLOUDINARY_CLOUD_NAME = "jokzcdxt";  
 const CLOUDINARY_UPLOAD_PRESET = "image_chiso";
 
