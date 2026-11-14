@@ -162,11 +162,12 @@ function renderCurrentCustomerCard() {
 
         <div style="margin-top: 6px; display:flex; gap:6px;">
           <div style="flex:1;">
-            <label style="font-size:11px; font-weight:bold;">Thay công tơ:</label>
+            <label style="font-size:11px; font-weight:bold;">Loại ký BB:</label>
             <select class="select-field" id="thay_cto_${makh}">
-              <option value="" ${!cust.THAY_CTO ? "selected" : ""}>-- Chọn --</option>
-              <option value="X" ${cust.THAY_CTO === "X" ? "selected" : ""}>Có thay</option>
-              <option value="K" ${cust.THAY_CTO === "K" ? "selected" : ""}>Không</option>
+              <option value="" ${!cust.LOAI_KYBBAN ? "selected" : ""}>-- Chọn --</option>
+              <option value="X" ${cust.LOAI_KYBBAN === "2" ? "selected" : ""}>Ký giấy</option>
+              <option value="K" ${cust.LOAI_KYBBAN === "1" ? "selected" : ""}>Ký số</option>
+              <option value="K" ${cust.LOAI_KYBBAN === "0" ? "selected" : ""}>Chưa ký</option>
             </select>
           </div>
           <div style="flex:1;">
