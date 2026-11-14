@@ -131,18 +131,17 @@ function renderCurrentCustomerCard() {
 
     html += `
       <div class="customer-card" id="customer_card_${makh}">
-        <div class="cust-title">STT: ${index + 1}/${customerKeys.length} - Mã KH: ${cust.MA_KHANG} - <b>Sốc tơ:</b> ${cust.SO_TBI || ''}</div>
+        <div class="cust-title">STT: ${index + 1}/${customerKeys.length} - Mã KH: ${cust.MA_KHANG} - <b>Số ĐT:</b> ${cust.DTHOAI_DVU || ''}</div>
         <div class="cust-tenKH">${cust.TEN_KHANG || ''}</div>
         <div class="cust-address"><b>Đ/C:</b> ${cust.DCHI_DDO || ''}</div>
-        <div class="cust-row-group">Sổ: ${cust.MA_SOGCS || ''} - Danh số: ${cust.DANH_SO || ''} - Trạm: ${cust.TEN_TRAM || ''}</div>
-
+        <div class="cust-row-group">Sổ: ${cust.MA_SOGCS || ''}-Danh số: ${cust.DANH_SO || ''}-Trụ: ${cust.SO_COT || ''}-Trạm: ${cust.TEN_TRAM || ''}</div>
+        <div class="cust-address"><b>VT đấu nối:</b> ${cust.VITRI_DNOI || ''}</div>
+        
         <div class="tech-info-grid">
           <div>Loại cto: <span>${cust.LOAI_CTO || ''}</span></div>
-          <div>Mã Cloại: <span>${cust.MA_CLOAI || ''}</span></div>
-          <div>Dòng/Áp: <span>${cust.DONG_DIEN || ''} / ${cust.DIEN_AP || ''}</span></div>
+          <div>Sốc tơ: <span>${cust.SO_TBI || ''}</span></div>
+          <div>GĐV: <span>${cust.TEN_NVGCS || ''}</span></div>
           <div>Mật khẩu P3: <span>${cust.MK_CAP3 || ''}</span></div>
-          <div>Năm SX: <span>${cust.NAM_SX || ''}</span></div>
-          <div>Hệ số nhân: <span>${cust.HSN || 1}</span></div>
         </div>
 
           <!-- 👉 THAY THẾ HOẶC ĐẶT PHẦN NÀY VÀO VỊ TRÍ KHUNG MAPS CŨ TRONG HÀM renderCurrentCustomerCard -->
