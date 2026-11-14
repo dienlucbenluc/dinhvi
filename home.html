@@ -381,15 +381,7 @@
                         <div class="feature-desc">KH quá hạn thanh toán</div>
                     </div>
                 </div>
-
-                <div class="feature-card" onclick="openPassModal()">
-                    <div class="feature-icon icon-orange">🔑</div>
-                    <div>
-                        <div class="feature-title">Tài khoản</div>
-                        <div class="feature-desc">Đổi MK & Tên, Avatar</div>
-                    </div>
-                </div>
-               
+              
                 <div class="feature-card" onclick="window.location.href='caidat_congto.html'">
                     <div class="feature-icon icon-purple">🛠️</div>
                     <div>
@@ -617,16 +609,6 @@
 
         function closeAdminAuthModal() {
             document.getElementById('adminAuthModal').style.display = 'none';
-        }
-
-        function verifyAdminPassword() {
-            const passInput = document.getElementById('adminPasswordInput').value.trim();
-            if (passInput === ADMIN_PASSWORD) {
-                closeAdminAuthModal();
-                window.location.href = "tamngung_capdien.html";
-            } else {
-                showAlert("Mật khẩu Admin không đúng. Vui lòng kiểm tra lại!", "Truy Cập Bị Từ Chối", false);
-            }
         }
 
         function openDevModal() {
