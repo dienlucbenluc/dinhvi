@@ -173,7 +173,7 @@ function renderCurrentCustomerCard() {
 <select class="select-field" id="LOAI_KYBBAN_${makh}">
   <option value="2" ${cust.LOAI_KYBBAN === "Ký giấy" ? "selected" : ""}>Ký giấy</option>
   <option value="1" ${cust.LOAI_KYBBAN === "Ký số" ? "selected" : ""}>Ký số</option>
-  <option value="0" ${cust.LOAI_KYBBAN === "" ? "selected" : ""}>Chưa ký</option>
+  <option value="0" ${cust.LOAI_KYBBAN === "Chưa ký" ? "selected" : ""}>Chưa ký</option>
 </select>
           </div>
           <div style="flex:1;">
@@ -211,9 +211,6 @@ async function saveCustomerData(maKhang) {
   cust.CAIDAT_HTRUONG = htruongEl ? htruongEl.value : (cust.CAIDAT_HTRUONG || "");
   cust.LOAI_KYBBAN = kybbEl ? kybbEl.value : (cust.LOAI_KYBBAN || "");
   cust.GHI_CHU = ghichuEl ? ghichuEl.value.trim() : (cust.GHI_CHU || "");
-  
-  // Đánh dấu trạng thái đã thực hiện và thời gian lưu
-  cust.THAY_CTO = "X"; 
   cust.NGAY_THIEN = new Date().toLocaleString("vi-VN");
 
   // 3. Lưu vào bộ nhớ LocalStorage của thiết bị
