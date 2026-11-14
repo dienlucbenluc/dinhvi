@@ -136,6 +136,28 @@ function renderCurrentCustomerCard() {
         <div class="cust-address"><b>Đ/C:</b> ${cust.DCHI_DDO || ''}</div>
         <div class="cust-row-group">Sổ: ${cust.MA_SOGCS || ''} - Danh số: ${cust.DANH_SO || ''} - Trạm: ${cust.TEN_TRAM || ''}</div>
 
+<div class="cust-row-group">
+            <input type="text" class="input-ghichu" 
+                   id="ghi_chu_${makh}" 
+                   value="${cust.GHI_CHU || ''}" 
+                   placeholder="Nhập ghi chú nếu có..." 
+                   onchange="groupedData['${makh}'].GHI_CHU = this.value;">
+          </div>
+
+          <!-- 👉 THAY THẾ HOẶC ĐẶT PHẦN NÀY VÀO VỊ TRÍ KHUNG MAPS CŨ TRONG HÀM renderCurrentCustomerCard -->
+          <div class="box-maps">
+            ${
+              (() => {
+                const hasLocation = Boolean(cust.LAT && cust.LNG);
+                if (hasLocation) {
+                  return `<span id="map_link_${makh}"><a href="http://maps.google.com/?q=${cust.LAT},${cust.LNG}" target="_blank" style="color:#007bff; font-weight:bold; text-decoration:none;">🌏 Xem Google Maps (${Number(cust.LAT).toFixed(5)}, ${Number(cust.LNG).toFixed(5)})</a></span>`;
+                } else {
+                  return `<a onclick="openNoteDialogForLocation(${index}, '${makh}')" style="color:red; font-size: 14px; font-weight:bold; text-decoration:none; cursor:pointer;">📍 Lấy mới định vị</a>`;
+                }
+              })()
+            }
+          </div>
+
         <div class="tech-info-grid">
           <div>Loại cto: <span>${cust.LOAI_CTO || ''}</span></div>
           <div>Mã Cloại: <span>${cust.MA_CLOAI || ''}</span></div>
@@ -354,4 +376,121 @@ function filterData() {
   } else {
     showToast("❌ Không tìm thấy thông tin phù hợp!");
   }
+}
+
+// Thêm key lưu trữ dữ liệu định vị ngoại tuyến tương tự nhap_chiso.js
+function getExcelKeyDinhVi() {
+  const user = String(currentUser?.ten_ndung || "").trim().toLowerCase();
+  return `caidat_dinhvi_excel_data_${user}`;
+}
+
+// Hàm gọi mở popup nhập ghi chú định vị trước khi lấy tọa độ GPS
+function openNoteDialogForLocation(index, safeKey) {
+  let modal = document.getElementById('noteLocationModal');
+  if (!modal) {
+    // Nếu trong html chưa có sẵn modal thì tạo động
+    const modalHtml = `
+      <div id="noteLocationModal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:9999;justify-content:center;align-items:center;">
+        <div style="background:#fff;padding:20px;border-radius:8px;width:90%;max-width:350px;box-sizing:border-box;">
+          <h3 style="margin-top:0;font-size:16px;text-align:center;color:red;">NHẬP CHI TIẾT VỊ TRÍ CÔNG TƠ</h3>
+          <input type="text" id="inputLocationNote" placeholder="Số trụ, mô tả sơ bộ vị trí công tơ..." style="width:100%;padding:8px;box-sizing:border-box;margin-bottom:15px;border:1px solid #ccc;border-radius:4px;" oninput="validateNoteInput()">
+          <div style="display:flex;justify-content:center;gap:10px;">
+            <button type="button" onclick="closeNoteDialog()" style="width:110px;padding:6px 12px;background:#FFB6C1;border:none;border-radius:4px;cursor:pointer;font-weight: bold;">📤&nbsp;&nbsp;Thoát</button>
+            <button type="button" id="btnExecuteGetLocation" onclick="executeGetLocationWithNote()" style="width:110px;padding:6px 12px;background:#007bff;border:none;border-radius:4px;cursor:pointer;opacity:0.5;pointer-events:none;font-weight: bold;color:#fff">📍&nbsp;&nbsp;Thực hiện</button>
+          </div>
+        </div>
+      </div>`;
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+    modal = document.getElementById('noteLocationModal');
+  }
+
+  window._pendingLocationContext = { index, safeKey };
+  document.getElementById('inputLocationNote').value = '';
+  validateNoteInput();
+  modal.style.display = 'flex';
+}
+
+function validateNoteInput() {
+  const input = document.getElementById('inputLocationNote');
+  const btn = document.getElementById('btnExecuteGetLocation');
+  if (!input || !btn) return;
+  
+  if (input.value.trim() !== '') {
+    btn.style.opacity = '1';
+    btn.style.pointerEvents = 'auto';
+  } else {
+    btn.style.opacity = '0.5';
+    btn.style.pointerEvents = 'none';
+  }
+}
+
+function closeNoteDialog() {
+  const modal = document.getElementById('noteLocationModal');
+  if (modal) modal.style.display = 'none';
+  window._pendingLocationContext = null;
+}
+
+function executeGetLocationWithNote() {
+  const input = document.getElementById('inputLocationNote');
+  const note = input ? input.value.trim() : '';
+  const context = window._pendingLocationContext;
+  
+  if (!note || !context) return;
+  
+  closeNoteDialog();
+  getLocationAndSave(context.safeKey, note);
+}
+
+// Hàm thực thi lấy định vị GPS và lưu vào localStorage theo chuẩn LAT/LNG
+function getLocationAndSave(maKhang, locationNote = "") {
+  if (!navigator.geolocation) {
+    showToast("❌ Trình duyệt không hỗ trợ định vị GPS!");
+    return;
+  }
+  showToast("⏳ Đang lấy vị trí GPS...");
+
+  navigator.geolocation.getCurrentPosition(
+    (position) => {
+      const lat = position.coords.latitude;
+      const lng = position.coords.longitude;
+      const cust = groupedData[maKhang] || {};
+      const nowStr = new Date().toLocaleString("vi-VN");
+
+      // Cập nhật trực tiếp vào dữ liệu RAM của khách hàng
+      cust.LAT = lat;
+      cust.LNG = lng;
+
+      // Lưu vào LocalStorage của danh sách cài đặt công tơ
+      const storeKey = getExcelKeyCaiDat();
+      let localList = JSON.parse(localStorage.getItem(storeKey) || "[]");
+      localList.forEach(item => {
+        if (String(item.MA_KHANG) === String(maKhang)) {
+          item.LAT = lat;
+          item.LNG = lng;
+        }
+      });
+      localStorage.setItem(storeKey, JSON.stringify(localList));
+
+      // Đồng thời lưu log vào bảng định vị (nếu server bác có dùng bảng riêng cho định vị)
+      const dvKey = getExcelKeyDinhVi();
+      let dinhViList = JSON.parse(localStorage.getItem(dvKey) || "[]");
+      dinhViList = dinhViList.filter(item => String(item.MA_KHANG) !== String(maKhang));
+      dinhViList.push({
+        MA_KHANG: maKhang,
+        TEN_KHANG: cust.TEN_KHANG || "",
+        SO_TBI: cust.SO_TBI || "",
+        LAT: lat,
+        LNG: lng,
+        NOTE: locationNote || "",
+        NGAY_THIEN: nowStr,
+        NVIEN_CDAT: currentUser.ten_ndung || ""
+      });
+      localStorage.setItem(dvKey, JSON.stringify(dinhViList));
+
+      renderCurrentCustomerCard();
+      showToast("📍 Đã lấy và lưu tọa độ LAT/LNG thành công!");
+    },
+    (error) => { showToast("❌ Lỗi định vị GPS. Vui lòng bật vị trí trên điện thoại!"); },
+    { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+  );
 }
