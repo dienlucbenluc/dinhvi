@@ -196,24 +196,35 @@ function renderCurrentCustomerCard() {
   container.innerHTML = html;
 }
 
+// Hàm phụ trợ tạo chuỗi định dạng: DD/MM/YYYY HH:mm:ss
+function getFormattedDateTime() {
+  const now = new Date();
+  const day = String(now.getDate()).padStart(2, '0');
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const year = now.getFullYear();
+  const hours = String(now.getHours()).padStart(2, '0');
+  const minutes = String(now.getMinutes()).padStart(2, '0');
+  const seconds = String(now.getSeconds()).padStart(2, '0');
+  
+  return `${day}/${month}/${year} ${hours}:${minutes}:${seconds}`;
+}
 async function saveCustomerData(maKhang) {
   const cust = groupedData[maKhang];
   if (!cust) return;
 
-  // 1. Lấy an toàn các giá trị từ giao diện card của khách hàng
   const modemEl = document.getElementById(`modem_${maKhang}`);
-  const htruongEl = document.getElementById(`CAIDAT_HTRUONG_${maKhang}`) || document.getElementById(`CAIDAT_HTRUONG_${maKhang.toLowerCase()}`);
-  const kybbEl = document.getElementById(`LOAI_KYBBAN_${maKhang}`) || document.getElementById(`LOAI_KYBBAN_${maKhang.toLowerCase()}`);
+  const htruongEl = document.getElementById(`CAIDAT_HTRUONG_${maKhang}`);
+  const kybbEl = document.getElementById(`LOAI_KYBBAN_${maKhang}`);
   const ghichuEl = document.getElementById(`ghi_chu_${maKhang}`);
 
-  // 2. Gán giá trị vào đối tượng dữ liệu
   cust.MODEM = modemEl ? modemEl.value.trim() : (cust.MODEM || "");
   cust.CAIDAT_HTRUONG = htruongEl ? htruongEl.value : (cust.CAIDAT_HTRUONG || "");
   cust.LOAI_KYBBAN = kybbEl ? kybbEl.value : (cust.LOAI_KYBBAN || "");
   cust.GHI_CHU = ghichuEl ? ghichuEl.value.trim() : (cust.GHI_CHU || "");
-  cust.NGAY_THIEN = new Date().toLocaleString("vi-VN");
+  
+  cust.THAY_CTO = "X"; 
+  cust.NGAY_THIEN = getFormattedDateTime(); // 👈 Đã đổi sang chuẩn DD/MM/YYYY HH:mm:ss
 
-  // 3. Lưu vào bộ nhớ LocalStorage của thiết bị
   const storeKey = getExcelKeyCaiDat();
   let localList = JSON.parse(localStorage.getItem(storeKey) || "[]");
   
@@ -225,9 +236,6 @@ async function saveCustomerData(maKhang) {
       item.GHI_CHU = cust.GHI_CHU;
       item.THAY_CTO = cust.THAY_CTO;
       item.NGAY_THIEN = cust.NGAY_THIEN;
-      // Đồng thời giữ lại tọa độ LAT/LNG nếu đã lấy định vị trước đó
-      item.LAT = cust.LAT || item.LAT || "";
-      item.LNG = cust.LNG || item.LNG || "";
     }
   });
 
@@ -235,7 +243,6 @@ async function saveCustomerData(maKhang) {
   showToast("💾 Đã lưu dữ liệu cài đặt thành công!");
   updateSummaryBar();
   
-  // 4. Nếu có mạng thì tự động đồng bộ ngầm lên server
   if (navigator.onLine) {
     await syncLocalExcelToSheet();
   }
