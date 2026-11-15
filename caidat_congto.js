@@ -125,6 +125,36 @@ function renderCurrentCustomerCard() {
     return;
   }
 
+   let dateOnly = '<a style="color:red;">Chưa có</a>';
+
+  if (cust.NGAY_THIEN && String(cust.NGAY_THIEN).trim() !== '' && String(cust.NGAY_THIEN).trim().toLowerCase() !== 'null' && String(cust.NGAY_THIEN).trim().toLowerCase() !== 'undefined') {
+      const strTime = String(cust.NGAY_THIEN).trim();
+      const dateTimeMatch = strTime.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})(?:\s+(\d{1,2}):(\d{1,2})(?::(\d{1,2}))?)?$/);
+
+      if (dateTimeMatch) {
+          const day = dateTimeMatch[1].padStart(2, '0');
+          const month = dateTimeMatch[2].padStart(2, '0');
+          const year = dateTimeMatch[3];
+          const hours = (dateTimeMatch[4] || '0').padStart(2, '0');
+          const minutes = (dateTimeMatch[5] || '0').padStart(2, '0');
+          const seconds = (dateTimeMatch[6] || '0').padStart(2, '0');
+
+          dateOnly = `${day}/${month}/${year} ${hours}:${minutes}:${seconds}`;
+      } else {
+          const d = new Date(strTime);
+          if (!isNaN(d.getTime())) {
+              const day = d.getDate().toString().padStart(2, '0');
+              const month = (d.getMonth() + 1).toString().padStart(2, '0');
+              const year = d.getFullYear();
+              const hours = d.getHours().toString().padStart(2, '0');
+              const minutes = d.getMinutes().toString().padStart(2, '0');
+              const seconds = d.getSeconds().toString().padStart(2, '0');
+
+              dateOnly = `${day}/${month}/${year} ${hours}:${minutes}:${seconds}`;
+          }
+      }
+  }
+  
   let html = "";
   customerKeys.forEach((makh, index) => {
     const cust = groupedData[makh];
@@ -143,7 +173,7 @@ function renderCurrentCustomerCard() {
           <div>GĐV: <span>${cust.TEN_NVGCS || ''}</span></div>
           <div>Mật khẩu C3: <span>${cust.MK_CAP3 || ''}</span></div>
           <div>NV cài ĐG: <span>${cust.TEN_NVCDAT || 'Chưa có'}</span></div>
-          <div>Ngày cài ĐG gần nhất: <span>${cust.NGAY_THIEN || 'Chưa có'}</span></div>          
+          <div>Ngày cài ĐG: <span>${dateOnly}</span></div>          
         </div>
 
           <!-- 👉 THAY THẾ HOẶC ĐẶT PHẦN NÀY VÀO VỊ TRÍ KHUNG MAPS CŨ TRONG HÀM renderCurrentCustomerCard -->
