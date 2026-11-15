@@ -253,7 +253,14 @@ async function saveCustomerData(maKhang) {
   cust.GHI_CHU = ghichuEl ? ghichuEl.value.trim() : (cust.GHI_CHU || "");
   
   cust.NGAY_THIEN = getFormattedDateTime();
-  cust.TEN_NVCDAT = currentUser.ten_ndung || ""; // Cập nhật tên nhân viên thực hiện hiện tại
+  
+  // 👉 Giữ nguyên dữ liệu gốc của TEN_NVCDAT và NVIEN_CDAT nếu đã có, chỉ gán mới khi chưa có
+  if (!cust.TEN_NVCDAT || String(cust.TEN_NVCDAT).trim() === "" || String(cust.TEN_NVCDAT).trim().toLowerCase() === "null") {
+    cust.TEN_NVCDAT = currentUser.ten_ndung || "";
+  }
+  if (!cust.NVIEN_CDAT || String(cust.NVIEN_CDAT).trim() === "" || String(cust.NVIEN_CDAT).trim().toLowerCase() === "null") {
+    cust.NVIEN_CDAT = currentUser.ten_ndung || "";
+  }
 
   const storeKey = getExcelKeyCaiDat();
   let localList = JSON.parse(localStorage.getItem(storeKey) || "[]");
@@ -265,7 +272,9 @@ async function saveCustomerData(maKhang) {
       item.GHI_CHU = cust.GHI_CHU;
       item.THAY_CTO = cust.THAY_CTO;
       item.NGAY_THIEN = cust.NGAY_THIEN;
-      item.TEN_NVCDAT = cust.TEN_NVCDAT;
+      // Cập nhật vào local nhưng vẫn ưu tiên giữ giá trị gốc nếu đã tồn tại
+      item.TEN_NVCDAT = item.TEN_NVCDAT && String(item.TEN_NVCDAT).trim() !== "" ? item.TEN_NVCDAT : cust.TEN_NVCDAT;
+      item.NVIEN_CDAT = item.NVIEN_CDAT && String(item.NVIEN_CDAT).trim() !== "" ? item.NVIEN_CDAT : cust.NVIEN_CDAT;
     }
   });
 
