@@ -24,7 +24,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   if (dateInput) dateInput.value = todayStr;
 
   initLocalExcelStore();
-  await checkAndLoadInitialData();
+  await checkAndLoadInitialData(false); // Khi mới vào trang, ưu tiên tải hoặc hiển thị local nếu offline
 
   window.addEventListener("online", async () => {
     showToast("📶 Đang kết nối mạng. Đang đồng bộ dữ liệu cài đặt...");
@@ -39,7 +39,8 @@ function initLocalExcelStore() {
   if (!localStorage.getItem(imgKey)) localStorage.setItem(imgKey, JSON.stringify({}));
 }
 
-async function checkAndLoadInitialData() {
+// YÊU CẦU 3: Bấm nút lấy dữ liệu là lấy lại trực tiếp trên server chứ không lấy từ bộ nhớ thiết bị
+async function checkAndLoadInitialData(forceServer = false) {
   const storeKey = getExcelKeyCaiDat();
   let localList = [];
   try {
@@ -61,94 +62,52 @@ async function checkAndLoadInitialData() {
     return;
   }
 
-  showToast("⏳ Đang tải dữ liệu cài đặt công tơ...");
+  showToast("⏳ Đang tải dữ liệu cài đặt công tơ từ server...");
   try {
     const res = await fetch(API_URL, {
       method: "POST",
       headers: { "Content-Type": "text/plain;charset=utf-8" },
       body: JSON.stringify({ 
         action: "GET_CAIDAT_DATA", 
-        ten_ndung: currentUser.ten_ndung
+        ten_ndung: currentUser.ten_ndung,
+        ngay_th: selectedDate // YÊU CẦU 1: Gửi ngày thực hiện lên server lọc
       })
     });
     const data = await res.json();
 
     if (data.status === "success" && Array.isArray(data.list)) {
-      // Chuẩn hóa ngày chọn từ input sang định dạng "DD/MM/YYYY" và "YYYY-MM-DD"
-      let queryDMY = "";
-      let queryYMD = selectedDate;
-      if (selectedDate) {
-        const parts = selectedDate.split("-"); // [YYYY, MM, DD]
-        if (parts.length === 3) {
-          queryDMY = `${parts[2]}/${parts[1]}/${parts[0]}`;
-        }
-      }
-
-      const currentUserName = String(currentUser.ten_ndung || "").trim().toLowerCase();
-
-      // 👉 LỌC NGAY TẠI CLIENT ĐỂ KHỚP TUYỆT ĐỐI NGAY_GIAOBB VÀ NVIEN_CDAT
-      const filteredList = data.list.filter(item => {
-        // 1. Kiểm tra nhân viên cài đặt (nếu dòng có NVIEN_CDAT thì phải khớp người đăng nhập)
-        const itemNvien = String(item.NVIEN_CDAT || "").trim().toLowerCase();
-        if (itemNvien && itemNvien !== currentUserName) {
-          return false;
-        }
-
-        // 2. Kiểm tra ngày giao biên bản (NGAY_GIAOBB phải khớp với ngày chọn)
-        if (queryYMD) {
-          const rawGiao = String(item.NGAY_GIAOBB || "").trim().split(" ")[0];
-          let normalizedGiaoYMD = rawGiao;
-          
-          if (rawGiao.includes("/")) {
-            const pGiao = rawGiao.split("/"); // [DD, MM, YYYY]
-            if (pGiao.length === 3) {
-              normalizedGiaoYMD = `${pGiao[2]}-${pGiao[1]}-${pGiao[0]}`;
-            }
-          }
-
-          const isDateMatch = (rawGiao === queryDMY) || (rawGiao === queryYMD) || (normalizedGiaoYMD === queryYMD);
-          if (!isDateMatch) {
-            return false;
-          }
-        }
-
-        return true;
-      });
-
-      // Gán chuẩn lại thông tin cho các dòng được lọc ra
-      filteredList.forEach(item => {
-        if (queryDMY) {
-          item.NGAY_GIAOBB = queryDMY;
-        }
-        item.NVIEN_CDAT = currentUser.ten_ndung;
-      });
+      const filteredList = data.list;
 
       localStorage.setItem(storeKey, JSON.stringify(filteredList));
       loadDataFromLocal();
-      showToast(`♻️ Lấy thành công ${filteredList.length} khách hàng!`);
+      showToast(`♻️ Lấy thành công ${filteredList.length} khách hàng từ server!`);
     } else {
-      if (localList.length > 0) {
+      if (localList.length > 0 && !forceServer) {
         loadDataFromLocal();
         showToast("⚠️ Không có dữ liệu mới. Hiển thị dữ liệu trên thiết bị.");
       } else {
         document.getElementById("listContainer").innerHTML = "<p style='text-align:center; padding:20px; color:red;'>Không có dữ liệu phân công phù hợp.</p>";
+        showToast("⚠️ Không tìm thấy dữ liệu phù hợp trên server.", true);
       }
     }
   } catch (err) {
-    if (localList.length > 0) loadDataFromLocal();
+    if (localList.length > 0 && !forceServer) loadDataFromLocal();
     else {
-      showToast("❌ Lỗi kết nối máy chủ!");
+      showToast("❌ Lỗi kết nối máy chủ!", true);
       document.getElementById("listContainer").innerHTML = "<p style='text-align:center; padding-top:20px; font-weight:bold; color:red;'>Lỗi kết nối máy chủ hoặc không tải được dữ liệu.</p>";
     }
   }
 }
 
-function handleFetchDataBtn() { checkAndLoadInitialData(); }
+// Bắt sự kiện nút "Lấy dữ liệu" -> Bắt buộc lấy từ server (forceServer = true)
+function handleFetchDataBtn() { 
+  checkAndLoadInitialData(true); 
+}
 
 function loadDataFromLocal() {
   const storeKey = getExcelKeyCaiDat();
-  const localData = JSON.parse(localStorage.getItem(storeKey) || "[]");
-  if (localData.length > 0) groupAndRender(localData);
+  const localList = JSON.parse(localStorage.getItem(storeKey) || "[]");
+  if (localList.length > 0) groupAndRender(localList);
   else document.getElementById("listContainer").innerHTML = "<p style='text-align:center; padding-top:20px; font-weight:bold; color:red;'>Không có dữ liệu.</p>";
 }
 
@@ -173,7 +132,7 @@ function updateSummaryBar() {
   let finished = 0;
   customerKeys.forEach(makh => {
     const cust = groupedData[makh];
-    if (cust.THAY_CTO === "X" || cust.NGAY_THIEN) finished++;
+    if (cust.THAY_CTO === "X" || (cust.NGAY_THIEN && String(cust.NGAY_THIEN).trim() !== '')) finished++;
   });
   document.getElementById("sumTongKh").innerText = total;
   document.getElementById("sumChuaGhi").innerText = total - finished;
@@ -316,6 +275,7 @@ async function saveCustomerData(maKhang) {
   if (navigator.onLine) await syncLocalExcelToSheet();
 }
 
+// YÊU CẦU 2: Khi bấm hủy dữ liệu thì trả các cột CAIDAT_HTRUONG, LOAI_KYBBAN, NGAY_THIEN, GHI_CHU về rỗng
 async function cancelCustomerData(maKhang) {
   const confirm = await showCustomConfirm("HỦY DỮ LIỆU", "Bạn có muốn xóa dữ liệu cài đặt của khách hàng này không?", true);
   if (!confirm) return;
@@ -324,16 +284,20 @@ async function cancelCustomerData(maKhang) {
   if (!cust) return;
 
   cust.CAIDAT_HTRUONG = "";
-  cust.THAY_CTO = "";
+  cust.LOAI_KYBBAN = "";
   cust.NGAY_THIEN = "";
+  cust.GHI_CHU = "";
+  cust.THAY_CTO = "";
 
   const storeKey = getExcelKeyCaiDat();
   let localList = JSON.parse(localStorage.getItem(storeKey) || "[]");
   localList.forEach(item => {
     if (String(item.MA_KHANG) === String(maKhang)) {
       item.CAIDAT_HTRUONG = "";
-      item.THAY_CTO = "";
+      item.LOAI_KYBBAN = "";
       item.NGAY_THIEN = "";
+      item.GHI_CHU = "";
+      item.THAY_CTO = "";
     }
   });
 
@@ -341,6 +305,8 @@ async function cancelCustomerData(maKhang) {
   showToast("✂ Đã hủy dữ liệu cài đặt!");
   renderCurrentCustomerCard();
   updateSummaryBar();
+
+  if (navigator.onLine) await syncLocalExcelToSheet();
 }
 
 async function syncLocalExcelToSheet(isManual = false) {
@@ -458,7 +424,6 @@ async function filterData() {
     const data = await res.json();
     if (data.status === "success" && Array.isArray(data.list) && data.list.length > 0) {
       searchedCustomer = data.list[0];
-      // Render hiển thị riêng khách hàng tìm được
       const container = document.getElementById("listContainer");
       container.innerHTML = `
         <div style="background: #fff3cd; border: 2px dashed #ffc107; padding: 6px; margin-bottom: 8px; border-radius: 8px; font-size: 13px; text-align: center; font-weight: bold; color: #856404;">
