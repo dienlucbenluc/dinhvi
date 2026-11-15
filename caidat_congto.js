@@ -387,6 +387,7 @@ async function filterData() {
   const q = document.getElementById("searchInput").value.toLowerCase().trim();
   if (!q) return;
 
+  // 1. Kiểm tra xem khách hàng có sẵn trong danh sách hiện tại không
   const localTargetKey = Object.keys(groupedData).find(makh => {
     const c = groupedData[makh];
     return String(c.MA_KHANG || "").toLowerCase().trim() === q || String(c.SO_TBI || "").toLowerCase().trim() === q;
@@ -414,6 +415,7 @@ async function filterData() {
     return;
   }
 
+  // 2. Nếu không có trong danh sách local, gọi API tìm trên server
   showToast("🔍 Đang tìm kiếm trên toàn bảng...");
   try {
     const res = await fetch(API_URL, {
@@ -422,22 +424,29 @@ async function filterData() {
       body: JSON.stringify({ action: "SEARCH_ALL_CAIDAT", keyword: q })
     });
     const data = await res.json();
+    
     if (data.status === "success" && Array.isArray(data.list) && data.list.length > 0) {
       searchedCustomer = data.list[0];
+      const makh = searchedCustomer.MA_KHANG;
+
+      // Đưa khách hàng tìm được vào chung kho dữ liệu tạm thời `groupedData`
+      groupedData[makh] = { ...searchedCustomer, items: [searchedCustomer] };
+      
+      // Đưa lên đầu danh sách hiển thị `customerKeys` để render đúng chuẩn card gốc
+      customerKeys = [makh, ...Object.keys(groupedData).filter(k => k !== makh)];
+
+      // Hiển thị thông báo nhỏ ở trên cùng, sau đó gọi chung hàm render chuẩn
       const container = document.getElementById("listContainer");
       container.innerHTML = `
         <div style="background: #fff3cd; border: 2px dashed #ffc107; padding: 6px; margin-bottom: 8px; border-radius: 8px; font-size: 13px; text-align: center; font-weight: bold; color: #856404;">
-          ⚠️ Khách hàng này nằm ngoài danh sách lọc. Lưu sẽ tự động thêm vào danh sách!
+          ⚠️ Khách hàng tìm kiếm (Nằm ngoài danh sách lọc ngày). Lưu sẽ tự động cập nhật!
         </div>
-        <div class="customer-card" style="border: 2px solid #fd7e14;">
-          <div class="cust-title" style="color: #fd7e14;">🔍 TÌM KIẾM - Mã KH: ${searchedCustomer.MA_KHANG}</div>
-          <div class="cust-tenKH">${searchedCustomer.TEN_KHANG || ''}</div>
-          <div class="cust-address"><b>Đ/C:</b> ${searchedCustomer.DCHI_DDO || ''}</div>
-          <div class="card-btn-group">
-            <button class="btn-card btn-card-save" onclick="saveSearchedCustomerData('${searchedCustomer.MA_KHANG}')">💾 Lưu và Thêm vào DS</button>
-            <button class="btn-card btn-card-cancel" onclick="showAllData()">✂ Thoát</button>
-          </div>
-        </div>`;
+        <div id="searchedCardWrapper"></div>
+      `;
+
+      // Tái sử dụng hoàn toàn hàm render gốc để card y chang 100%
+      renderCurrentCustomerCard();
+      
       showToast("✅ Đã tìm thấy khách hàng!");
     } else {
       showToast("❌ Không tìm thấy Mã KH hoặc Số công tơ!", true);
