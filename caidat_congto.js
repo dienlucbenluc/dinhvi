@@ -560,19 +560,30 @@ async function saveSearchedCustomerData(maKhang) {
   searchedCustomer.NGAY_THIEN = getFormattedDateTime();
   
   // 👉 Lấy trực tiếp NGAY_GIAOBB và NVIEN_CHTT từ dòng mẫu có sẵn của user
-  const sampleKeys = Object.keys(groupedData);
+const sampleKeys = Object.keys(groupedData);
   if (sampleKeys.length > 0) {
     const sampleCust = groupedData[sampleKeys[0]];
-    searchedCustomer.NGAY_GIAOBB = sampleCust.NGAY_GIAOBB || ""; // Lấy y hệt dòng mẫu
+    
+    // 👉 Xử lý chuẩn hóa NGAY_GIAOBB để không bị lệch ngày do múi giờ
+    let rawNgayGiao = sampleCust.NGAY_GIAOBB || "";
+    if (rawNgayGiao) {
+      let strGiao = String(rawNgayGiao).trim();
+      // Nếu dính dạng ISO chuẩn (ví dụ chứa chữ T như 2026-11-10T00:00:00.000Z)
+      if (strGiao.includes("T")) {
+        // Tách lấy phần ngày tháng năm năm-tháng-ngày rồi đổi lại thành DD/MM/YYYY
+        let parts = strGiao.split("T")[0].split("-");
+        if (parts.length === 3) {
+          strGiao = `${parts[2]}/${parts[1]}/${parts[0]}`;
+        }
+      }
+      searchedCustomer.NGAY_GIAOBB = strGiao;
+    } else {
+      searchedCustomer.NGAY_GIAOBB = "";
+    }
+
     searchedCustomer.NVIEN_CDAT = sampleCust.NVIEN_CDAT || currentUser.ten_ndung || "";
     searchedCustomer.TEN_NVCDAT = sampleCust.TEN_NVCDAT || currentUser.ten_ndung || "";
-    searchedCustomer.NVIEN_CHTT = sampleCust.NVIEN_CHTT || ""; // Lấy y hệt dòng mẫu
-  } else {
-    // Trường hợp phòng hờ danh sách hôm đó trống hoàn toàn
-    searchedCustomer.NGAY_GIAOBB = "";
-    searchedCustomer.NVIEN_CDAT = currentUser.ten_ndung || "";
-    searchedCustomer.TEN_NVCDAT = currentUser.ten_ndung || "";
-    searchedCustomer.NVIEN_CHTT = "";
+    searchedCustomer.NVIEN_CHTT = sampleCust.NVIEN_CHTT || ""; 
   }
 
   // Thêm vào danh sách groupedData cục bộ của user
