@@ -546,13 +546,22 @@ async function saveSearchedCustomerData(maKhang) {
   searchedCustomer.THAY_CTO = "X"; 
   searchedCustomer.NGAY_THIEN = getFormattedDateTime();
   
-  // 👉 Lấy trực tiếp NGAY_GIAOBB và NVIEN_CHTT từ dòng mẫu có sẵn của user
+// 👉 Lấy trực tiếp NGAY_GIAOBB và NVIEN_CHTT từ dòng mẫu có sẵn của user
 const sampleKeys = Object.keys(groupedData);
-  if (sampleKeys.length > 0) {
-    const sampleCust = groupedData[sampleKeys[0]];
-    
-    let rawNgayGiao = sampleCust.NGAY_GIAOBB || "";
-    if (rawNgayGiao) {
+if (sampleKeys.length > 0) {
+  const sampleCust = groupedData[sampleKeys[0]];
+  
+  let rawNgayGiao = sampleCust.NGAY_GIAOBB || "";
+  if (rawNgayGiao) {
+    // Khởi tạo đối tượng Date để JavaScript tự động xử lý chuẩn múi giờ địa phương
+    let d = new Date(rawNgayGiao);
+    if (!isNaN(d.getTime())) {
+      let day = String(d.getDate()).padStart(2, '0');
+      let month = String(d.getMonth() + 1).padStart(2, '0');
+      let year = d.getFullYear();
+      searchedCustomer.NGAY_GIAOBB = `${day}/${month}/${year}`;
+    } else {
+      // Fallback nếu chuỗi không phải định dạng chuẩn ngày tháng
       let strGiao = String(rawNgayGiao).trim();
       if (strGiao.includes("T")) {
         let parts = strGiao.split("T")[0].split("-");
@@ -561,14 +570,15 @@ const sampleKeys = Object.keys(groupedData);
         }
       }
       searchedCustomer.NGAY_GIAOBB = strGiao;
-    } else {
-      searchedCustomer.NGAY_GIAOBB = "";
     }
-
-    searchedCustomer.NVIEN_CDAT = sampleCust.NVIEN_CDAT || currentUser.ten_ndung || "";
-    searchedCustomer.TEN_NVCDAT = sampleCust.TEN_NVCDAT || currentUser.ten_ndung || "";
-    searchedCustomer.NVIEN_CHTT = sampleCust.NVIEN_CHTT || ""; 
+  } else {
+    searchedCustomer.NGAY_GIAOBB = "";
   }
+
+  searchedCustomer.NVIEN_CDAT = sampleCust.NVIEN_CDAT || currentUser.ten_ndung || "";
+  searchedCustomer.TEN_NVCDAT = sampleCust.TEN_NVCDAT || currentUser.ten_ndung || "";
+  searchedCustomer.NVIEN_CHTT = sampleCust.NVIEN_CHTT || ""; 
+}
 
   // Thêm vào danh sách groupedData cục bộ của user
   groupedData[maKhang] = { ...searchedCustomer, items: [searchedCustomer] };
