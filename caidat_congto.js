@@ -544,7 +544,6 @@ async function saveSearchedCustomerData(maKhang) {
   searchedCustomer.LOAI_KYBBAN = kybbEl ? kybbEl.value : "";
   searchedCustomer.GHI_CHU = ghichuEl ? ghichuEl.value.trim() : "";
   
-  searchedCustomer.THAY_CTO = "X"; 
   searchedCustomer.NGAY_THIEN = getFormattedDateTime();
   
   // 👉 Lấy mẫu thông tin từ một dòng bất kỳ đang được giao sẵn trong ngày của user (nếu có)
@@ -558,7 +557,7 @@ async function saveSearchedCustomerData(maKhang) {
     searchedCustomer.NVIEN_CHTT = sampleCust.NVIEN_CHTT || ""; // Lấy đúng NVIEN_CHTT từ dòng mẫu của người đó
   } else {
     // Trường hợp phòng hờ danh sách hôm đó trống hoàn toàn
-    searchedCustomer.NGAY_GIAOBB = new Date().toLocaleDateString("vi-VN");
+    searchedCustomer.NGAY_GIAOBB = currentUser.ten_ndung || "";
     searchedCustomer.NVIEN_CDAT = currentUser.ten_ndung || "";
     searchedCustomer.TEN_NVCDAT = currentUser.ten_ndung || "";
   }
