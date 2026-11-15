@@ -48,6 +48,7 @@ async function checkAndLoadInitialData() {
     localList = [];
   }
 
+  // Lấy chính xác giá trị ngày TH người dùng chọn trên giao diện
   const ngayThInput = document.getElementById("inputNgayTH");
   const selectedDate = ngayThInput ? ngayThInput.value : "";
 
@@ -68,8 +69,8 @@ async function checkAndLoadInitialData() {
       headers: { "Content-Type": "text/plain;charset=utf-8" },
       body: JSON.stringify({ 
         action: "GET_CAIDAT_DATA", 
-        ten_ndung: currentUser.ten_ndung,
-        ngay_th: selectedDate 
+        ten_ndung: currentUser.ten_ndung, // Lọc theo tên đăng nhập
+        ngay_th: selectedDate             // Lọc theo ngày chọn (YYYY-MM-DD)
       })
     });
     const data = await res.json();
@@ -83,6 +84,7 @@ async function checkAndLoadInitialData() {
         }
       }
 
+      // Gán chuẩn NGAY_GIAOBB và NVIEN_CDAT cho danh sách trả về
       data.list.forEach(item => {
         if (formattedNgayTH) {
           item.NGAY_GIAOBB = formattedNgayTH;
@@ -96,9 +98,9 @@ async function checkAndLoadInitialData() {
     } else {
       if (localList.length > 0) {
         loadDataFromLocal();
-        showToast("⚠️ Máy chủ chưa có dữ liệu mới. Hiển thị dữ liệu trên thiết bị.");
+        showToast("⚠️ Không có dữ liệu mới theo ngày này. Hiển thị dữ liệu trên thiết bị.");
       } else {
-        document.getElementById("listContainer").innerHTML = "<p style='text-align:center; padding:20px; color:red;'>Không có dữ liệu phân công cài đặt.</p>";
+        document.getElementById("listContainer").innerHTML = "<p style='text-align:center; padding:20px; color:red;'>Không có dữ liệu phân công cho ngày này.</p>";
       }
     }
   } catch (err) {
