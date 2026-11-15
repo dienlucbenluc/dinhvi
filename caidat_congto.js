@@ -240,6 +240,20 @@ function getFormattedDateTime() {
   return `${day}/${month}/${year} ${hours}:${minutes}:${seconds}`;
 }
 
+function getVNCurrentDate() {
+  const now = new Date();
+  // Chuyển sang giờ Việt Nam (UTC+7)
+  const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
+  const vnTime = new Date(utc + (3600000 * 7));
+  
+  const day = String(vnTime.getDate()).padStart(2, '0');
+  const month = String(vnTime.getMonth() + 1).padStart(2, '0');
+  const year = vnTime.getFullYear();
+  
+  return `${day}/${month}/${year}`;
+}
+
+
 async function saveCustomerData(maKhang) {
   const cust = groupedData[maKhang];
   if (!cust) return;
@@ -252,7 +266,6 @@ async function saveCustomerData(maKhang) {
   cust.LOAI_KYBBAN = kybbEl ? kybbEl.value : (cust.LOAI_KYBBAN || "");
   cust.GHI_CHU = ghichuEl ? ghichuEl.value.trim() : (cust.GHI_CHU || "");
   
-  cust.THAY_CTO = "X"; 
   cust.NGAY_THIEN = getFormattedDateTime();
   cust.TEN_NVCDAT = currentUser.ten_ndung || ""; // Cập nhật tên nhân viên thực hiện hiện tại
 
@@ -551,13 +564,13 @@ async function saveSearchedCustomerData(maKhang) {
   const sampleKeys = Object.keys(groupedData);
   if (sampleKeys.length > 0) {
     const sampleCust = groupedData[sampleKeys[0]];
-    searchedCustomer.NGAY_GIAOBB = sampleCust.NGAY_GIAOBB || ""; // Lấy y hệt dòng mẫu
+    searchedCustomer.NGAY_GIAOBB = sampleCust.NGAY_GIAOBB ? formatDateToDDMMYYYY(sampleCust.NGAY_GIAOBB) : getVNCurrentDate();
     searchedCustomer.NVIEN_CDAT = sampleCust.NVIEN_CDAT || currentUser.ten_ndung || "";
     searchedCustomer.TEN_NVCDAT = sampleCust.TEN_NVCDAT || currentUser.ten_ndung || "";
     searchedCustomer.NVIEN_CHTT = sampleCust.NVIEN_CHTT || ""; // Lấy y hệt dòng mẫu
   } else {
     // Trường hợp phòng hờ danh sách hôm đó trống hoàn toàn
-    searchedCustomer.NGAY_GIAOBB = "";
+    searchedCustomer.NGAY_GIAOBB = getVNCurrentDate();
     searchedCustomer.NVIEN_CDAT = currentUser.ten_ndung || "";
     searchedCustomer.TEN_NVCDAT = currentUser.ten_ndung || "";
     searchedCustomer.NVIEN_CHTT = "";
