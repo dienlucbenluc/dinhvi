@@ -397,11 +397,13 @@ function showAllData() {
   renderCurrentCustomerCard();
 }
 
+let searchedCustomer = null; // Biến lưu tạm khách hàng tìm từ toàn bảng
+
 async function filterData() {
   const q = document.getElementById("searchInput").value.toLowerCase().trim();
   if (!q) return;
 
-  // 1. Tìm chính xác trong danh sách giao trong ngày (trên RAM/Local) trước
+  // 1. Tìm trước trong danh sách được giao trong ngày (trên RAM/Local)
   const localTargetKey = Object.keys(groupedData).find(makh => {
     const c = groupedData[makh];
     const maKhang = String(c.MA_KHANG || "").toLowerCase().trim();
@@ -410,6 +412,7 @@ async function filterData() {
   });
 
   if (localTargetKey) {
+    searchedCustomer = null; // Đang nằm trong danh sách giao, hiển thị bình thường
     if (!customerKeys.includes(localTargetKey)) {
       customerKeys = Object.keys(groupedData);
       renderCurrentCustomerCard();
@@ -418,7 +421,7 @@ async function filterData() {
     return;
   }
 
-  // 2. Nếu không có trong danh sách giao trong ngày -> Gọi API tìm chính xác trên toàn bảng caidat_congto
+  // 2. Nếu không có trong danh sách giao -> Gọi API tìm chính xác trên toàn bảng caidat_congto
   if (!navigator.onLine) {
     showToast("❌ Không tìm thấy trong danh sách giao hôm nay (Đang ngoại tuyến)!", true);
     return;
@@ -437,31 +440,146 @@ async function filterData() {
     const data = await res.json();
 
     if (data.status === "success" && Array.isArray(data.list) && data.list.length > 0) {
-      const storeKey = getExcelKeyCaiDat();
-      let localList = JSON.parse(localStorage.getItem(storeKey) || "[]");
-
-      data.list.forEach(item => {
-        const makh = item.MA_KHANG;
-        if (!groupedData[makh]) {
-          groupedData[makh] = { ...item, items: [item] };
-          localList.push(item);
-        }
-      });
-
-      localStorage.setItem(storeKey, JSON.stringify(localList));
+      // Lấy khách hàng tìm được và gán vào biến độc lập, chưa cho vào groupedData vội
+      searchedCustomer = data.list[0];
       
-      customerKeys = Object.keys(groupedData);
-      updateSummaryBar();
-      renderCurrentCustomerCard();
-
-      const firstFoundKey = data.list[0].MA_KHANG;
-      scrollToAndHighlightCard(firstFoundKey);
-      showToast(`✅ Đã tìm thấy khách hàng ${firstFoundKey}!`);
+      // Render riêng 1 khách hàng này lên màn hình
+      renderSearchedCustomerCard(searchedCustomer);
+      showToast(`✅ Đã tìm thấy khách hàng ${searchedCustomer.MA_KHANG} (Ngoài danh sách giao)!`);
     } else {
-      showToast("❌ Không tìm thấy chính xác Mã KH hoặc Số công tơ này!", true);
+      showToast("❌ Không tìm thấy chính xác Mã KH hoặc Số công tơ này trong toàn bảng!", true);
     }
   } catch (err) {
     showToast("❌ Lỗi kết nối khi tìm kiếm!", true);
+  }
+}
+
+// Hàm render riêng 1 khách hàng được tìm thấy từ toàn bảng
+function renderSearchedCustomerCard(cust) {
+  const container = document.getElementById("listContainer");
+  const makh = cust.MA_KHANG;
+  
+  let dateOnly = '<a style="color:red;">Chưa cài ĐG</a>';
+  if (cust.NGAY_THIEN && String(cust.NGAY_THIEN).trim() !== '' && String(cust.NGAY_THIEN).trim().toLowerCase() !== 'null') {
+      dateOnly = cust.NGAY_THIEN;
+  }
+
+  let html = `
+    <div style="background: #fff3cd; border: 2px dashed #ffc107; padding: 6px; margin-bottom: 8px; border-radius: 8px; font-size: 13px; text-align: center; font-weight: bold; color: #856404;">
+      ⚠️ Khách hàng này nằm ngoài danh sách được giao trong ngày. Sau khi lưu, hệ thống sẽ thêm vào danh sách của bạn!
+    </div>
+    <div class="customer-card" id="customer_card_${makh}" style="border: 2px solid #fd7e14;">
+      <div class="cust-title" style="color: #fd7e14;">🔍 KHÁCH HÀNG TÌM KIẾM - Mã KH: ${cust.MA_KHANG} - <b>Số ĐT:</b> ${cust.DTHOAI_DVU || ''}</div>
+      <div class="cust-tenKH">${cust.TEN_KHANG || ''}</div>
+      <div class="cust-address"><b>Đ/C:</b> ${cust.DCHI_DDO || ''}</div>
+      <div class="cust-row-group">Sổ: ${cust.MA_SOGCS || ''}-Danh số: ${cust.DANH_SO || ''}-Trụ: ${cust.SO_COT || ''}-Trạm: ${cust.TEN_TRAM || ''}</div>
+      <div class="cust-address"><b>VT đấu nối:</b> ${cust.VITRI_DNOI || ''}</div>
+      
+      <div class="tech-info-grid">
+        <div>Loại cto: <span>${cust.LOAI_CTO || ''}</span></div>
+        <div>Sốc tơ: <span>${cust.SO_TBI || ''}</span></div>
+        <div>GĐV: <span>${cust.TEN_NVGCS || ''}</span></div>
+        <div>Mật khẩu C3: <span>${cust.MK_CAP3 || ''}</span></div>
+        <div>NV cài ĐG: <span>${cust.TEN_NVCDAT || 'Chưa có'}</span></div>
+        <div>Ngày cài ĐG: <span>${dateOnly}</span></div>          
+      </div>
+
+      <div class="cust-row-group">
+        <input type="text" class="input-ghichu" 
+               id="ghi_chu_${makh}" 
+               value="${cust.GHI_CHU || ''}" 
+               placeholder="Nhập ghi chú nếu có..." 
+               onchange="searchedCustomer.GHI_CHU = this.value;">
+      </div>
+      
+      <div class="box-maps">
+        ${
+          (() => {
+            const hasLocation = Boolean(cust.LAT && cust.LNG);
+            if (hasLocation) {
+              return `<span id="map_link_${makh}"><a href="http://maps.google.com/?q=${cust.LAT},${cust.LNG}" target="_blank" style="color:#007bff; font-weight:bold; text-decoration:none;">🌏 Xem VT công tơ trên Google Maps</a></span>`;
+            } else {
+              return `<a onclick="openNoteDialogForLocation(0, '${makh}')" style="color:red; font-size: 14px; font-weight:bold; text-decoration:none; cursor:pointer;">📍 Lấy mới định vị</a>`;
+            }
+          })()
+        }
+      </div>
+
+      <div style="margin-top: 6px; display:flex; gap:6px;">
+        <div style="flex:1;">
+          <label style="font-size:11px; font-weight:bold;">Loại ký BB:</label>
+          <select class="select-field" id="LOAI_KYBBAN_${makh}">
+            <option value="Ký giấy" ${cust.LOAI_KYBBAN === "Ký giấy" ? "selected" : ""}>Ký giấy</option>
+            <option value="Ký số" ${cust.LOAI_KYBBAN === "Ký số" ? "selected" : ""}>Ký số</option>
+            <option value="Chưa ký" ${cust.LOAI_KYBBAN === "Chưa ký" ? "selected" : ""}>Chưa ký</option>
+          </select>
+        </div>
+        <div style="flex:1;">
+          <label style="font-size:11px; font-weight:bold;">Tình trạng cài đặt:</label>
+          <select class="select-field" id="CAIDAT_HTRUONG_${makh}">
+            <option value="Thành công" ${cust.CAIDAT_HTRUONG === "Thành công" ? "selected" : ""}>Thành công</option>
+            <option value="Lỗi cài đặt" ${cust.CAIDAT_HTRUONG === "Lỗi cài đặt" ? "selected" : ""}>Lỗi cài đặt</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="card-btn-group">
+        <button class="btn-card btn-card-save" onclick="saveSearchedCustomerData('${makh}')">💾 Lưu và Thêm vào DS</button>
+        <button class="btn-card btn-card-cancel" onclick="showAllData()">✂ Thoát</button>
+      </div>
+    </div>
+  `;
+
+  container.innerHTML = html;
+}
+
+// Hàm lưu riêng cho khách hàng tìm kiếm bên ngoài: Gán thông tin user hiện tại và đẩy vào danh sách chính
+async function saveSearchedCustomerData(maKhang) {
+  if (!searchedCustomer) return;
+
+  const htruongEl = document.getElementById(`CAIDAT_HTRUONG_${maKhang}`);
+  const kybbEl = document.getElementById(`LOAI_KYBBAN_${maKhang}`);
+  const ghichuEl = document.getElementById(`ghi_chu_${maKhang}`);
+
+  searchedCustomer.CAIDAT_HTRUONG = htruongEl ? htruongEl.value : "";
+  searchedCustomer.LOAI_KYBBAN = kybbEl ? kybbEl.value : "";
+  searchedCustomer.GHI_CHU = ghichuEl ? ghichuEl.value.trim() : "";
+  
+  searchedCustomer.THAY_CTO = "X"; 
+  searchedCustomer.NGAY_THIEN = getFormattedDateTime();
+  
+  // 👉 Gán các thông tin phân công của nhân viên hiện tại (giống khách hàng được giao trong ngày)
+  const todayStr = new Date().toLocaleDateString("vi-VN");
+  searchedCustomer.NGAY_GIAOBB = searchedCustomer.NGAY_GIAOBB || todayStr;
+  searchedCustomer.NVIEN_CDAT = currentUser.ten_ndung || "";
+  searchedCustomer.TEN_NVCDAT = currentUser.ten_ndung || "";
+  searchedCustomer.NVIEN_CHTT = currentUser.ten_ndung || "";
+
+  // Thêm vào danh sách groupedData cục bộ của user để hiển thị chung luôn
+  groupedData[maKhang] = { ...searchedCustomer, items: [searchedCustomer] };
+  
+  const storeKey = getExcelKeyCaiDat();
+  let localList = JSON.parse(localStorage.getItem(storeKey) || "[]");
+  
+  // Kiểm tra xem đã có trong localList chưa, nếu chưa thì push vào
+  const existingIdx = localList.findIndex(item => String(item.MA_KHANG) === String(maKhang));
+  if (existingIdx !== -1) {
+    localList[existingIdx] = searchedCustomer;
+  } else {
+    localList.push(searchedCustomer);
+  }
+
+  localStorage.setItem(storeKey, JSON.stringify(localList));
+  
+  customerKeys = Object.keys(groupedData);
+  searchedCustomer = null; // Reset biến tạm
+  
+  showToast("💾 Đã lưu và thêm khách hàng vào danh sách của bạn thành công!");
+  updateSummaryBar();
+  renderCurrentCustomerCard();
+  
+  if (navigator.onLine) {
+    await syncLocalExcelToSheet();
   }
 }
 
