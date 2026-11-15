@@ -132,7 +132,7 @@ function updateSummaryBar() {
   let finished = 0;
   customerKeys.forEach(makh => {
     const cust = groupedData[makh];
-    if (cust.THAY_CTO === "X" || (cust.NGAY_THIEN && String(cust.NGAY_THIEN).trim() !== '')) finished++;
+    if ((cust.NGAY_THIEN && String(cust.NGAY_THIEN).trim() !== '')) finished++;
   });
   document.getElementById("sumTongKh").innerText = total;
   document.getElementById("sumChuaGhi").innerText = total - finished;
@@ -248,7 +248,6 @@ async function saveCustomerData(maKhang) {
   cust.LOAI_KYBBAN = kybbEl ? kybbEl.value : (cust.LOAI_KYBBAN || "");
   cust.GHI_CHU = ghichuEl ? ghichuEl.value.trim() : (cust.GHI_CHU || "");
   cust.NGAY_THIEN = getFormattedDateTime();
-  cust.THAY_CTO = "X";
   
   if (!cust.TEN_NVCDAT) cust.TEN_NVCDAT = currentUser.ten_ndung || "";
   if (!cust.NVIEN_CDAT) cust.NVIEN_CDAT = currentUser.ten_ndung || "";
@@ -261,7 +260,6 @@ async function saveCustomerData(maKhang) {
       item.CAIDAT_HTRUONG = cust.CAIDAT_HTRUONG;
       item.LOAI_KYBBAN = cust.LOAI_KYBBAN;
       item.GHI_CHU = cust.GHI_CHU;
-      item.THAY_CTO = cust.THAY_CTO;
       item.NGAY_THIEN = cust.NGAY_THIEN;
       item.TEN_NVCDAT = cust.TEN_NVCDAT;
       item.NVIEN_CDAT = cust.NVIEN_CDAT;
@@ -287,7 +285,6 @@ async function cancelCustomerData(maKhang) {
   cust.LOAI_KYBBAN = "";
   cust.NGAY_THIEN = "";
   cust.GHI_CHU = "";
-  cust.THAY_CTO = "";
 
   const storeKey = getExcelKeyCaiDat();
   let localList = JSON.parse(localStorage.getItem(storeKey) || "[]");
@@ -297,7 +294,6 @@ async function cancelCustomerData(maKhang) {
       item.LOAI_KYBBAN = "";
       item.NGAY_THIEN = "";
       item.GHI_CHU = "";
-      item.THAY_CTO = "";
     }
   });
 
@@ -370,7 +366,7 @@ function filterChuaGhi() {
   document.getElementById("searchInput").value = "";
   customerKeys = Object.keys(groupedData).filter(makh => {
     const cust = groupedData[makh];
-    return !cust.THAY_CTO && !cust.NGAY_THIEN;
+    return !cust.NGAY_THIEN;
   });
   renderCurrentCustomerCard();
 }
@@ -521,7 +517,6 @@ async function saveSearchedCustomerData(maKhang) {
   searchedCustomer.CAIDAT_HTRUONG = htruongEl ? htruongEl.value : (searchedCustomer.CAIDAT_HTRUONG || "");
   searchedCustomer.LOAI_KYBBAN = kybbEl ? kybbEl.value : (searchedCustomer.LOAI_KYBBAN || "");
   searchedCustomer.GHI_CHU = ghichuEl ? ghichuEl.value.trim() : (searchedCustomer.GHI_CHU || "");
-  searchedCustomer.THAY_CTO = "X";
   searchedCustomer.NGAY_THIEN = getFormattedDateTime();
   searchedCustomer.NVIEN_CDAT = currentUser.ten_ndung || "";
   searchedCustomer.TEN_NVCDAT = currentUser.ten_ndung || "";
