@@ -394,41 +394,91 @@ function showAllData() {
   renderCurrentCustomerCard();
 }
 
-function filterData() {
+// Thay thế hàm filterData() cũ trong caidat_congto.js bằng hàm này:
+async function filterData() {
   const q = document.getElementById("searchInput").value.toLowerCase().trim();
   if (!q) return;
 
-  // Mở rộng phạm vi tìm kiếm toàn bộ kho dữ liệu `groupedData` thay vì chỉ quét `customerKeys` hiện tại
-  const allKeys = Object.keys(groupedData);
-  const targetKey = allKeys.find(makh => {
+  // 1. Tìm trước trong danh sách được giao trong ngày (trên RAM/Local) cho nhanh
+  const localTargetKey = Object.keys(groupedData).find(makh => {
     const c = groupedData[makh];
     return String(c.MA_KHANG || "").toLowerCase().includes(q) ||
            String(c.TEN_KHANG || "").toLowerCase().includes(q) ||
            String(c.SO_TBI || "").toLowerCase().includes(q) ||
            String(c.TEN_TRAM || "").toLowerCase().includes(q) ||
-           String(c.MA_SOGCS || "").toLowerCase().includes(q) ||
-           String(c.DTHOAI_DVU || "").toLowerCase().includes(q) ||
-           String(c.DCHI_DDO || "").toLowerCase().includes(q);
+           String(c.MA_SOGCS || "").toLowerCase().includes(q);
   });
 
-  if (targetKey) {
-    // Đảm bảo `customerKeys` chứa `targetKey` để card có thể hiển thị nếu đang ở bộ lọc khác
-    if (!customerKeys.includes(targetKey)) {
-      customerKeys.push(targetKey);
+  if (localTargetKey) {
+    // Nếu có trong danh sách giao hôm nay thì cuộn tới luôn
+    if (!customerKeys.includes(localTargetKey)) {
+      customerKeys = Object.keys(groupedData);
       renderCurrentCustomerCard();
     }
-    
-    setTimeout(() => {
-      const card = document.getElementById(`customer_card_${targetKey}`);
-      if (card) {
-        card.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        card.style.backgroundColor = "#e8f4fd";
-        setTimeout(() => card.style.backgroundColor = "", 1500);
-      }
-    }, 100);
-  } else {
-    showToast("❌ Không tìm thấy thông tin phù hợp trong toàn bảng!");
+    scrollToAndHighlightCard(localTargetKey);
+    return;
   }
+
+  // 2. Nếu không có trong danh sách giao của user -> Gọi API tìm trên TOÀN BẢNG caidat_congto
+  if (!navigator.onLine) {
+    showToast("❌ Không tìm thấy trong danh sách giao hôm nay (Đang ngoại tuyến)!", true);
+    return;
+  }
+
+  showToast("🔍 Đang tìm kiếm trên toàn bảng caidat_congto...");
+  try {
+    const res = await fetch(API_URL, {
+      method: "POST",
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      body: JSON.stringify({ 
+        action: "SEARCH_ALL_CAIDAT", 
+        keyword: q 
+      })
+    });
+    const data = await res.json();
+
+    if (data.status === "success" && Array.isArray(data.list) && data.list.length > 0) {
+      // Đưa các kết quả tìm được từ toàn bảng vào groupedData & localStorage của máy để thao tác/lưu được
+      const storeKey = getExcelKeyCaiDat();
+      let localList = JSON.parse(localStorage.getItem(storeKey) || "[]");
+
+      data.list.forEach(item => {
+        const makh = item.MA_KHANG;
+        if (!groupedData[makh]) {
+          groupedData[makh] = { ...item, items: [item] };
+          localList.push(item); // Thêm vào danh sách cục bộ để khi bấm "Lưu dữ liệu" hoặc "Đồng bộ" vẫn đẩy lên được
+        }
+      });
+
+      localStorage.setItem(storeKey, JSON.stringify(localList));
+      
+      // Hiển thị các khách hàng tìm được (hoặc toàn bộ danh sách kèm kết quả mới)
+      customerKeys = Object.keys(groupedData);
+      updateSummaryBar();
+      renderCurrentCustomerCard();
+
+      // Cuộn tới khách hàng đầu tiên khớp từ khóa
+      const firstFoundKey = data.list[0].MA_KHANG;
+      scrollToAndHighlightCard(firstFoundKey);
+      showToast(`✅ Tìm thấy ${data.list.length} khách hàng từ toàn bảng!`);
+    } else {
+      showToast("❌ Không tìm thấy thông tin phù hợp trong toàn bảng!", true);
+    }
+  } catch (err) {
+    showToast("❌ Lỗi kết nối khi tìm kiếm toàn bảng!", true);
+  }
+}
+
+// Hàm phụ trợ cuộn tới card và tô sáng
+function scrollToAndHighlightCard(targetKey) {
+  setTimeout(() => {
+    const card = document.getElementById(`customer_card_${targetKey}`);
+    if (card) {
+      card.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      card.style.backgroundColor = "#e8f4fd";
+      setTimeout(() => card.style.backgroundColor = "", 1800);
+    }
+  }, 100);
 }
 
 function getExcelKeyDinhVi() {
