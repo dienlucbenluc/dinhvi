@@ -130,7 +130,7 @@ function renderCurrentCustomerCard() {
   let html = "";
   customerKeys.forEach((makh, index) => {
     const cust = groupedData[makh];
-   let dateOnly = '<a style="color:red;">Chưa có</a>';
+   let dateOnly = '<a style="color:red;">Chưa cài ĐG</a>';
 
   if (cust.NGAY_THIEN && String(cust.NGAY_THIEN).trim() !== '' && String(cust.NGAY_THIEN).trim().toLowerCase() !== 'null' && String(cust.NGAY_THIEN).trim().toLowerCase() !== 'undefined') {
       const strTime = String(cust.NGAY_THIEN).trim();
