@@ -6,7 +6,6 @@ let customerKeys = [];
 const currentCapturedFiles = {};
 
 function getExcelKeyCaiDat() {
-  // Dùng chung một key lưu trữ toàn cục cho bảng caidat_congto trên thiết bị
   return `caidat_excel_data_toanquan`;
 }
 
@@ -20,7 +19,6 @@ document.addEventListener("DOMContentLoaded", async () => {
   if (!sessionStr) { window.location.href = "login.html"; return; }
   currentUser = JSON.parse(sessionStr);
 
-  // Gán mặc định ô ngày TH là ngày hôm nay (YYYY-MM-DD)
   const todayStr = new Date().toISOString().split('T')[0];
   const dateInput = document.getElementById("inputNgayTH");
   if (dateInput) dateInput.value = todayStr;
@@ -34,6 +32,13 @@ document.addEventListener("DOMContentLoaded", async () => {
   });
 });
 
+function initLocalExcelStore() {
+  const storeKey = getExcelKeyCaiDat();
+  const imgKey = getOfflineImagesKey();
+  if (!localStorage.getItem(storeKey)) localStorage.setItem(storeKey, JSON.stringify([]));
+  if (!localStorage.getItem(imgKey)) localStorage.setItem(imgKey, JSON.stringify({}));
+}
+
 async function checkAndLoadInitialData() {
   const storeKey = getExcelKeyCaiDat();
   let localList = [];
@@ -43,7 +48,6 @@ async function checkAndLoadInitialData() {
     localList = [];
   }
 
-  // Lấy giá trị ngày TH người dùng chọn trên giao diện
   const ngayThInput = document.getElementById("inputNgayTH");
   const selectedDate = ngayThInput ? ngayThInput.value : "";
 
@@ -59,20 +63,18 @@ async function checkAndLoadInitialData() {
 
   showToast("⏳ Đang tải dữ liệu cài đặt công tơ...");
   try {
-    // 👈 Gửi kèm cả ten_ndung và ngay_th lên Server
     const res = await fetch(API_URL, {
       method: "POST",
       headers: { "Content-Type": "text/plain;charset=utf-8" },
       body: JSON.stringify({ 
         action: "GET_CAIDAT_DATA", 
         ten_ndung: currentUser.ten_ndung,
-        ngay_th: selectedDate // Truyền thêm ngày TH
+        ngay_th: selectedDate 
       })
     });
     const data = await res.json();
 
-    if (data.status === "success" && Array.isArray(data.list) && data.list.length > 0) {
-      // Chuyển đổi định dạng ngày TH từ YYYY-MM-DD sang DD/MM/YYYY để gán vào NGAY_GIAOBB
+    if (data.status === "success" && Array.isArray(data.list)) {
       let formattedNgayTH = "";
       if (selectedDate) {
         const parts = selectedDate.split("-"); // [YYYY, MM, DD]
@@ -81,7 +83,6 @@ async function checkAndLoadInitialData() {
         }
       }
 
-      // Xử lý danh sách load ra: Gán NGAY_GIAOBB = ngày TH và NVIEN_CDAT = ten_ndung
       data.list.forEach(item => {
         if (formattedNgayTH) {
           item.NGAY_GIAOBB = formattedNgayTH;
@@ -102,7 +103,10 @@ async function checkAndLoadInitialData() {
     }
   } catch (err) {
     if (localList.length > 0) loadDataFromLocal();
-    else showToast("❌ Lỗi kết nối máy chủ!");
+    else {
+      showToast("❌ Lỗi kết nối máy chủ!");
+      document.getElementById("listContainer").innerHTML = "<p style='text-align:center; padding-top:20px; font-weight:bold; color:red;'>Lỗi kết nối máy chủ hoặc không tải được dữ liệu.</p>";
+    }
   }
 }
 
@@ -274,7 +278,6 @@ async function saveCustomerData(maKhang) {
   
   cust.NGAY_THIEN = getFormattedDateTime();
   
-  // 👉 Giữ nguyên dữ liệu gốc của TEN_NVCDAT và NVIEN_CDAT nếu đã có, chỉ gán mới khi chưa có
   if (!cust.TEN_NVCDAT || String(cust.TEN_NVCDAT).trim() === "" || String(cust.TEN_NVCDAT).trim().toLowerCase() === "null") {
     cust.TEN_NVCDAT = currentUser.ten_ndung || "";
   }
@@ -292,7 +295,6 @@ async function saveCustomerData(maKhang) {
       item.GHI_CHU = cust.GHI_CHU;
       item.THAY_CTO = cust.THAY_CTO;
       item.NGAY_THIEN = cust.NGAY_THIEN;
-      // Cập nhật vào local nhưng vẫn ưu tiên giữ giá trị gốc nếu đã tồn tại
       item.TEN_NVCDAT = item.TEN_NVCDAT && String(item.TEN_NVCDAT).trim() !== "" ? item.TEN_NVCDAT : cust.TEN_NVCDAT;
       item.NVIEN_CDAT = item.NVIEN_CDAT && String(item.NVIEN_CDAT).trim() !== "" ? item.NVIEN_CDAT : cust.NVIEN_CDAT;
     }
@@ -334,17 +336,6 @@ async function cancelCustomerData(maKhang) {
   showToast("✂ Đã hủy dữ liệu cài đặt!");
   renderCurrentCustomerCard();
   updateSummaryBar();
-}
-
-async function handleSendDataBtn() {
-  if (!navigator.onLine) {
-    showToast("❌ Không có kết nối mạng!");
-    return;
-  }
-  const confirm = await showCustomConfirm("GỬI DỮ LIỆU", "Bạn muốn đồng bộ toàn bộ dữ liệu cài đặt lên server không?");
-  if (!confirm) return;
-
-  await syncLocalExcelToSheet(true);
 }
 
 async function syncLocalExcelToSheet(isManual = false) {
@@ -409,7 +400,6 @@ function showCustomConfirm(title, message, isDanger = false) {
 
 function filterChuaGhi() {
   document.getElementById("searchInput").value = "";
-  // Lọc các bản ghi chưa cài đặt trên toàn bộ danh sách dữ liệu
   const allKeys = Object.keys(groupedData);
   customerKeys = allKeys.filter(makh => {
     const cust = groupedData[makh];
@@ -420,18 +410,16 @@ function filterChuaGhi() {
 
 function showAllData() {
   document.getElementById("searchInput").value = "";
-  // Hiển thị lại toàn bộ dữ liệu của bảng
   customerKeys = Object.keys(groupedData);
   renderCurrentCustomerCard();
 }
 
-let searchedCustomer = null; // Biến lưu tạm khách hàng tìm từ toàn bảng
+let searchedCustomer = null;
 
 async function filterData() {
   const q = document.getElementById("searchInput").value.toLowerCase().trim();
   if (!q) return;
 
-  // 1. Tìm trước trong danh sách được giao trong ngày (trên RAM/Local)
   const localTargetKey = Object.keys(groupedData).find(makh => {
     const c = groupedData[makh];
     const maKhang = String(c.MA_KHANG || "").toLowerCase().trim();
@@ -440,7 +428,7 @@ async function filterData() {
   });
 
   if (localTargetKey) {
-    searchedCustomer = null; // Đang nằm trong danh sách giao, hiển thị bình thường
+    searchedCustomer = null;
     if (!customerKeys.includes(localTargetKey)) {
       customerKeys = Object.keys(groupedData);
       renderCurrentCustomerCard();
@@ -449,7 +437,6 @@ async function filterData() {
     return;
   }
 
-  // 2. Nếu không có trong danh sách giao -> Gọi API tìm chính xác trên toàn bảng caidat_congto
   if (!navigator.onLine) {
     showToast("❌ Không tìm thấy trong danh sách giao hôm nay (Đang ngoại tuyến)!", true);
     return;
@@ -468,10 +455,7 @@ async function filterData() {
     const data = await res.json();
 
     if (data.status === "success" && Array.isArray(data.list) && data.list.length > 0) {
-      // Lấy khách hàng tìm được và gán vào biến độc lập, chưa cho vào groupedData vội
       searchedCustomer = data.list[0];
-      
-      // Render riêng 1 khách hàng này lên màn hình
       renderSearchedCustomerCard(searchedCustomer);
       showToast(`✅ Đã tìm thấy khách hàng ${searchedCustomer.MA_KHANG} (Ngoài danh sách giao)!`);
     } else {
@@ -482,7 +466,6 @@ async function filterData() {
   }
 }
 
-// Hàm render riêng 1 khách hàng được tìm thấy từ toàn bảng
 function renderSearchedCustomerCard(cust) {
   const container = document.getElementById("listContainer");
   const makh = cust.MA_KHANG;
@@ -575,41 +558,37 @@ async function saveSearchedCustomerData(maKhang) {
   searchedCustomer.THAY_CTO = "X"; 
   searchedCustomer.NGAY_THIEN = getFormattedDateTime();
   
-// 👉 Lấy trực tiếp NGAY_GIAOBB và NVIEN_CHTT từ dòng mẫu có sẵn của user
-const sampleKeys = Object.keys(groupedData);
-if (sampleKeys.length > 0) {
-  const sampleCust = groupedData[sampleKeys[0]];
-  
-  let rawNgayGiao = sampleCust.NGAY_GIAOBB || "";
-  if (rawNgayGiao) {
-    // Khởi tạo đối tượng Date để JavaScript tự động xử lý chuẩn múi giờ địa phương
-    let d = new Date(rawNgayGiao);
-    if (!isNaN(d.getTime())) {
-      let day = String(d.getDate()).padStart(2, '0');
-      let month = String(d.getMonth() + 1).padStart(2, '0');
-      let year = d.getFullYear();
-      searchedCustomer.NGAY_GIAOBB = `${day}/${month}/${year}`;
-    } else {
-      // Fallback nếu chuỗi không phải định dạng chuẩn ngày tháng
-      let strGiao = String(rawNgayGiao).trim();
-      if (strGiao.includes("T")) {
-        let parts = strGiao.split("T")[0].split("-");
-        if (parts.length === 3) {
-          strGiao = `${parts[2]}/${parts[1]}/${parts[0]}`;
+  const sampleKeys = Object.keys(groupedData);
+  if (sampleKeys.length > 0) {
+    const sampleCust = groupedData[sampleKeys[0]];
+    
+    let rawNgayGiao = sampleCust.NGAY_GIAOBB || "";
+    if (rawNgayGiao) {
+      let d = new Date(rawNgayGiao);
+      if (!isNaN(d.getTime())) {
+        let day = String(d.getDate()).padStart(2, '0');
+        let month = String(d.getMonth() + 1).padStart(2, '0');
+        let year = d.getFullYear();
+        searchedCustomer.NGAY_GIAOBB = `${day}/${month}/${year}`;
+      } else {
+        let strGiao = String(rawNgayGiao).trim();
+        if (strGiao.includes("T")) {
+          let parts = strGiao.split("T")[0].split("-");
+          if (parts.length === 3) {
+            strGiao = `${parts[2]}/${parts[1]}/${parts[0]}`;
+          }
         }
+        searchedCustomer.NGAY_GIAOBB = strGiao;
       }
-      searchedCustomer.NGAY_GIAOBB = strGiao;
+    } else {
+      searchedCustomer.NGAY_GIAOBB = "";
     }
-  } else {
-    searchedCustomer.NGAY_GIAOBB = "";
+
+    searchedCustomer.NVIEN_CDAT = sampleCust.NVIEN_CDAT || currentUser.ten_ndung || "";
+    searchedCustomer.TEN_NVCDAT = sampleCust.TEN_NVCDAT || currentUser.ten_ndung || "";
+    searchedCustomer.NVIEN_CHTT = sampleCust.NVIEN_CHTT || ""; 
   }
 
-  searchedCustomer.NVIEN_CDAT = sampleCust.NVIEN_CDAT || currentUser.ten_ndung || "";
-  searchedCustomer.TEN_NVCDAT = sampleCust.TEN_NVCDAT || currentUser.ten_ndung || "";
-  searchedCustomer.NVIEN_CHTT = sampleCust.NVIEN_CHTT || ""; 
-}
-
-  // Thêm vào danh sách groupedData cục bộ của user
   groupedData[maKhang] = { ...searchedCustomer, items: [searchedCustomer] };
   
   const storeKey = getExcelKeyCaiDat();
@@ -636,7 +615,6 @@ if (sampleKeys.length > 0) {
   }
 }
 
-// Hàm phụ trợ cuộn tới card và tô sáng
 function scrollToAndHighlightCard(targetKey) {
   setTimeout(() => {
     const card = document.getElementById(`customer_card_${targetKey}`);
@@ -655,22 +633,7 @@ function getExcelKeyDinhVi() {
 
 function openNoteDialogForLocation(index, safeKey) {
   let modal = document.getElementById('noteLocationModal');
-  if (!modal) {
-    const modalHtml = `
-      <div id="noteLocationModal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:9999;justify-content:center;align-items:center;">
-        <div style="background:#fff;padding:20px;border-radius:8px;width:90%;max-width:350px;box-sizing:border-box;">
-          <h3 style="margin-top:0;font-size:16px;text-align:center;color:red;">NHẬP CHI TIẾT VỊ TRÍ CÔNG TƠ</h3>
-          <input type="text" id="inputLocationNote" placeholder="Số trụ, mô tả sơ bộ vị trí công tơ..." style="width:100%;padding:8px;box-sizing:border-box;margin-bottom:15px;border:1px solid #ccc;border-radius:4px;" oninput="validateNoteInput()">
-          <div style="display:flex;justify-content:center;gap:10px;">
-            <button type="button" onclick="closeNoteDialog()" style="width:110px;padding:6px 12px;background:#FFB6C1;border:none;border-radius:4px;cursor:pointer;font-weight: bold;">📤&nbsp;&nbsp;Thoát</button>
-            <button type="button" id="btnExecuteGetLocation" onclick="executeGetLocationWithNote()" style="width:110px;padding:6px 12px;background:#007bff;border:none;border-radius:4px;cursor:pointer;opacity:0.5;pointer-events:none;font-weight: bold;color:#fff">📍&nbsp;&nbsp;Thực hiện</button>
-          </div>
-        </div>
-      </div>`;
-    document.body.insertAdjacentHTML('beforeend', modalHtml);
-    modal = document.getElementById('noteLocationModal');
-  }
-
+  if (!modal) return;
   window._pendingLocationContext = { index, safeKey };
   document.getElementById('inputLocationNote').value = '';
   validateNoteInput();
@@ -719,7 +682,8 @@ function getLocationAndSave(maKhang, locationNote = "") {
     (position) => {
       const lat = position.coords.latitude;
       const lng = position.coords.longitude;
-      const cust = groupedData[maKghang || maKhang] || {};
+      // Đã sửa lỗi đánh máy maKghang thành maKhang ở đây:
+      const cust = groupedData[maKhang] || {};
       const nowStr = new Date().toLocaleString("vi-VN");
 
       cust.LAT = lat;
