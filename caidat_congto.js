@@ -552,7 +552,7 @@ async function saveSearchedCustomerData(maKhang) {
   const sampleKeys = Object.keys(groupedData);
   if (sampleKeys.length > 0) {
     const sampleCust = groupedData[sampleKeys[0]];
-    searchedCustomer.NGAY_GIAOBB = sampleCust.NGAY_GIAOBB || new Date().toLocaleDateString("vi-VN");
+    searchedCustomer.NGAY_GIAOBB = sampleCust.NGAY_GIAOBB || currentUser.ten_ndung || "";
     searchedCustomer.NVIEN_CDAT = sampleCust.NVIEN_CDAT || currentUser.ten_ndung || "";
     searchedCustomer.TEN_NVCDAT = sampleCust.TEN_NVCDAT || currentUser.ten_ndung || "";
     searchedCustomer.NVIEN_CHTT = sampleCust.NVIEN_CHTT || ""; // Lấy đúng NVIEN_CHTT từ dòng mẫu của người đó
