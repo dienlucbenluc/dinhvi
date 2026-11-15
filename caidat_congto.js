@@ -125,6 +125,11 @@ function renderCurrentCustomerCard() {
     return;
   }
 
+
+  
+  let html = "";
+  customerKeys.forEach((makh, index) => {
+    const cust = groupedData[makh];
    let dateOnly = '<a style="color:red;">Chưa có</a>';
 
   if (cust.NGAY_THIEN && String(cust.NGAY_THIEN).trim() !== '' && String(cust.NGAY_THIEN).trim().toLowerCase() !== 'null' && String(cust.NGAY_THIEN).trim().toLowerCase() !== 'undefined') {
@@ -154,11 +159,6 @@ function renderCurrentCustomerCard() {
           }
       }
   }
-  
-  let html = "";
-  customerKeys.forEach((makh, index) => {
-    const cust = groupedData[makh];
-
     html += `
       <div class="customer-card" id="customer_card_${makh}">
         <div class="cust-title">STT: ${index + 1}/${customerKeys.length} - Mã KH: ${cust.MA_KHANG} - <b>Số ĐT:</b> ${cust.DTHOAI_DVU || ''}</div>
