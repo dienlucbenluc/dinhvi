@@ -547,13 +547,21 @@ async function saveSearchedCustomerData(maKhang) {
   searchedCustomer.THAY_CTO = "X"; 
   searchedCustomer.NGAY_THIEN = getFormattedDateTime();
   
-  // 👉 Chỉ gán thông tin cho riêng khách hàng này
-  const todayStr = new Date().toLocaleDateString("vi-VN");
-  searchedCustomer.NGAY_GIAOBB = searchedCustomer.NGAY_GIAOBB || todayStr;
-  searchedCustomer.NVIEN_CDAT = currentUser.ten_ndung || "";
-  searchedCustomer.TEN_NVCDAT = currentUser.ten_ndung || "";
-  // 🚫 GIỮ NGUYÊN NVIEN_CHTT GỐC CỦA KHÁCH HÀNG ĐÓ (KHÔNG GÁN BẰNG NVIEN_CDAT NỮA)
-  // searchedCustomer.NVIEN_CHTT vẫn giữ nguyên giá trị sẵn có trong searchedCustomer từ server trả về.
+  // 👉 Lấy mẫu thông tin từ một dòng bất kỳ đang được giao sẵn trong ngày của user (nếu có)
+  // để đồng bộ chính xác NVIEN_CDAT, TEN_NVCDAT, NVIEN_CHTT, NGAY_GIAOBB,...
+  const sampleKeys = Object.keys(groupedData);
+  if (sampleKeys.length > 0) {
+    const sampleCust = groupedData[sampleKeys[0]];
+    searchedCustomer.NGAY_GIAOBB = sampleCust.NGAY_GIAOBB || new Date().toLocaleDateString("vi-VN");
+    searchedCustomer.NVIEN_CDAT = sampleCust.NVIEN_CDAT || currentUser.ten_ndung || "";
+    searchedCustomer.TEN_NVCDAT = sampleCust.TEN_NVCDAT || currentUser.ten_ndung || "";
+    searchedCustomer.NVIEN_CHTT = sampleCust.NVIEN_CHTT || ""; // Lấy đúng NVIEN_CHTT từ dòng mẫu của người đó
+  } else {
+    // Trường hợp phòng hờ danh sách hôm đó trống hoàn toàn
+    searchedCustomer.NGAY_GIAOBB = new Date().toLocaleDateString("vi-VN");
+    searchedCustomer.NVIEN_CDAT = currentUser.ten_ndung || "";
+    searchedCustomer.TEN_NVCDAT = currentUser.ten_ndung || "";
+  }
 
   // Thêm vào danh sách groupedData cục bộ của user
   groupedData[maKhang] = { ...searchedCustomer, items: [searchedCustomer] };
