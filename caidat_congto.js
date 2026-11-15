@@ -415,7 +415,7 @@ async function filterData() {
     return;
   }
 
-  // 2. Nếu không có trong danh sách local, gọi API tìm trên server
+  // 2. Nếu không có trong danh sách, gọi API tìm trên server
   showToast("🔍 Đang tìm kiếm trên toàn bảng...");
   try {
     const res = await fetch(API_URL, {
@@ -428,25 +428,80 @@ async function filterData() {
     if (data.status === "success" && Array.isArray(data.list) && data.list.length > 0) {
       searchedCustomer = data.list[0];
       const makh = searchedCustomer.MA_KHANG;
+      const cust = searchedCustomer;
 
-      // Đưa khách hàng tìm được vào chung kho dữ liệu tạm thời `groupedData`
-      groupedData[makh] = { ...searchedCustomer, items: [searchedCustomer] };
-      
-      // Đưa lên đầu danh sách hiển thị `customerKeys` để render đúng chuẩn card gốc
-      customerKeys = [makh, ...Object.keys(groupedData).filter(k => k !== makh)];
+      let dateOnly = '<a style="color:red;">Chưa cài ĐG</a>';
+      if (cust.NGAY_THIEN && String(cust.NGAY_THIEN).trim() !== '' && String(cust.NGAY_THIEN).trim().toLowerCase() !== 'null') {
+        dateOnly = cust.NGAY_THIEN;
+      }
 
-      // Hiển thị thông báo nhỏ ở trên cùng, sau đó gọi chung hàm render chuẩn
+      // Chỉ render ĐÚNG 1 card của khách hàng tìm kiếm với đầy đủ giao diện chuẩn y chang card gốc
       const container = document.getElementById("listContainer");
       container.innerHTML = `
         <div style="background: #fff3cd; border: 2px dashed #ffc107; padding: 6px; margin-bottom: 8px; border-radius: 8px; font-size: 13px; text-align: center; font-weight: bold; color: #856404;">
-          ⚠️ Khách hàng tìm kiếm (Nằm ngoài danh sách lọc ngày). Lưu sẽ tự động cập nhật!
+          ⚠️ Khách hàng nằm ngoài danh sách lọc. Lưu sẽ tự động thêm vào danh sách!
         </div>
-        <div id="searchedCardWrapper"></div>
-      `;
+        <div class="customer-card" id="customer_card_${makh}" style="border: 2px solid #fd7e14;">
+          <div class="cust-title" style="color: #fd7e14;">🔍 TÌM KIẾM - Mã KH: ${cust.MA_KHANG} - <b>Số ĐT:</b> ${cust.DTHOAI_DVU || ''}</div>
+          <div class="cust-tenKH">${cust.TEN_KHANG || ''}</div>
+          <div class="cust-address"><b>Đ/C:</b> ${cust.DCHI_DDO || ''}</div>
+          <div class="cust-row-group">Sổ: ${cust.MA_SOGCS || ''}-Danh số: ${cust.DANH_SO || ''}-Trụ: ${cust.SO_COT || ''}-Trạm: ${cust.TEN_TRAM || ''}</div>
+          <div class="cust-address"><b>VT đấu nối:</b> ${cust.VITRI_DNOI || ''}</div>
+          
+          <div class="tech-info-grid">
+            <div>Loại cto: <span>${cust.LOAI_CTO || ''}</span></div>
+            <div>Sốc tơ: <span>${cust.SO_TBI || ''}</span></div>
+            <div>GĐV: <span>${cust.TEN_NVGCS || ''}</span></div>
+            <div>Mật khẩu C3: <span>${cust.MK_CAP3 || ''}</span></div>
+            <div>NV cài ĐG: <span>${cust.TEN_NVCDAT || currentUser.ten_ndung || 'Chưa có'}</span></div>
+            <div>Ngày cài ĐG: <span>${dateOnly}</span></div>          
+          </div>
 
-      // Tái sử dụng hoàn toàn hàm render gốc để card y chang 100%
-      renderCurrentCustomerCard();
-      
+          <div class="cust-row-group">
+            <input type="text" class="input-ghichu" 
+                   id="ghi_chu_search_${makh}" 
+                   value="${cust.GHI_CHU || ''}" 
+                   placeholder="Nhập ghi chú nếu có..." 
+                   onchange="searchedCustomer.GHI_CHU = this.value;">
+          </div>
+          
+          <div class="box-maps">
+            ${
+              (() => {
+                const hasLocation = Boolean(cust.LAT && cust.LNG);
+                if (hasLocation) {
+                  return `<span id="map_link_${makh}"><a href="http://maps.google.com/?q=${cust.LAT},${cust.LNG}" target="_blank" style="color:#007bff; font-weight:bold; text-decoration:none;">🌏 Xem VT công tơ trên Google Maps</a></span>`;
+                } else {
+                  return `<a onclick="openNoteDialogForLocation(0, '${makh}')" style="color:red; font-size: 14px; font-weight:bold; text-decoration:none; cursor:pointer;">📍 Lấy mới định vị</a>`;
+                }
+              })()
+            }
+          </div>
+
+          <div style="margin-top: 6px; display:flex; gap:6px;">
+            <div style="flex:1;">
+              <label style="font-size:11px; font-weight:bold;">Loại ký BB:</label>
+              <select class="select-field" id="LOAI_KYBBAN_search_${makh}">
+                <option value="Ký giấy" ${cust.LOAI_KYBBAN === "Ký giấy" ? "selected" : ""}>Ký giấy</option>
+                <option value="Ký số" ${cust.LOAI_KYBBAN === "Ký số" ? "selected" : ""}>Ký số</option>
+                <option value="Chưa ký" ${cust.LOAI_KYBBAN === "Chưa ký" ? "selected" : ""}>Chưa ký</option>
+              </select>
+            </div>
+            <div style="flex:1;">
+              <label style="font-size:11px; font-weight:bold;">Tình trạng cài đặt:</label>
+              <select class="select-field" id="CAIDAT_HTRUONG_search_${makh}">
+                <option value="Thành công" ${cust.CAIDAT_HTRUONG === "Thành công" ? "selected" : ""}>Thành công</option>
+                <option value="Lỗi cài đặt" ${cust.CAIDAT_HTRUONG === "Lỗi cài đặt" ? "selected" : ""}>Lỗi cài đặt</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="card-btn-group">
+            <button class="btn-card btn-card-save" onclick="saveSearchedCustomerData('${makh}')">💾 Lưu và Thêm vào DS</button>
+            <button class="btn-card btn-card-cancel" onclick="showAllData()">✂ Thoát</button>
+          </div>
+        </div>
+      `;
       showToast("✅ Đã tìm thấy khách hàng!");
     } else {
       showToast("❌ Không tìm thấy Mã KH hoặc Số công tơ!", true);
@@ -458,9 +513,18 @@ async function filterData() {
 
 async function saveSearchedCustomerData(maKhang) {
   if (!searchedCustomer) return;
+
+  const htruongEl = document.getElementById(`CAIDAT_HTRUONG_search_${maKhang}`);
+  const kybbEl = document.getElementById(`LOAI_KYBBAN_search_${maKhang}`);
+  const ghichuEl = document.getElementById(`ghi_chu_search_${maKhang}`);
+
+  searchedCustomer.CAIDAT_HTRUONG = htruongEl ? htruongEl.value : (searchedCustomer.CAIDAT_HTRUONG || "");
+  searchedCustomer.LOAI_KYBBAN = kybbEl ? kybbEl.value : (searchedCustomer.LOAI_KYBBAN || "");
+  searchedCustomer.GHI_CHU = ghichuEl ? ghichuEl.value.trim() : (searchedCustomer.GHI_CHU || "");
   searchedCustomer.THAY_CTO = "X";
   searchedCustomer.NGAY_THIEN = getFormattedDateTime();
   searchedCustomer.NVIEN_CDAT = currentUser.ten_ndung || "";
+  searchedCustomer.TEN_NVCDAT = currentUser.ten_ndung || "";
   
   const ngayThInput = document.getElementById("inputNgayTH");
   if (ngayThInput && ngayThInput.value) {
@@ -468,17 +532,29 @@ async function saveSearchedCustomerData(maKhang) {
     if (parts.length === 3) searchedCustomer.NGAY_GIAOBB = `${parts[2]}/${parts[1]}/${parts[0]}`;
   }
 
+  // Đưa vào kho dữ liệu chính và gộp chung
   groupedData[maKhang] = { ...searchedCustomer, items: [searchedCustomer] };
+  
   const storeKey = getExcelKeyCaiDat();
   let localList = JSON.parse(localStorage.getItem(storeKey) || "[]");
-  localList.push(searchedCustomer);
+  
+  // Kiểm tra nếu đã có trong local storage thì cập nhật, chưa có thì push vào
+  let existingIndex = localList.findIndex(item => String(item.MA_KHANG) === String(maKhang));
+  if (existingIndex >= 0) {
+    localList[existingIndex] = searchedCustomer;
+  } else {
+    localList.push(searchedCustomer);
+  }
+
   localStorage.setItem(storeKey, JSON.stringify(localList));
   
   customerKeys = Object.keys(groupedData);
   searchedCustomer = null;
+  
   showToast("💾 Đã lưu và thêm vào danh sách!");
   renderCurrentCustomerCard();
   updateSummaryBar();
+  
   if (navigator.onLine) await syncLocalExcelToSheet();
 }
 
