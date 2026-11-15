@@ -544,22 +544,23 @@ async function saveSearchedCustomerData(maKhang) {
   searchedCustomer.LOAI_KYBBAN = kybbEl ? kybbEl.value : "";
   searchedCustomer.GHI_CHU = ghichuEl ? ghichuEl.value.trim() : "";
   
+  searchedCustomer.THAY_CTO = "X"; 
   searchedCustomer.NGAY_THIEN = getFormattedDateTime();
   
-  // 👉 Lấy mẫu thông tin từ một dòng bất kỳ đang được giao sẵn trong ngày của user (nếu có)
-  // để đồng bộ chính xác NVIEN_CDAT, TEN_NVCDAT, NVIEN_CHTT, NGAY_GIAOBB,...
+  // 👉 Lấy trực tiếp NGAY_GIAOBB và NVIEN_CHTT từ dòng mẫu có sẵn của user
   const sampleKeys = Object.keys(groupedData);
   if (sampleKeys.length > 0) {
     const sampleCust = groupedData[sampleKeys[0]];
-    searchedCustomer.NGAY_GIAOBB = sampleCust.NGAY_GIAOBB || currentUser.ten_ndung || "";
+    searchedCustomer.NGAY_GIAOBB = sampleCust.NGAY_GIAOBB || ""; // Lấy y hệt dòng mẫu
     searchedCustomer.NVIEN_CDAT = sampleCust.NVIEN_CDAT || currentUser.ten_ndung || "";
     searchedCustomer.TEN_NVCDAT = sampleCust.TEN_NVCDAT || currentUser.ten_ndung || "";
-    searchedCustomer.NVIEN_CHTT = sampleCust.NVIEN_CHTT || ""; // Lấy đúng NVIEN_CHTT từ dòng mẫu của người đó
+    searchedCustomer.NVIEN_CHTT = sampleCust.NVIEN_CHTT || ""; // Lấy y hệt dòng mẫu
   } else {
     // Trường hợp phòng hờ danh sách hôm đó trống hoàn toàn
-    searchedCustomer.NGAY_GIAOBB = currentUser.ten_ndung || "";
+    searchedCustomer.NGAY_GIAOBB = "";
     searchedCustomer.NVIEN_CDAT = currentUser.ten_ndung || "";
     searchedCustomer.TEN_NVCDAT = currentUser.ten_ndung || "";
+    searchedCustomer.NVIEN_CHTT = "";
   }
 
   // Thêm vào danh sách groupedData cục bộ của user
