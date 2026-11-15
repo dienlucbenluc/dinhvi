@@ -20,6 +20,11 @@ document.addEventListener("DOMContentLoaded", async () => {
   if (!sessionStr) { window.location.href = "login.html"; return; }
   currentUser = JSON.parse(sessionStr);
 
+  // Gán mặc định ô ngày TH là ngày hôm nay (YYYY-MM-DD)
+  const todayStr = new Date().toISOString().split('T')[0];
+  const dateInput = document.getElementById("inputNgayTH");
+  if (dateInput) dateInput.value = todayStr;
+
   initLocalExcelStore();
   await checkAndLoadInitialData();
 
@@ -29,13 +34,6 @@ document.addEventListener("DOMContentLoaded", async () => {
   });
 });
 
-function initLocalExcelStore() {
-  const storeKey = getExcelKeyCaiDat();
-  const imgKey = getOfflineImagesKey();
-  if (!localStorage.getItem(storeKey)) localStorage.setItem(storeKey, JSON.stringify([]));
-  if (!localStorage.getItem(imgKey)) localStorage.setItem(imgKey, JSON.stringify({}));
-}
-
 async function checkAndLoadInitialData() {
   const storeKey = getExcelKeyCaiDat();
   let localList = [];
@@ -44,6 +42,10 @@ async function checkAndLoadInitialData() {
   } catch (e) {
     localList = [];
   }
+
+  // Lấy giá trị ngày TH người dùng chọn trên giao diện
+  const ngayThInput = document.getElementById("inputNgayTH");
+  const selectedDate = ngayThInput ? ngayThInput.value : "";
 
   if (!navigator.onLine) {
     if (localList.length > 0) {
@@ -57,18 +59,36 @@ async function checkAndLoadInitialData() {
 
   showToast("⏳ Đang tải dữ liệu cài đặt công tơ...");
   try {
-    // 👈 ĐẢM BẢO PHẢI CÓ ten_ndung GỬI LÊN ĐỂ SERVER LỌC ĐÚNG DỮ LIỆU ĐƯỢC GIAO THEO NGÀY
+    // 👈 Gửi kèm cả ten_ndung và ngay_th lên Server
     const res = await fetch(API_URL, {
       method: "POST",
       headers: { "Content-Type": "text/plain;charset=utf-8" },
       body: JSON.stringify({ 
         action: "GET_CAIDAT_DATA", 
-        ten_ndung: currentUser.ten_ndung // Truyền tên nhân viên hiện tại vào đây
+        ten_ndung: currentUser.ten_ndung,
+        ngay_th: selectedDate // Truyền thêm ngày TH
       })
     });
     const data = await res.json();
 
     if (data.status === "success" && Array.isArray(data.list) && data.list.length > 0) {
+      // Chuyển đổi định dạng ngày TH từ YYYY-MM-DD sang DD/MM/YYYY để gán vào NGAY_GIAOBB
+      let formattedNgayTH = "";
+      if (selectedDate) {
+        const parts = selectedDate.split("-"); // [YYYY, MM, DD]
+        if (parts.length === 3) {
+          formattedNgayTH = `${parts[2]}/${parts[1]}/${parts[0]}`;
+        }
+      }
+
+      // Xử lý danh sách load ra: Gán NGAY_GIAOBB = ngày TH và NVIEN_CDAT = ten_ndung
+      data.list.forEach(item => {
+        if (formattedNgayTH) {
+          item.NGAY_GIAOBB = formattedNgayTH;
+        }
+        item.NVIEN_CDAT = currentUser.ten_ndung;
+      });
+
       localStorage.setItem(storeKey, JSON.stringify(data.list));
       loadDataFromLocal();
       showToast("♻️ Lấy dữ liệu cài đặt thành công!");
