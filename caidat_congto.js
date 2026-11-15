@@ -220,7 +220,7 @@ function renderCurrentCustomerCard() {
 
         <div class="card-btn-group">
           <button class="btn-card btn-card-save" onclick="saveCustomerData('${makh}')">💾 Lưu dữ liệu</button>
-          <button class="btn-card btn-card-cancel" onclick="cancelCustomerData('${makh}')">✂ Khôi phục chưa cài</button>
+          <button class="btn-card btn-card-cancel" onclick="cancelCustomerData('${makh}')">✂ Hủy lưu</button>
         </div>
       </div>
     `;
