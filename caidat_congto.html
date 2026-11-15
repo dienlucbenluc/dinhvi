@@ -135,15 +135,18 @@
 </head>
 <body>
 
-  <div class="sticky-top-container">
+<div class="sticky-top-container">
     <div class="header">
         <button class="btn-menu" onclick="window.location.href='home.html'">🏠 Trang chủ</button>        
-        <!--button class="btn-action-hdr btn-send-hdr" onclick="handleSendDataBtn()">📤 Đồng bộ lên server</button-->
-        <button class="btn-action-hdr" id="btnFetchGCS" onclick="handleFetchDataBtn()">📥 Lấy dữ liệu</button>    
+        <!-- Thêm ô chọn ngày TH nằm bên trái nút Lấy dữ liệu -->
+        <div style="display: flex; align-items: center; gap: 4px;">
+          <input type="date" id="inputNgayTH" style="height: 32px; padding: 0 4px; border: 1px solid #ccc; border-radius: 4px; font-size: 13px; font-weight: bold; color: #0056b3; background: #fff; outline: none;">
+          <button class="btn-action-hdr" id="btnFetchGCS" onclick="handleFetchDataBtn()">📥 Lấy dữ liệu</button>    
+        </div>
     </div>
     
     <div class="search-box">
-      <input type="text" id="searchInput" placeholder="Mã KH, Tên, Sốc tơ, Trạm, Sổ..." onkeydown="if(event.key==='Enter') filterData();">
+      <input type="text" id="searchInput" placeholder="Mã KH, Tên, Số CTơ..." onkeydown="if(event.key==='Enter') filterData();">
       <button class="btn-search" onclick="filterData()">🔍</button>
     </div>
     
