@@ -533,7 +533,6 @@ function renderSearchedCustomerCard(cust) {
   container.innerHTML = html;
 }
 
-// Hàm lưu riêng cho khách hàng tìm kiếm bên ngoài: Gán thông tin user hiện tại và đẩy vào danh sách chính
 async function saveSearchedCustomerData(maKhang) {
   if (!searchedCustomer) return;
 
@@ -548,20 +547,20 @@ async function saveSearchedCustomerData(maKhang) {
   searchedCustomer.THAY_CTO = "X"; 
   searchedCustomer.NGAY_THIEN = getFormattedDateTime();
   
-  // 👉 Gán các thông tin phân công của nhân viên hiện tại (giống khách hàng được giao trong ngày)
+  // 👉 Chỉ gán thông tin cho riêng khách hàng này
   const todayStr = new Date().toLocaleDateString("vi-VN");
   searchedCustomer.NGAY_GIAOBB = searchedCustomer.NGAY_GIAOBB || todayStr;
   searchedCustomer.NVIEN_CDAT = currentUser.ten_ndung || "";
   searchedCustomer.TEN_NVCDAT = currentUser.ten_ndung || "";
-  searchedCustomer.NVIEN_CHTT = currentUser.ten_ndung || "";
+  // 🚫 GIỮ NGUYÊN NVIEN_CHTT GỐC CỦA KHÁCH HÀNG ĐÓ (KHÔNG GÁN BẰNG NVIEN_CDAT NỮA)
+  // searchedCustomer.NVIEN_CHTT vẫn giữ nguyên giá trị sẵn có trong searchedCustomer từ server trả về.
 
-  // Thêm vào danh sách groupedData cục bộ của user để hiển thị chung luôn
+  // Thêm vào danh sách groupedData cục bộ của user
   groupedData[maKhang] = { ...searchedCustomer, items: [searchedCustomer] };
   
   const storeKey = getExcelKeyCaiDat();
   let localList = JSON.parse(localStorage.getItem(storeKey) || "[]");
   
-  // Kiểm tra xem đã có trong localList chưa, nếu chưa thì push vào
   const existingIdx = localList.findIndex(item => String(item.MA_KHANG) === String(maKhang));
   if (existingIdx !== -1) {
     localList[existingIdx] = searchedCustomer;
@@ -572,7 +571,7 @@ async function saveSearchedCustomerData(maKhang) {
   localStorage.setItem(storeKey, JSON.stringify(localList));
   
   customerKeys = Object.keys(groupedData);
-  searchedCustomer = null; // Reset biến tạm
+  searchedCustomer = null; 
   
   showToast("💾 Đã lưu và thêm khách hàng vào danh sách của bạn thành công!");
   updateSummaryBar();
