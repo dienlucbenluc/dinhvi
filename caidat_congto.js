@@ -55,26 +55,29 @@ async function checkAndLoadInitialData() {
     return;
   }
 
-  showToast("⏳ Đang tải toàn bộ dữ liệu cài đặt công tơ...");
+  showToast("⏳ Đang tải dữ liệu cài đặt công tơ...");
   try {
-    // Gửi yêu cầu lấy toàn bộ dữ liệu (không lọc theo ten_ndung ở Server nữa hoặc tùy chỉnh action tương ứng)
+    // 👈 ĐẢM BẢO PHẢI CÓ ten_ndung GỬI LÊN ĐỂ SERVER LỌC ĐÚNG DỮ LIỆU ĐƯỢC GIAO THEO NGÀY
     const res = await fetch(API_URL, {
       method: "POST",
       headers: { "Content-Type": "text/plain;charset=utf-8" },
-      body: JSON.stringify({ action: "GET_CAIDAT_DATA" }) // Bỏ ten_ndung để lấy toàn bảng
+      body: JSON.stringify({ 
+        action: "GET_CAIDAT_DATA", 
+        ten_ndung: currentUser.ten_ndung // Truyền tên nhân viên hiện tại vào đây
+      })
     });
     const data = await res.json();
 
     if (data.status === "success" && Array.isArray(data.list) && data.list.length > 0) {
       localStorage.setItem(storeKey, JSON.stringify(data.list));
       loadDataFromLocal();
-      showToast("♻️ Lấy toàn bộ dữ liệu cài đặt thành công!");
+      showToast("♻️ Lấy dữ liệu cài đặt thành công!");
     } else {
       if (localList.length > 0) {
         loadDataFromLocal();
         showToast("⚠️ Máy chủ chưa có dữ liệu mới. Hiển thị dữ liệu trên thiết bị.");
       } else {
-        document.getElementById("listContainer").innerHTML = "<p style='text-align:center; padding:20px; color:red;'>Không có dữ liệu cài đặt.</p>";
+        document.getElementById("listContainer").innerHTML = "<p style='text-align:center; padding:20px; color:red;'>Không có dữ liệu phân công cài đặt.</p>";
       }
     }
   } catch (err) {
