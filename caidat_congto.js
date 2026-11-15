@@ -532,19 +532,6 @@ function renderSearchedCustomerCard(cust) {
   container.innerHTML = html;
 }
 
-function getVNCurrentDate() {
-  const now = new Date();
-  // Chuyển sang giờ Việt Nam (UTC+7)
-  const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
-  const vnTime = new Date(utc + (3600000 * 7));
-  
-  const day = String(vnTime.getDate()).padStart(2, '0');
-  const month = String(vnTime.getMonth() + 1).padStart(2, '0');
-  const year = vnTime.getFullYear();
-  
-  return `${day}/${month}/${year}`;
-}
-
 async function saveSearchedCustomerData(maKhang) {
   if (!searchedCustomer) return;
 
@@ -564,13 +551,10 @@ const sampleKeys = Object.keys(groupedData);
   if (sampleKeys.length > 0) {
     const sampleCust = groupedData[sampleKeys[0]];
     
-    // 👉 Xử lý chuẩn hóa NGAY_GIAOBB để không bị lệch ngày do múi giờ
     let rawNgayGiao = sampleCust.NGAY_GIAOBB || "";
     if (rawNgayGiao) {
       let strGiao = String(rawNgayGiao).trim();
-      // Nếu dính dạng ISO chuẩn (ví dụ chứa chữ T như 2026-11-10T00:00:00.000Z)
       if (strGiao.includes("T")) {
-        // Tách lấy phần ngày tháng năm năm-tháng-ngày rồi đổi lại thành DD/MM/YYYY
         let parts = strGiao.split("T")[0].split("-");
         if (parts.length === 3) {
           strGiao = `${parts[2]}/${parts[1]}/${parts[0]}`;
