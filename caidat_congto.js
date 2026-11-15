@@ -142,6 +142,8 @@ function renderCurrentCustomerCard() {
           <div>Sốc tơ: <span>${cust.SO_TBI || ''}</span></div>
           <div>GĐV: <span>${cust.TEN_NVGCS || ''}</span></div>
           <div>Mật khẩu C3: <span>${cust.MK_CAP3 || ''}</span></div>
+          <div>NV cài ĐG: <span>${cust.TEN_NVCDAT || 'Chưa có'}</span></div>
+          <div>Ngày cài ĐG gần nhất: <span>${cust.NGAY_THIEN || 'Chưa có'}</span></div>          
         </div>
 
           <!-- 👉 THAY THẾ HOẶC ĐẶT PHẦN NÀY VÀO VỊ TRÍ KHUNG MAPS CŨ TRONG HÀM renderCurrentCustomerCard -->
