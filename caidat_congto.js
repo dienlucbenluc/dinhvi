@@ -6,8 +6,8 @@ let customerKeys = [];
 const currentCapturedFiles = {};
 
 function getExcelKeyCaiDat() {
-  const user = String(currentUser?.ten_ndung || "").trim().toLowerCase();
-  return `caidat_excel_data_${user}`;
+  // Dùng chung một key lưu trữ toàn cục cho bảng caidat_congto trên thiết bị
+  return `caidat_excel_data_toanquan`;
 }
 
 function getOfflineImagesKey() {
@@ -24,7 +24,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   await checkAndLoadInitialData();
 
   window.addEventListener("online", async () => {
-    showToast("📶 Đã kết nối mạng. Đang đồng bộ dữ liệu cài đặt...");
+    showToast("📶 Đang kết nối mạng. Đang đồng bộ dữ liệu cài đặt...");
     await syncLocalExcelToSheet();
   });
 });
@@ -55,25 +55,26 @@ async function checkAndLoadInitialData() {
     return;
   }
 
-  showToast("⏳ Đang tải dữ liệu cài đặt công tơ...");
+  showToast("⏳ Đang tải toàn bộ dữ liệu cài đặt công tơ...");
   try {
+    // Gửi yêu cầu lấy toàn bộ dữ liệu (không lọc theo ten_ndung ở Server nữa hoặc tùy chỉnh action tương ứng)
     const res = await fetch(API_URL, {
       method: "POST",
       headers: { "Content-Type": "text/plain;charset=utf-8" },
-      body: JSON.stringify({ action: "GET_CAIDAT_DATA", ten_ndung: currentUser.ten_ndung })
+      body: JSON.stringify({ action: "GET_CAIDAT_DATA" }) // Bỏ ten_ndung để lấy toàn bảng
     });
     const data = await res.json();
 
     if (data.status === "success" && Array.isArray(data.list) && data.list.length > 0) {
       localStorage.setItem(storeKey, JSON.stringify(data.list));
       loadDataFromLocal();
-      showToast("♻️ Lấy dữ liệu cài đặt thành công!");
+      showToast("♻️ Lấy toàn bộ dữ liệu cài đặt thành công!");
     } else {
       if (localList.length > 0) {
         loadDataFromLocal();
         showToast("⚠️ Máy chủ chưa có dữ liệu mới. Hiển thị dữ liệu trên thiết bị.");
       } else {
-        document.getElementById("listContainer").innerHTML = "<p style='text-align:center; padding:20px; color:red;'>Không có dữ liệu phân công cài đặt.</p>";
+        document.getElementById("listContainer").innerHTML = "<p style='text-align:center; padding:20px; color:red;'>Không có dữ liệu cài đặt.</p>";
       }
     }
   } catch (err) {
@@ -125,14 +126,12 @@ function renderCurrentCustomerCard() {
     return;
   }
 
-
-  
   let html = "";
   customerKeys.forEach((makh, index) => {
     const cust = groupedData[makh];
-   let dateOnly = '<a style="color:red;">Chưa cài ĐG</a>';
+    let dateOnly = '<a style="color:red;">Chưa cài ĐG</a>';
 
-  if (cust.NGAY_THIEN && String(cust.NGAY_THIEN).trim() !== '' && String(cust.NGAY_THIEN).trim().toLowerCase() !== 'null' && String(cust.NGAY_THIEN).trim().toLowerCase() !== 'undefined') {
+    if (cust.NGAY_THIEN && String(cust.NGAY_THIEN).trim() !== '' && String(cust.NGAY_THIEN).trim().toLowerCase() !== 'null' && String(cust.NGAY_THIEN).trim().toLowerCase() !== 'undefined') {
       const strTime = String(cust.NGAY_THIEN).trim();
       const dateTimeMatch = strTime.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})(?:\s+(\d{1,2}):(\d{1,2})(?::(\d{1,2}))?)?$/);
 
@@ -158,7 +157,8 @@ function renderCurrentCustomerCard() {
               dateOnly = `${day}/${month}/${year} ${hours}:${minutes}:${seconds}`;
           }
       }
-  }
+    }
+
     html += `
       <div class="customer-card" id="customer_card_${makh}">
         <div class="cust-title">STT: ${index + 1}/${customerKeys.length} - Mã KH: ${cust.MA_KHANG} - <b>Số ĐT:</b> ${cust.DTHOAI_DVU || ''}</div>
@@ -176,43 +176,42 @@ function renderCurrentCustomerCard() {
           <div>Ngày cài ĐG: <span>${dateOnly}</span></div>          
         </div>
 
-          <!-- 👉 THAY THẾ HOẶC ĐẶT PHẦN NÀY VÀO VỊ TRÍ KHUNG MAPS CŨ TRONG HÀM renderCurrentCustomerCard -->
-         <div class="cust-row-group">
-            <input type="text" class="input-ghichu" 
-                   id="ghi_chu_${makh}" 
-                   value="${cust.GHI_CHU || ''}" 
-                   placeholder="Nhập ghi chú nếu có..." 
-                   onchange="groupedData['${makh}'].GHI_CHU = this.value;">
-          </div>
-          
-          <div class="box-maps">
-            ${
-              (() => {
-                const hasLocation = Boolean(cust.LAT && cust.LNG);
-                if (hasLocation) {
-                  return `<span id="map_link_${makh}"><a href="http://maps.google.com/?q=${cust.LAT},${cust.LNG}" target="_blank" style="color:#007bff; font-weight:bold; text-decoration:none;">🌏 Xem VT công tơ trên Google Maps</a></span>`;
-                } else {
-                  return `<a onclick="openNoteDialogForLocation(${index}, '${makh}')" style="color:red; font-size: 14px; font-weight:bold; text-decoration:none; cursor:pointer;">📍 Lấy mới định vị</a>`;
-                }
-              })()
-            }
-          </div>
+        <div class="cust-row-group">
+          <input type="text" class="input-ghichu" 
+                 id="ghi_chu_${makh}" 
+                 value="${cust.GHI_CHU || ''}" 
+                 placeholder="Nhập ghi chú nếu có..." 
+                 onchange="groupedData['${makh}'].GHI_CHU = this.value;">
+        </div>
+        
+        <div class="box-maps">
+          ${
+            (() => {
+              const hasLocation = Boolean(cust.LAT && cust.LNG);
+              if (hasLocation) {
+                return `<span id="map_link_${makh}"><a href="http://maps.google.com/?q=${cust.LAT},${cust.LNG}" target="_blank" style="color:#007bff; font-weight:bold; text-decoration:none;">🌏 Xem VT công tơ trên Google Maps</a></span>`;
+              } else {
+                return `<a onclick="openNoteDialogForLocation(${index}, '${makh}')" style="color:red; font-size: 14px; font-weight:bold; text-decoration:none; cursor:pointer;">📍 Lấy mới định vị</a>`;
+              }
+            })()
+          }
+        </div>
 
         <div style="margin-top: 6px; display:flex; gap:6px;">
           <div style="flex:1;">
             <label style="font-size:11px; font-weight:bold;">Loại ký BB:</label>
-<select class="select-field" id="LOAI_KYBBAN_${makh}">
-  <option value="Ký giấy" ${cust.LOAI_KYBBAN === "Ký giấy" ? "selected" : ""}>Ký giấy</option>
-  <option value="Ký số" ${cust.LOAI_KYBBAN === "Ký số" ? "selected" : ""}>Ký số</option>
-  <option value="Chưa ký" ${cust.LOAI_KYBBAN === "Chưa ký" ? "selected" : ""}>Chưa ký</option>
-</select>
+            <select class="select-field" id="LOAI_KYBBAN_${makh}">
+              <option value="Ký giấy" ${cust.LOAI_KYBBAN === "Ký giấy" ? "selected" : ""}>Ký giấy</option>
+              <option value="Ký số" ${cust.LOAI_KYBBAN === "Ký số" ? "selected" : ""}>Ký số</option>
+              <option value="Chưa ký" ${cust.LOAI_KYBBAN === "Chưa ký" ? "selected" : ""}>Chưa ký</option>
+            </select>
           </div>
           <div style="flex:1;">
             <label style="font-size:11px; font-weight:bold;">Tình trạng cài đặt:</label>
-<select class="select-field" id="CAIDAT_HTRUONG_${makh}">
-  <option value="Thành công" ${cust.CAIDAT_HTRUONG === "Thành công" ? "selected" : ""}>Thành công</option>
-  <option value="Lỗi cài đặt" ${cust.CAIDAT_HTRUONG === "Lỗi cài đặt" ? "selected" : ""}>Lỗi cài đặt</option>
-</select>
+            <select class="select-field" id="CAIDAT_HTRUONG_${makh}">
+              <option value="Thành công" ${cust.CAIDAT_HTRUONG === "Thành công" ? "selected" : ""}>Thành công</option>
+              <option value="Lỗi cài đặt" ${cust.CAIDAT_HTRUONG === "Lỗi cài đặt" ? "selected" : ""}>Lỗi cài đặt</option>
+            </select>
           </div>
         </div>
 
@@ -227,7 +226,6 @@ function renderCurrentCustomerCard() {
   container.innerHTML = html;
 }
 
-// Hàm phụ trợ tạo chuỗi định dạng: DD/MM/YYYY HH:mm:ss
 function getFormattedDateTime() {
   const now = new Date();
   const day = String(now.getDate()).padStart(2, '0');
@@ -236,37 +234,36 @@ function getFormattedDateTime() {
   const hours = String(now.getHours()).padStart(2, '0');
   const minutes = String(now.getMinutes()).padStart(2, '0');
   const seconds = String(now.getSeconds()).padStart(2, '0');
-  
   return `${day}/${month}/${year} ${hours}:${minutes}:${seconds}`;
 }
+
 async function saveCustomerData(maKhang) {
   const cust = groupedData[maKhang];
   if (!cust) return;
 
-  const modemEl = document.getElementById(`modem_${maKhang}`);
   const htruongEl = document.getElementById(`CAIDAT_HTRUONG_${maKhang}`);
   const kybbEl = document.getElementById(`LOAI_KYBBAN_${maKhang}`);
   const ghichuEl = document.getElementById(`ghi_chu_${maKhang}`);
 
-  cust.MODEM = modemEl ? modemEl.value.trim() : (cust.MODEM || "");
   cust.CAIDAT_HTRUONG = htruongEl ? htruongEl.value : (cust.CAIDAT_HTRUONG || "");
   cust.LOAI_KYBBAN = kybbEl ? kybbEl.value : (cust.LOAI_KYBBAN || "");
   cust.GHI_CHU = ghichuEl ? ghichuEl.value.trim() : (cust.GHI_CHU || "");
   
   cust.THAY_CTO = "X"; 
-  cust.NGAY_THIEN = getFormattedDateTime(); // 👈 Đã đổi sang chuẩn DD/MM/YYYY HH:mm:ss
+  cust.NGAY_THIEN = getFormattedDateTime();
+  cust.TEN_NVCDAT = currentUser.ten_ndung || ""; // Cập nhật tên nhân viên thực hiện hiện tại
 
   const storeKey = getExcelKeyCaiDat();
   let localList = JSON.parse(localStorage.getItem(storeKey) || "[]");
   
   localList.forEach(item => {
     if (String(item.MA_KHANG) === String(maKhang)) {
-      item.MODEM = cust.MODEM;
       item.CAIDAT_HTRUONG = cust.CAIDAT_HTRUONG;
       item.LOAI_KYBBAN = cust.LOAI_KYBBAN;
       item.GHI_CHU = cust.GHI_CHU;
       item.THAY_CTO = cust.THAY_CTO;
       item.NGAY_THIEN = cust.NGAY_THIEN;
+      item.TEN_NVCDAT = cust.TEN_NVCDAT;
     }
   });
 
@@ -286,19 +283,19 @@ async function cancelCustomerData(maKhang) {
   const cust = groupedData[maKhang];
   if (!cust) return;
 
-  cust.MODEM = "";
   cust.CAIDAT_HTRUONG = "";
   cust.THAY_CTO = "";
   cust.NGAY_THIEN = "";
+  cust.TEN_NVCDAT = "";
 
   const storeKey = getExcelKeyCaiDat();
   let localList = JSON.parse(localStorage.getItem(storeKey) || "[]");
   localList.forEach(item => {
     if (String(item.MA_KHANG) === String(maKhang)) {
-      item.MODEM = "";
       item.CAIDAT_HTRUONG = "";
       item.THAY_CTO = "";
       item.NGAY_THIEN = "";
+      item.TEN_NVCDAT = "";
     }
   });
 
@@ -381,7 +378,9 @@ function showCustomConfirm(title, message, isDanger = false) {
 
 function filterChuaGhi() {
   document.getElementById("searchInput").value = "";
-  customerKeys = Object.keys(groupedData).filter(makh => {
+  // Lọc các bản ghi chưa cài đặt trên toàn bộ danh sách dữ liệu
+  const allKeys = Object.keys(groupedData);
+  customerKeys = allKeys.filter(makh => {
     const cust = groupedData[makh];
     return !cust.THAY_CTO && !cust.NGAY_THIEN;
   });
@@ -390,6 +389,7 @@ function filterChuaGhi() {
 
 function showAllData() {
   document.getElementById("searchInput").value = "";
+  // Hiển thị lại toàn bộ dữ liệu của bảng
   customerKeys = Object.keys(groupedData);
   renderCurrentCustomerCard();
 }
@@ -397,37 +397,48 @@ function showAllData() {
 function filterData() {
   const q = document.getElementById("searchInput").value.toLowerCase().trim();
   if (!q) return;
-  const targetKey = customerKeys.find(makh => {
+
+  // Mở rộng phạm vi tìm kiếm toàn bộ kho dữ liệu `groupedData` thay vì chỉ quét `customerKeys` hiện tại
+  const allKeys = Object.keys(groupedData);
+  const targetKey = allKeys.find(makh => {
     const c = groupedData[makh];
     return String(c.MA_KHANG || "").toLowerCase().includes(q) ||
            String(c.TEN_KHANG || "").toLowerCase().includes(q) ||
            String(c.SO_TBI || "").toLowerCase().includes(q) ||
            String(c.TEN_TRAM || "").toLowerCase().includes(q) ||
-           String(c.MA_SOGCS || "").toLowerCase().includes(q);
+           String(c.MA_SOGCS || "").toLowerCase().includes(q) ||
+           String(c.DTHOAI_DVU || "").toLowerCase().includes(q) ||
+           String(c.DCHI_DDO || "").toLowerCase().includes(q);
   });
+
   if (targetKey) {
-    const card = document.getElementById(`customer_card_${targetKey}`);
-    if (card) {
-      card.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      card.style.backgroundColor = "#e8f4fd";
-      setTimeout(() => card.style.backgroundColor = "", 1500);
+    // Đảm bảo `customerKeys` chứa `targetKey` để card có thể hiển thị nếu đang ở bộ lọc khác
+    if (!customerKeys.includes(targetKey)) {
+      customerKeys.push(targetKey);
+      renderCurrentCustomerCard();
     }
+    
+    setTimeout(() => {
+      const card = document.getElementById(`customer_card_${targetKey}`);
+      if (card) {
+        card.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        card.style.backgroundColor = "#e8f4fd";
+        setTimeout(() => card.style.backgroundColor = "", 1500);
+      }
+    }, 100);
   } else {
-    showToast("❌ Không tìm thấy thông tin phù hợp!");
+    showToast("❌ Không tìm thấy thông tin phù hợp trong toàn bảng!");
   }
 }
 
-// Thêm key lưu trữ dữ liệu định vị ngoại tuyến tương tự nhap_chiso.js
 function getExcelKeyDinhVi() {
   const user = String(currentUser?.ten_ndung || "").trim().toLowerCase();
   return `caidat_dinhvi_excel_data_${user}`;
 }
 
-// Hàm gọi mở popup nhập ghi chú định vị trước khi lấy tọa độ GPS
 function openNoteDialogForLocation(index, safeKey) {
   let modal = document.getElementById('noteLocationModal');
   if (!modal) {
-    // Nếu trong html chưa có sẵn modal thì tạo động
     const modalHtml = `
       <div id="noteLocationModal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:9999;justify-content:center;align-items:center;">
         <div style="background:#fff;padding:20px;border-radius:8px;width:90%;max-width:350px;box-sizing:border-box;">
@@ -480,7 +491,6 @@ function executeGetLocationWithNote() {
   getLocationAndSave(context.safeKey, note);
 }
 
-// Hàm thực thi lấy định vị GPS và lưu vào localStorage theo chuẩn LAT/LNG
 function getLocationAndSave(maKhang, locationNote = "") {
   if (!navigator.geolocation) {
     showToast("❌ Trình duyệt không hỗ trợ định vị GPS!");
@@ -492,14 +502,12 @@ function getLocationAndSave(maKhang, locationNote = "") {
     (position) => {
       const lat = position.coords.latitude;
       const lng = position.coords.longitude;
-      const cust = groupedData[maKhang] || {};
+      const cust = groupedData[maKghang || maKhang] || {};
       const nowStr = new Date().toLocaleString("vi-VN");
 
-      // Cập nhật trực tiếp vào dữ liệu RAM của khách hàng
       cust.LAT = lat;
       cust.LNG = lng;
 
-      // Lưu vào LocalStorage của danh sách cài đặt công tơ
       const storeKey = getExcelKeyCaiDat();
       let localList = JSON.parse(localStorage.getItem(storeKey) || "[]");
       localList.forEach(item => {
@@ -510,7 +518,6 @@ function getLocationAndSave(maKhang, locationNote = "") {
       });
       localStorage.setItem(storeKey, JSON.stringify(localList));
 
-      // Đồng thời lưu log vào bảng định vị (nếu server bác có dùng bảng riêng cho định vị)
       const dvKey = getExcelKeyDinhVi();
       let dinhViList = JSON.parse(localStorage.getItem(dvKey) || "[]");
       dinhViList = dinhViList.filter(item => String(item.MA_KHANG) !== String(maKhang));
